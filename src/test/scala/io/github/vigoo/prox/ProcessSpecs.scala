@@ -19,6 +19,8 @@ class ProcessSpecs extends Specification { def is = s2"""
     executed for getting it's exit code             $simpleProcessGetExitCode
     executed by redirecting it's output to a file   $simpleProcessFileOutput
     executed by redirecting it's output to a stream $simpleProcessStreamOutput
+    executed by using a stream as it's input        $simpleProcessStreamInput
+    be piped to another                             $simpleProcessPiping
   """
 
   def simpleProcessGetExitCode = {
@@ -43,6 +45,39 @@ class ProcessSpecs extends Specification { def is = s2"""
   }
 
   def simpleProcessStreamOutput = {
-    ko
+    val target: Pipe[IO, Byte, Byte] = identity[Stream[IO, Byte]]
+    val program = for {
+      running <- (Process("echo", List("Hello world!")) > target).start().map(_.asHList.head) // TODO: simplify
+      _ <- running.waitForExit()
+      contents <- running.output.through(text.utf8Decode).runFoldMonoid
+    } yield contents
+
+    program.unsafeRunSync() === "Hello world!\n"
+  }
+
+  def simpleProcessStreamInput = {
+    val source: Stream[IO, Byte] = Stream("This is a test string").through(text.utf8Encode)
+    val target: Pipe[IO, Byte, Byte] = identity[Stream[IO, Byte]]
+    val program = for {
+      running <- (Process("wc", List("-w")) < source > target).start().map(_.asHList.head) // TODO: simplify
+      _ <- running.input.run
+      contents <- running.output.through(text.utf8Decode).runFoldMonoid
+      _ <- running.waitForExit()
+    } yield contents.trim
+
+    program.unsafeRunSync() === "5"
+  }
+
+  def simpleProcessPiping = {
+    val target: Pipe[IO, Byte, Byte] = identity[Stream[IO, Byte]]
+    val program = for {
+      rps <- (Process("echo", List("This is a test string")) | (Process("wc", List("-w")) > target)).start().map(_.asHList.tupled)
+      (runningEcho, runningWc) = rps
+      contents <- runningWc.output.through(text.utf8Decode).runFoldMonoid
+      _ <- runningEcho.waitForExit()
+      _ <- runningWc.waitForExit()
+    } yield contents.trim
+
+    program.unsafeRunSync() === "5"
   }
 }

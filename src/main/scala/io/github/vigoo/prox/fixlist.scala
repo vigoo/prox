@@ -14,6 +14,7 @@ sealed trait FixList[Elem]  {
 
   def :|:(newHead: Elem): Self#PrependOne
   def append[L <: FixList[Elem]](newPrefix: L): Concat[L]
+  def first: Option[Elem]
   def last: Option[Elem]
 }
 
@@ -31,6 +32,9 @@ final case class FixCons[Elem, Tail <: FixList[Elem]](head: Elem, tail: Tail) ex
     FixCons(head, tail.append(newPrefix))
 
   override def asHList: HListType = head :: tail.asHList
+
+  override def first: Option[Elem] =
+    Some(head)
 
   override def last: Option[Elem] =
     if (tail.asHList == HNil) {
@@ -54,6 +58,8 @@ final class FixNil[Elem]() extends FixList[Elem] {
     l0
 
   override def asHList: HNil = HNil
+
+  override def first: Option[Elem] = None
 
   override def last: Option[Elem] = None
 }

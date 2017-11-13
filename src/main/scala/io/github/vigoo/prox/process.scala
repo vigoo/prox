@@ -23,36 +23,42 @@ case class PipeConstruction(outStream: Stream[IO, Byte], errStream: Stream[IO, B
 
 sealed trait ProcessNode {
   type RunningProcesses <: FixList[RunningProcess]
-  type Self <: ProcessNode
   type RedirectedOutput <: ProcessNode
   type RedirectedInput <: ProcessNode
 
   def >[To : CanBeProcessOutputTarget](to: To): RedirectedOutput
   def <[From: CanBeProcessInputSource](from: From): RedirectedInput
 
-  def start()(implicit executionContext: ExecutionContext): IO[Self#RunningProcesses]
+  def start()(implicit executionContext: ExecutionContext): IO[RunningProcesses]
 }
 
 case class PipedProcess[PN1 <: ProcessNode, PN2 <: ProcessNode](from: PN1, createTo: PipeConstruction => PN2)
   extends ProcessNode {
 
-  override type Self = PipedProcess[PN1, PN2]
   override type RunningProcesses = Concatenated[RunningProcess, PN1#RunningProcesses, PN2#RunningProcesses]
   override type RedirectedInput = PipedProcess[PN1#RedirectedInput, PN2]
   override type RedirectedOutput = PipedProcess[PN1, PN2#RedirectedOutput]
 
   override def start()(implicit executionContext: ExecutionContext): IO[RunningProcesses] = {
     from.start().flatMap { runningSourceProcesses =>
-      val runningFrom = runningSourceProcesses.last
-      ???
+      runningSourceProcesses.last match {
+        case Some(runningFrom) =>
+          val to = createTo(PipeConstruction(runningFrom.output, runningFrom.error))
+          to.start().flatMap { runningTargetProcesses =>
+            runningTargetProcesses.first match {
+              case Some(runningTo) =>
+                runningTo.input.run.map { _ =>
+                  runningSourceProcesses.append(runningTargetProcesses)
+                }
+              case None =>
+                IO.raiseError(new IllegalStateException("Invalid piped process construction"))
+            }
+          }
+
+        case None =>
+          IO.raiseError(new IllegalStateException("Invalid piped process construction"))
+      }
     }
-
-    // START pipedProcess.from
-    // GET LAST running process
-    // CREATE pipedProcess.to(lastRP)
-    // CONCATENATE running processes
-
-    ???
   }
 
   override def >[To: CanBeProcessOutputTarget](to: To): RedirectedOutput =
@@ -70,7 +76,6 @@ case class Process(command: String,
                    errorTarget: ProcessErrorTarget = StdError)
   extends ProcessNode {
 
-  override type Self = Process
   override type RunningProcesses = RunningProcess :|: FixNil[RunningProcess]
   override type RedirectedInput = Process
   override type RedirectedOutput = Process
@@ -91,10 +96,7 @@ case class Process(command: String,
       inputStream = inputSource.connect(proc)
       outputStream = outputTarget.connect(proc)
       errorStream = errorTarget.connect(proc)
-      _ <- inputStream.run
-      _ <- outputStream.run
-      _ <- errorStream.run
-    } yield new WrappedProcess(proc) :|: FixNil[RunningProcess]
+    } yield new WrappedProcess(proc, inputStream, outputStream, errorStream) :|: FixNil[RunningProcess]
   }
 
   def |[PN <: ProcessNode](to: PN): PipedProcess[Process, PN#RedirectedInput] = {
@@ -127,9 +129,16 @@ trait RunningProcess {
   def waitForExit(): IO[ProcessResult]
   def kill(): IO[ProcessResult]
   def terminate(): IO[ProcessResult]
+
+  def input: Stream[IO, Byte]
+  def output: Stream[IO, Byte]
+  def error: Stream[IO, Byte]
 }
 
-class WrappedProcess(systemProcess: java.lang.Process) extends RunningProcess {
+class WrappedProcess(systemProcess: java.lang.Process,
+                     val input: Stream[IO, Byte],
+                     val output: Stream[IO, Byte],
+                     val error: Stream[IO, Byte]) extends RunningProcess {
 
   override def isAlive: IO[Boolean] =
     IO { systemProcess.isAlive }
@@ -153,39 +162,4 @@ class WrappedProcess(systemProcess: java.lang.Process) extends RunningProcess {
       exitCode <- waitForExit()
     } yield exitCode
   }
-}
-
-object Playground extends App {
-  import implicits._
-  import path._
-
-  implicit val executionContext: ExecutionContext = ExecutionContext.fromExecutor(Executors.newFixedThreadPool(8))
-
-  def testOutput(prefix: String): Sink[IO, Byte] =
-    text.utf8Decode[IO] andThen text.lines[IO] andThen Sink(line => IO { println(s"$prefix: $line") })
-
-  val testInput: Stream[IO, Byte] =
-    Stream("this is a test string")
-      .through(text.utf8Encode)
-
-  val p1 = (Process("ls") in home) > testOutput("ls")
-  val p2 = Process("wc", List("-w")) < testInput > testOutput("wc")
-  val ps = (Process("ls") in home) | Process("wc", List("-w"))
-
-  val program: IO[Unit] = for {
-    runningProcess1 <- p1.start().map(_.head)
-    runningProcess2 <- p2.start().map(_.head)
-    runningProcesses <- ps.start().map(_.asHList.tupled)
-    _ <- runningProcesses match { case (ls, wc) =>
-      for {
-        exitCode1 <- runningProcess1.waitForExit()
-        exitCode2 <- runningProcess2.waitForExit()
-        _ <- ls.waitForExit()
-        _ <- wc.waitForExit()
-        _ <- IO(println(s"Exit codes: $exitCode1 and $exitCode2"))
-      } yield ()
-    }
-  } yield ()
-  program.unsafeRunSync()
-  sys.exit()
 }
