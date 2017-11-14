@@ -32,8 +32,8 @@ class ProcessSpecs extends Specification { def is = s2"""
 
   def simpleProcessGetExitCode = {
     val program = for {
-      trueRunning <- Process("true").start().map(_.asHList.head) // TODO: simplify
-      falseRunning <- Process("false").start().map(_.asHList.head) // TODO: simplify
+      trueRunning <- Process("true").start
+      falseRunning <- Process("false").start
       trueResult <- trueRunning.waitForExit()
       falseResult <- falseRunning.waitForExit()
     } yield (trueResult.exitCode, falseResult.exitCode)
@@ -43,7 +43,7 @@ class ProcessSpecs extends Specification { def is = s2"""
   def simpleProcessFileOutput = {
     val tempFile = File.createTempFile("test", "txt")
     val program = for {
-      running <- (Process("echo", List("Hello world!")) > tempFile.toPath).start().map(_.asHList.head) // TODO: simplify
+      running <- (Process("echo", List("Hello world!")) > tempFile.toPath).start
       _ <- running.waitForExit()
       contents <- io.file.readAll[IO](tempFile.toPath, 1024).through(text.utf8Decode).runFoldMonoid
     } yield contents
@@ -54,7 +54,7 @@ class ProcessSpecs extends Specification { def is = s2"""
   def simpleProcessStreamOutput = {
     val target: Pipe[IO, Byte, Byte] = identity[Stream[IO, Byte]]
     val program = for {
-      running <- (Process("echo", List("Hello world!")) > target).start().map(_.asHList.head) // TODO: simplify
+      running <- (Process("echo", List("Hello world!")) > target).start
       _ <- running.waitForExit()
       contents <- running.output.through(text.utf8Decode).runFoldMonoid
     } yield contents
@@ -65,7 +65,7 @@ class ProcessSpecs extends Specification { def is = s2"""
   def simpleProcessStreamError = {
     val target: Pipe[IO, Byte, Byte] = identity[Stream[IO, Byte]]
     val program = for {
-      running <- (Process("perl", List("-e", """print STDERR "Hello"""")) redirectErrorTo target).start().map(_.asHList.head) // TODO: simplify
+      running <- (Process("perl", List("-e", """print STDERR "Hello"""")) redirectErrorTo target).start
       _ <- running.waitForExit()
       contents <- running.error.through(text.utf8Decode).runFoldMonoid
     } yield contents
@@ -77,7 +77,7 @@ class ProcessSpecs extends Specification { def is = s2"""
     val source: Stream[IO, Byte] = Stream("This is a test string").through(text.utf8Encode)
     val target: Pipe[IO, Byte, Byte] = identity[Stream[IO, Byte]]
     val program = for {
-      running <- (Process("wc", List("-w")) < source > target).start().map(_.asHList.head) // TODO: simplify
+      running <- (Process("wc", List("-w")) < source > target).start
       _ <- running.input.run
       contents <- running.output.through(text.utf8Decode).runFoldMonoid
       _ <- running.waitForExit()
@@ -89,7 +89,7 @@ class ProcessSpecs extends Specification { def is = s2"""
   def simpleProcessPiping = {
     val target: Pipe[IO, Byte, Byte] = identity[Stream[IO, Byte]]
     val program = for {
-      rps <- (Process("echo", List("This is a test string")) | (Process("wc", List("-w")) > target)).start().map(_.asHList.tupled)
+      rps <- (Process("echo", List("This is a test string")) | (Process("wc", List("-w")) > target)).start
       (runningEcho, runningWc) = rps
       contents <- runningWc.output.through(text.utf8Decode).runFoldMonoid
       _ <- runningEcho.waitForExit()
@@ -102,7 +102,7 @@ class ProcessSpecs extends Specification { def is = s2"""
   def multiProcessPiping = {
     val target: Pipe[IO, Byte, Byte] = identity[Stream[IO, Byte]]
     val program = for {
-      rps <- (Process("echo", List("cat\ncat\ndog\napple")) | Process("sort") | (Process("uniq", List("-c")) > target)).start().map(_.asHList.tupled)
+      rps <- (Process("echo", List("cat\ncat\ndog\napple")) | Process("sort") | (Process("uniq", List("-c")) > target)).start
       (runningEcho, runningSort, runningUniq) = rps
       contents <- runningUniq.output.through(text.utf8Decode).runFoldMonoid
       _ <- runningEcho.waitForExit()

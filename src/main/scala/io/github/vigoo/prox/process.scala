@@ -6,6 +6,7 @@ import java.nio.file.Path
 import cats.effect.IO
 import fs2._
 import _root_.io.github.vigoo.prox.FixList._
+import shapeless.ops.hlist.Tupler
 
 import scala.collection.JavaConverters._
 import scala.concurrent.ExecutionContext
@@ -44,7 +45,10 @@ ErrorRedirectionState <: RedirectionState] {
   private[prox] def unsafeChangeRedirectedError[To: CanBeProcessErrorTarget](to: To): RedirectedError
   private[prox] def unsafeChangeRedirectedInput[From: CanBeProcessInputSource](from: From): RedirectedInput
 
-  def start()(implicit executionContext: ExecutionContext): IO[RunningProcesses]
+  def startRP()(implicit executionContext: ExecutionContext): IO[RunningProcesses]
+
+  def startHL()(implicit executionContext: ExecutionContext): IO[RunningProcesses#HListType] =
+    startRP().map(_.asHList)
 }
 
 case class PipedProcess[PN1 <: ProcessNode[_, _, _],
@@ -63,12 +67,12 @@ case class PipedProcess[PN1 <: ProcessNode[_, _, _],
   override type OutputRedirected = OutputRedirectionState
   override type ErrorRedirected = ErrorRedirectionState
 
-  override def start()(implicit executionContext: ExecutionContext): IO[RunningProcesses] = {
-    from.start().flatMap { runningSourceProcesses =>
+  override def startRP()(implicit executionContext: ExecutionContext): IO[RunningProcesses] = {
+    from.startRP().flatMap { runningSourceProcesses =>
       runningSourceProcesses.last match {
         case Some(runningFrom) =>
           val to = createTo(PipeConstruction(runningFrom.output, runningFrom.error))
-          to.start().flatMap { runningTargetProcesses =>
+          to.startRP().flatMap { runningTargetProcesses =>
             runningTargetProcesses.first match {
               case Some(runningTo) =>
                 runningTo.input.run.map { _ =>
@@ -84,6 +88,9 @@ case class PipedProcess[PN1 <: ProcessNode[_, _, _],
       }
     }
   }
+
+  def start(implicit executionContext: ExecutionContext, tupler: Tupler[RunningProcesses#HListType]): IO[tupler.Out] =
+    startHL().map(_.tupled)
 
   def |[PN <: ProcessNode[_, _, _]](to: PN):
   PipedProcess[RedirectedOutput, PN#RedirectedInput, InputRedirectionState, PN#OutputRedirected, ErrorRedirectionState] = {
@@ -123,7 +130,7 @@ ErrorRedirectionState <: RedirectionState]
   override type OutputRedirected = OutputRedirectionState
   override type ErrorRedirected = ErrorRedirectionState
 
-  override def start()(implicit executionContext: ExecutionContext): IO[RunningProcesses] = {
+  override def startRP()(implicit executionContext: ExecutionContext): IO[RunningProcesses] = {
     def withWorkingDirectory(builder: ProcessBuilder): ProcessBuilder =
       workingDirectory match {
         case Some(directory) => builder.directory(directory.toFile)
@@ -143,6 +150,9 @@ ErrorRedirectionState <: RedirectionState]
       errorStream = errorTarget.connect(proc)
     } yield new WrappedProcess(proc, inputStream, outputStream, errorStream) :|: FixNil[RunningProcess]
   }
+
+  def start(implicit executionContext: ExecutionContext): IO[RunningProcess] =
+    startHL().map(_.head)
 
   def |[PN <: ProcessNode[_, _, _]](to: PN):
     PipedProcess[Process[InputRedirectionState, Redirected, ErrorRedirectionState], PN#RedirectedInput, InputRedirectionState, PN#OutputRedirected, ErrorRedirectionState] = {
