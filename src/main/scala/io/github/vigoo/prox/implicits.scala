@@ -13,6 +13,9 @@ object implicits {
   implicit val pathAsTarget: CanBeProcessOutputTarget[Path] =
     (path: Path) => new FileTarget(path)
 
+  implicit val pathAsErrorTarget: CanBeProcessErrorTarget[Path] =
+    (path: Path) => new FileTarget(path)
+
   implicit val pathAsSource: CanBeProcessInputSource[Path] =
     (path: Path) => new FileSource(path)
 
@@ -34,4 +37,22 @@ object implicits {
     (sink: Sink[IO, Byte]) => new ErrorStreamingTarget(in =>
       in.observe(sink)
     )
+
+  implicit class ProcessNodeOutputRedirect[PN <: ProcessNode[_, NotRedirected, _]](processNode: PN) {
+    def >[To: CanBeProcessOutputTarget](to: To): PN#RedirectedOutput = {
+      processNode.unsafeChangeRedirectedOutput(to)
+    }
+  }
+
+  implicit class ProcessNodeInputRedirect[PN <: ProcessNode[NotRedirected, _, _]](processNode: PN) {
+    def <[From: CanBeProcessInputSource](from: From): PN#RedirectedInput= {
+      processNode.unsafeChangeRedirectedInput(from)
+    }
+  }
+
+  implicit class ProcessNodeErrorRedirect[PN <: ProcessNode[_, _, NotRedirected]](processNode: PN) {
+    def redirectErrorTo[To: CanBeProcessErrorTarget](to: To): PN#RedirectedError = {
+      processNode.unsafeChangeRedirectedError(to)
+    }
+  }
 }

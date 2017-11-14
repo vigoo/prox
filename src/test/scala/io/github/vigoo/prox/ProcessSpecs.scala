@@ -10,6 +10,7 @@ import org.specs2.Specification
 
 import scala.concurrent.ExecutionContext.Implicits.global
 import implicits._
+import shapeless.test.illTyped
 
 // scalastyle:off public.methods.have.type
 // scalastyle:off public.member.have.type
@@ -19,8 +20,13 @@ class ProcessSpecs extends Specification { def is = s2"""
     executed for getting it's exit code             $simpleProcessGetExitCode
     executed by redirecting it's output to a file   $simpleProcessFileOutput
     executed by redirecting it's output to a stream $simpleProcessStreamOutput
+    executed by redirecting it's error to a stream  $simpleProcessStreamError
     executed by using a stream as it's input        $simpleProcessStreamInput
     be piped to another                             $simpleProcessPiping
+
+  The DSL prevents
+    redirecting the output twice                    $doubleOutputRedirectIsIllegal
+    redirecting the input twice                     $doubleInputRedirectIsIllegal
   """
 
   def simpleProcessGetExitCode = {
@@ -55,6 +61,17 @@ class ProcessSpecs extends Specification { def is = s2"""
     program.unsafeRunSync() === "Hello world!\n"
   }
 
+  def simpleProcessStreamError = {
+    val target: Pipe[IO, Byte, Byte] = identity[Stream[IO, Byte]]
+    val program = for {
+      running <- (Process("perl", List("-e", """print STDERR "Hello"""")) redirectErrorTo target).start().map(_.asHList.head) // TODO: simplify
+      _ <- running.waitForExit()
+      contents <- running.error.through(text.utf8Decode).runFoldMonoid
+    } yield contents
+
+    program.unsafeRunSync() === "Hello"
+  }
+
   def simpleProcessStreamInput = {
     val source: Stream[IO, Byte] = Stream("This is a test string").through(text.utf8Encode)
     val target: Pipe[IO, Byte, Byte] = identity[Stream[IO, Byte]]
@@ -79,5 +96,20 @@ class ProcessSpecs extends Specification { def is = s2"""
     } yield contents.trim
 
     program.unsafeRunSync() === "5"
+  }
+
+  def doubleOutputRedirectIsIllegal = {
+    illTyped("""val bad = (Process("echo", List("Hello world!")) > new File("x").toPath) > new File("y").toPath""")
+    ok
+  }
+
+  def doubleInputRedirectIsIllegal = {
+    illTyped("""val bad = (Process("wc", List("-w")) < Stream.eval(IO("X")).through(text.utf8Encode)) < Stream.eval(IO("Y")).through(text.utf8Encode)""")
+    ok
+  }
+
+  def doubleErrorRedirectIsIllegal = {
+    illTyped("""val bad = (Process("echo", List("Hello world!")) redirectErrorTo (new File("x").toPath)) redirectErrorTo (new File("y").toPath)""")
+    ok
   }
 }
