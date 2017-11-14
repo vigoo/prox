@@ -3,7 +3,7 @@ package io.github.vigoo.prox
 import java.nio.file.Path
 
 import cats.effect.IO
-import fs2.{Pipe, Sink, Stream}
+import fs2.{Pipe, Pure, Sink, Stream}
 
 import scala.concurrent.ExecutionContext
 import scala.language.higherKinds
@@ -21,6 +21,9 @@ object implicits {
 
   implicit def streamAsSource: CanBeProcessInputSource[Stream[IO, Byte]] =
     (source: Stream[IO, Byte]) => new InputStreamingSource(source)
+
+  implicit def pureStreamAsSource: CanBeProcessInputSource[Stream[Pure, Byte]] =
+    (source: Stream[Pure, Byte]) => new InputStreamingSource(source)
 
   implicit def pipeAsTarget: CanBeProcessOutputTarget[Pipe[IO, Byte, Byte]] =
     (pipe: Pipe[IO, Byte, Byte]) => new OutputStreamingTarget(pipe)

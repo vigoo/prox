@@ -74,7 +74,7 @@ class ProcessSpecs extends Specification { def is = s2"""
   }
 
   def simpleProcessStreamInput = {
-    val source: Stream[IO, Byte] = Stream("This is a test string").through(text.utf8Encode)
+    val source = Stream("This is a test string").through(text.utf8Encode)
     val target: Pipe[IO, Byte, Byte] = identity[Stream[IO, Byte]]
     val program = for {
       running <- (Process("wc", List("-w")) < source > target).start
