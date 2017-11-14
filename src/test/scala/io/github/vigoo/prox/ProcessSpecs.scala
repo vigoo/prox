@@ -23,6 +23,7 @@ class ProcessSpecs extends Specification { def is = s2"""
     executed by redirecting it's error to a stream  $simpleProcessStreamError
     executed by using a stream as it's input        $simpleProcessStreamInput
     be piped to another                             $simpleProcessPiping
+    chained by multiple piping operations           $multiProcessPiping
 
   The DSL prevents
     redirecting the output twice                    $doubleOutputRedirectIsIllegal
@@ -96,6 +97,20 @@ class ProcessSpecs extends Specification { def is = s2"""
     } yield contents.trim
 
     program.unsafeRunSync() === "5"
+  }
+
+  def multiProcessPiping = {
+    val target: Pipe[IO, Byte, Byte] = identity[Stream[IO, Byte]]
+    val program = for {
+      rps <- (Process("echo", List("cat\ncat\ndog\napple")) | Process("sort") | (Process("uniq", List("-c")) > target)).start().map(_.asHList.tupled)
+      (runningEcho, runningSort, runningUniq) = rps
+      contents <- runningUniq.output.through(text.utf8Decode).runFoldMonoid
+      _ <- runningEcho.waitForExit()
+      _ <- runningSort.waitForExit()
+      _ <- runningUniq.waitForExit()
+    } yield contents.lines.map(_.trim).toList
+
+    program.unsafeRunSync() === List("1 apple", "2 cat", "1 dog")
   }
 
   def doubleOutputRedirectIsIllegal = {

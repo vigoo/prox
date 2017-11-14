@@ -85,6 +85,15 @@ case class PipedProcess[PN1 <: ProcessNode[_, _, _],
     }
   }
 
+  def |[PN <: ProcessNode[_, _, _]](to: PN):
+  PipedProcess[RedirectedOutput, PN#RedirectedInput, InputRedirectionState, PN#OutputRedirected, ErrorRedirectionState] = {
+    import implicits._
+    val channel: Pipe[IO, Byte, Byte] = identity[Stream[IO, Byte]]
+    PipedProcess(
+      this.unsafeChangeRedirectedOutput(channel),
+      construction => to.unsafeChangeRedirectedInput(construction.outStream))
+  }
+
   private[prox] override def unsafeChangeRedirectedOutput[To: CanBeProcessOutputTarget](to: To): RedirectedOutput =
     PipedProcess(from, createTo.andThen(_.unsafeChangeRedirectedOutput(to)))
 
