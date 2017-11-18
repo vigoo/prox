@@ -5,7 +5,7 @@ import java.lang.ProcessBuilder.Redirect
 import java.nio.file.Path
 
 import cats.effect.IO
-import fs2.{Stream, io}
+import fs2.{Pure, Stream, io}
 
 import scala.concurrent.ExecutionContext
 import scala.language.higherKinds
@@ -14,6 +14,17 @@ trait ProcessInputSource extends ProcessIO
 
 trait CanBeProcessInputSource[From] {
   def source(from: From): ProcessInputSource
+}
+
+object CanBeProcessInputSource {
+  implicit val pathAsSource: CanBeProcessInputSource[Path] =
+    (path: Path) => new FileSource(path)
+
+  implicit def streamAsSource: CanBeProcessInputSource[Stream[IO, Byte]] =
+    (source: Stream[IO, Byte]) => new InputStreamingSource(source)
+
+  implicit def pureStreamAsSource: CanBeProcessInputSource[Stream[Pure, Byte]] =
+    (source: Stream[Pure, Byte]) => new InputStreamingSource(source)
 }
 
 object StdIn extends ProcessInputSource {

@@ -16,7 +16,7 @@ Let's start by defining a single process with the `Process` constructor, taking 
 
 ```scala
 import io.github.vigoo.prox._
-import io.github.vigoo.prox.implicits._
+import io.github.vigoo.prox.syntax._
 
 val process = Process("echo", List("Hello world"))
 ```

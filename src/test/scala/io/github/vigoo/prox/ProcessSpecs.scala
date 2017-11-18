@@ -9,8 +9,9 @@ import fs2._
 import org.specs2.Specification
 
 import scala.concurrent.ExecutionContext.Implicits.global
-import implicits._
 import shapeless.test.illTyped
+
+import syntax._
 
 // scalastyle:off public.methods.have.type
 // scalastyle:off public.member.have.type

@@ -6,7 +6,7 @@ import java.lang.ProcessBuilder.Redirect
 import java.nio.file.Path
 
 import cats.effect.IO
-import fs2.{Pipe, Stream, io}
+import fs2.{Pipe, Sink, Stream, io}
 
 import scala.concurrent.ExecutionContext
 
@@ -18,8 +18,34 @@ trait CanBeProcessOutputTarget[To] {
   def target(to: To): ProcessOutputTarget
 }
 
+object CanBeProcessOutputTarget {
+  implicit val pathAsTarget: CanBeProcessOutputTarget[Path] =
+    (path: Path) => new FileTarget(path)
+
+  implicit def pipeAsTarget: CanBeProcessOutputTarget[Pipe[IO, Byte, Byte]] =
+    (pipe: Pipe[IO, Byte, Byte]) => new OutputStreamingTarget(pipe)
+
+  implicit def sinkAsTarget(implicit executionContext: ExecutionContext): CanBeProcessOutputTarget[Sink[IO, Byte]] =
+    (sink: Sink[IO, Byte]) => new OutputStreamingTarget(in =>
+      in.observe(sink)
+    )
+}
+
 trait CanBeProcessErrorTarget[To] {
   def target(to: To): ProcessErrorTarget
+}
+
+object CanBeProcessErrorTarget {
+  implicit val pathAsErrorTarget: CanBeProcessErrorTarget[Path] =
+    (path: Path) => new FileTarget(path)
+
+  implicit def pipeAsErrorTarget: CanBeProcessErrorTarget[Pipe[IO, Byte, Byte]] =
+    (pipe: Pipe[IO, Byte, Byte]) => new ErrorStreamingTarget(pipe)
+
+  implicit def sinkAsErrorTarget(implicit executionContext: ExecutionContext): CanBeProcessErrorTarget[Sink[IO, Byte]] =
+    (sink: Sink[IO, Byte]) => new ErrorStreamingTarget(in =>
+      in.observe(sink)
+    )
 }
 
 object StdOut extends ProcessOutputTarget {

@@ -5,10 +5,7 @@ import java.nio.file.Path
 
 import cats.effect.IO
 import fs2._
-import _root_.io.github.vigoo.prox.FixList._
-import shapeless.ops.hlist.Tupler
 
-import scala.collection.JavaConverters._
 import scala.concurrent.ExecutionContext
 import scala.language.{higherKinds, implicitConversions}
 
@@ -28,12 +25,7 @@ trait NotRedirected extends RedirectionState
 
 trait Redirected extends RedirectionState
 
-sealed trait ProcessNode[
-InputRedirectionState <: RedirectionState,
-OutputRedirectionState <: RedirectionState,
-ErrorRedirectionState <: RedirectionState] {
-
-  type RunningProcesses <: FixList[RunningProcess]
+sealed trait ProcessNode[InputRedirectionState <: RedirectionState, OutputRedirectionState <: RedirectionState, ErrorRedirectionState <: RedirectionState] {
   type RedirectedOutput <: ProcessNode[_, _, _]
   type RedirectedInput <: ProcessNode[_, _, _]
   type RedirectedError <: ProcessNode[_, _, _]
@@ -42,24 +34,16 @@ ErrorRedirectionState <: RedirectionState] {
   type ErrorRedirected <: RedirectionState
 
   private[prox] def unsafeChangeRedirectedOutput[To: CanBeProcessOutputTarget](to: To): RedirectedOutput
+
   private[prox] def unsafeChangeRedirectedError[To: CanBeProcessErrorTarget](to: To): RedirectedError
+
   private[prox] def unsafeChangeRedirectedInput[From: CanBeProcessInputSource](from: From): RedirectedInput
-
-  def startRP()(implicit executionContext: ExecutionContext): IO[RunningProcesses]
-
-  def startHL()(implicit executionContext: ExecutionContext): IO[RunningProcesses#HListType] =
-    startRP().map(_.asHList)
 }
 
-case class PipedProcess[PN1 <: ProcessNode[_, _, _],
-                        PN2 <: ProcessNode[_, _, _],
-                        InputRedirectionState <: RedirectionState,
-                        OutputRedirectionState <: RedirectionState,
-                        ErrorRedirectionState <: RedirectionState]
-                        (from: PN1, createTo: PipeConstruction => PN2)
+case class PipedProcess[PN1 <: ProcessNode[_, _, _], PN2 <: ProcessNode[_, _, _], InputRedirectionState <: RedirectionState, OutputRedirectionState <: RedirectionState, ErrorRedirectionState <: RedirectionState]
+(from: PN1, createTo: PipeConstruction => PN2)
   extends ProcessNode[InputRedirectionState, OutputRedirectionState, ErrorRedirectionState] {
 
-  override type RunningProcesses = Concatenated[RunningProcess, PN1#RunningProcesses, PN2#RunningProcesses]
   override type RedirectedInput = PipedProcess[PN1#RedirectedInput, PN2, Redirected, OutputRedirectionState, ErrorRedirectionState]
   override type RedirectedOutput = PipedProcess[PN1, PN2#RedirectedOutput, InputRedirectionState, Redirected, ErrorRedirectionState]
   override type RedirectedError = PipedProcess[PN1, PN2#RedirectedError, InputRedirectionState, OutputRedirectionState, Redirected]
@@ -67,34 +51,8 @@ case class PipedProcess[PN1 <: ProcessNode[_, _, _],
   override type OutputRedirected = OutputRedirectionState
   override type ErrorRedirected = ErrorRedirectionState
 
-  override def startRP()(implicit executionContext: ExecutionContext): IO[RunningProcesses] = {
-    from.startRP().flatMap { runningSourceProcesses =>
-      runningSourceProcesses.last match {
-        case Some(runningFrom) =>
-          val to = createTo(PipeConstruction(runningFrom.output, runningFrom.error))
-          to.startRP().flatMap { runningTargetProcesses =>
-            runningTargetProcesses.first match {
-              case Some(runningTo) =>
-                runningTo.input.run.map { _ =>
-                  runningSourceProcesses.append(runningTargetProcesses)
-                }
-              case None =>
-                IO.raiseError(new IllegalStateException("Invalid piped process construction"))
-            }
-          }
-
-        case None =>
-          IO.raiseError(new IllegalStateException("Invalid piped process construction"))
-      }
-    }
-  }
-
-  def start(implicit executionContext: ExecutionContext, tupler: Tupler[RunningProcesses#HListType]): IO[tupler.Out] =
-    startHL().map(_.tupled)
-
   def |[PN <: ProcessNode[_, _, _]](to: PN):
   PipedProcess[RedirectedOutput, PN#RedirectedInput, InputRedirectionState, PN#OutputRedirected, ErrorRedirectionState] = {
-    import implicits._
     val channel: Pipe[IO, Byte, Byte] = identity[Stream[IO, Byte]]
     PipedProcess(
       this.unsafeChangeRedirectedOutput(channel),
@@ -111,18 +69,15 @@ case class PipedProcess[PN1 <: ProcessNode[_, _, _],
     PipedProcess(this.from.unsafeChangeRedirectedInput(from), createTo)
 }
 
-class Process[InputRedirectionState <: RedirectionState,
-OutputRedirectionState <: RedirectionState,
-ErrorRedirectionState <: RedirectionState]
-(command: String,
- arguments: List[String] = List.empty,
- workingDirectory: Option[Path] = None,
- inputSource: ProcessInputSource = StdIn,
- outputTarget: ProcessOutputTarget = StdOut,
- errorTarget: ProcessErrorTarget = StdError)
+class Process[InputRedirectionState <: RedirectionState, OutputRedirectionState <: RedirectionState, ErrorRedirectionState <: RedirectionState]
+(val command: String,
+ val arguments: List[String] = List.empty,
+ val workingDirectory: Option[Path] = None,
+ val inputSource: ProcessInputSource = StdIn,
+ val outputTarget: ProcessOutputTarget = StdOut,
+ val errorTarget: ProcessErrorTarget = StdError)
   extends ProcessNode[InputRedirectionState, OutputRedirectionState, ErrorRedirectionState] {
 
-  override type RunningProcesses = RunningProcess :|: FixNil[RunningProcess]
   override type RedirectedInput = Process[Redirected, OutputRedirectionState, ErrorRedirectionState]
   override type RedirectedOutput = Process[InputRedirectionState, Redirected, ErrorRedirectionState]
   override type RedirectedError = Process[InputRedirectionState, OutputRedirectionState, Redirected]
@@ -130,33 +85,8 @@ ErrorRedirectionState <: RedirectionState]
   override type OutputRedirected = OutputRedirectionState
   override type ErrorRedirected = ErrorRedirectionState
 
-  override def startRP()(implicit executionContext: ExecutionContext): IO[RunningProcesses] = {
-    def withWorkingDirectory(builder: ProcessBuilder): ProcessBuilder =
-      workingDirectory match {
-        case Some(directory) => builder.directory(directory.toFile)
-        case None => builder
-      }
-
-    val builder = withWorkingDirectory(new ProcessBuilder((command :: arguments).asJava))
-    builder.redirectInput(inputSource.toRedirect)
-    builder.redirectOutput(outputTarget.toRedirect)
-    builder.redirectError(errorTarget.toRedirect)
-    for {
-      proc <- IO {
-        builder.start
-      }
-      inputStream = inputSource.connect(proc)
-      outputStream = outputTarget.connect(proc)
-      errorStream = errorTarget.connect(proc)
-    } yield new WrappedProcess(proc, inputStream, outputStream, errorStream) :|: FixNil[RunningProcess]
-  }
-
-  def start(implicit executionContext: ExecutionContext): IO[RunningProcess] =
-    startHL().map(_.head)
-
   def |[PN <: ProcessNode[_, _, _]](to: PN):
-    PipedProcess[Process[InputRedirectionState, Redirected, ErrorRedirectionState], PN#RedirectedInput, InputRedirectionState, PN#OutputRedirected, ErrorRedirectionState] = {
-    import implicits._
+  PipedProcess[Process[InputRedirectionState, Redirected, ErrorRedirectionState], PN#RedirectedInput, InputRedirectionState, PN#OutputRedirected, ErrorRedirectionState] = {
     val channel: Pipe[IO, Byte, Byte] = identity[Stream[IO, Byte]]
     PipedProcess(
       this.unsafeChangeRedirectedOutput(channel),
