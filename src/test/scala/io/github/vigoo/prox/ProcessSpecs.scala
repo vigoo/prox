@@ -1,7 +1,6 @@
 package io.github.vigoo.prox
 
 import java.io.File
-import java.nio.file.Files
 
 import cats.effect.IO
 import cats.implicits._

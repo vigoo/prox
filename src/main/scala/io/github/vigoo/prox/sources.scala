@@ -10,7 +10,7 @@ import fs2.{Pure, Stream, io}
 import scala.concurrent.ExecutionContext
 import scala.language.higherKinds
 
-trait ProcessInputSource extends ProcessIO
+trait ProcessInputSource extends ProcessIO[Byte]
 
 trait CanBeProcessInputSource[From] {
   def source(from: From): ProcessInputSource

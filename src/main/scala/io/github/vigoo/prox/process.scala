@@ -11,13 +11,12 @@ import scala.language.{higherKinds, implicitConversions}
 
 case class ProcessResult(exitCode: Int)
 
-trait ProcessIO {
+trait ProcessIO[O] {
   def toRedirect: Redirect
-
-  def connect(systemProcess: java.lang.Process)(implicit executionContext: ExecutionContext): Stream[IO, Byte]
+  def connect(systemProcess: java.lang.Process)(implicit executionContext: ExecutionContext): Stream[IO, O]
 }
 
-case class PipeConstruction(outStream: Stream[IO, Byte], errStream: Stream[IO, Byte])
+case class PipeConstruction[Out, Err](outStream: Stream[IO, Out], errStream: Stream[IO, Err])
 
 sealed trait RedirectionState
 
@@ -25,108 +24,25 @@ trait NotRedirected extends RedirectionState
 
 trait Redirected extends RedirectionState
 
-sealed trait ProcessNode[InputRedirectionState <: RedirectionState, OutputRedirectionState <: RedirectionState, ErrorRedirectionState <: RedirectionState] {
-  type RedirectedOutput <: ProcessNode[_, _, _]
-  type RedirectedInput <: ProcessNode[_, _, _]
-  type RedirectedError <: ProcessNode[_, _, _]
-
-  type OutputRedirected <: RedirectionState
-  type ErrorRedirected <: RedirectionState
-
-  private[prox] def unsafeChangeRedirectedOutput[To: CanBeProcessOutputTarget](to: To): RedirectedOutput
-
-  private[prox] def unsafeChangeRedirectedError[To: CanBeProcessErrorTarget](to: To): RedirectedError
-
-  private[prox] def unsafeChangeRedirectedInput[From: CanBeProcessInputSource](from: From): RedirectedInput
+sealed trait ProcessNode[Out, Err, IRS <: RedirectionState, ORS <: RedirectionState, ERS <: RedirectionState] {
 }
 
-case class PipedProcess[PN1 <: ProcessNode[_, _, _], PN2 <: ProcessNode[_, _, _], InputRedirectionState <: RedirectionState, OutputRedirectionState <: RedirectionState, ErrorRedirectionState <: RedirectionState]
-(from: PN1, createTo: PipeConstruction => PN2)
-  extends ProcessNode[InputRedirectionState, OutputRedirectionState, ErrorRedirectionState] {
-
-  override type RedirectedInput = PipedProcess[PN1#RedirectedInput, PN2, Redirected, OutputRedirectionState, ErrorRedirectionState]
-  override type RedirectedOutput = PipedProcess[PN1, PN2#RedirectedOutput, InputRedirectionState, Redirected, ErrorRedirectionState]
-  override type RedirectedError = PipedProcess[PN1, PN2#RedirectedError, InputRedirectionState, OutputRedirectionState, Redirected]
-
-  override type OutputRedirected = OutputRedirectionState
-  override type ErrorRedirected = ErrorRedirectionState
-
-  def |[PN <: ProcessNode[_, _, _]](to: PN):
-  PipedProcess[RedirectedOutput, PN#RedirectedInput, InputRedirectionState, PN#OutputRedirected, ErrorRedirectionState] = {
-    val channel: Pipe[IO, Byte, Byte] = identity[Stream[IO, Byte]]
-    PipedProcess(
-      this.unsafeChangeRedirectedOutput(channel),
-      construction => to.unsafeChangeRedirectedInput(construction.outStream))
-  }
-
-  private[prox] override def unsafeChangeRedirectedOutput[To: CanBeProcessOutputTarget](to: To): RedirectedOutput =
-    PipedProcess(from, createTo.andThen(_.unsafeChangeRedirectedOutput(to)))
-
-  private[prox] override def unsafeChangeRedirectedError[To: CanBeProcessErrorTarget](to: To): RedirectedError =
-    PipedProcess(from, createTo.andThen(_.unsafeChangeRedirectedError(to)))
-
-  private[prox] override def unsafeChangeRedirectedInput[From: CanBeProcessInputSource](from: From): RedirectedInput =
-    PipedProcess(this.from.unsafeChangeRedirectedInput(from), createTo)
+class PipedProcess[Out, Err, PN1Out, PN1Err, PN1 <: ProcessNode[_, _, _, _, _], PN2 <: ProcessNode[_, _, _, _, _], IRS <: RedirectionState, ORS <: RedirectionState, ERS <: RedirectionState]
+(val from: PN1, val createTo: PipeConstruction[PN1Out, PN1Err] => PN2)
+  extends ProcessNode[Out, Err, IRS, ORS, ERS] {
 }
 
-class Process[InputRedirectionState <: RedirectionState, OutputRedirectionState <: RedirectionState, ErrorRedirectionState <: RedirectionState]
+class Process[Out, Err, IRS <: RedirectionState, ORS <: RedirectionState, ERS <: RedirectionState]
 (val command: String,
- val arguments: List[String] = List.empty,
- val workingDirectory: Option[Path] = None,
- val inputSource: ProcessInputSource = StdIn,
- val outputTarget: ProcessOutputTarget = StdOut,
- val errorTarget: ProcessErrorTarget = StdError)
-  extends ProcessNode[InputRedirectionState, OutputRedirectionState, ErrorRedirectionState] {
+ val arguments: List[String],
+ val workingDirectory: Option[Path],
+ val inputSource: ProcessInputSource,
+ val outputTarget: ProcessOutputTarget[Out],
+ val errorTarget: ProcessErrorTarget[Err])
+  extends ProcessNode[Out, Err, IRS, ORS, ERS] {
 
-  override type RedirectedInput = Process[Redirected, OutputRedirectionState, ErrorRedirectionState]
-  override type RedirectedOutput = Process[InputRedirectionState, Redirected, ErrorRedirectionState]
-  override type RedirectedError = Process[InputRedirectionState, OutputRedirectionState, Redirected]
-
-  override type OutputRedirected = OutputRedirectionState
-  override type ErrorRedirected = ErrorRedirectionState
-
-  def |[PN <: ProcessNode[_, _, _]](to: PN):
-  PipedProcess[Process[InputRedirectionState, Redirected, ErrorRedirectionState], PN#RedirectedInput, InputRedirectionState, PN#OutputRedirected, ErrorRedirectionState] = {
-    val channel: Pipe[IO, Byte, Byte] = identity[Stream[IO, Byte]]
-    PipedProcess(
-      this.unsafeChangeRedirectedOutput(channel),
-      construction => to.unsafeChangeRedirectedInput(construction.outStream))
-  }
-
-  private[prox] override def unsafeChangeRedirectedOutput[To: CanBeProcessOutputTarget](to: To): RedirectedOutput = {
-    new Process[InputRedirectionState, Redirected, ErrorRedirectionState](
-      command = command,
-      arguments = arguments,
-      workingDirectory = workingDirectory,
-      inputSource = inputSource,
-      outputTarget = implicitly[CanBeProcessOutputTarget[To]].target(to),
-      errorTarget = errorTarget
-    )
-  }
-
-  private[prox] override def unsafeChangeRedirectedInput[From: CanBeProcessInputSource](from: From): RedirectedInput = {
-    new Process[Redirected, OutputRedirectionState, ErrorRedirectionState](
-      command = command,
-      arguments = arguments,
-      workingDirectory = workingDirectory,
-      inputSource = implicitly[CanBeProcessInputSource[From]].source(from),
-      outputTarget = outputTarget,
-      errorTarget = errorTarget)
-  }
-
-  private[prox] override def unsafeChangeRedirectedError[To: CanBeProcessErrorTarget](to: To): RedirectedError = {
-    new Process[InputRedirectionState, OutputRedirectionState, Redirected](
-      command = command,
-      arguments = arguments,
-      workingDirectory = workingDirectory,
-      inputSource = inputSource,
-      outputTarget = outputTarget,
-      errorTarget = implicitly[CanBeProcessErrorTarget[To]].target(to),
-    )
-  }
-
-  def in(workingDirectory: Path): Process[InputRedirectionState, OutputRedirectionState, ErrorRedirectionState] = {
-    new Process[InputRedirectionState, OutputRedirectionState, ErrorRedirectionState](
+  def in(workingDirectory: Path): Process[Out, Err, IRS, ORS, ERS] = {
+    new Process[Out, Err, IRS, ORS, ERS](
       command = command,
       arguments = arguments,
       workingDirectory = Some(workingDirectory),
@@ -139,11 +55,11 @@ class Process[InputRedirectionState <: RedirectionState, OutputRedirectionState 
 object Process {
   def apply(command: String,
             arguments: List[String] = List.empty,
-            workingDirectory: Option[Path] = None): Process[NotRedirected, NotRedirected, NotRedirected] =
-    new Process[NotRedirected, NotRedirected, NotRedirected](command, arguments, workingDirectory)
+            workingDirectory: Option[Path] = None): Process[Byte, Byte, NotRedirected, NotRedirected, NotRedirected] =
+    new Process[Byte, Byte, NotRedirected, NotRedirected, NotRedirected](command, arguments, workingDirectory, StdIn, StdOut, StdError)
 }
 
-trait RunningProcess {
+trait RunningProcess[Out, Err] {
   def isAlive: IO[Boolean]
 
   def waitForExit(): IO[ProcessResult]
@@ -154,15 +70,16 @@ trait RunningProcess {
 
   def input: Stream[IO, Byte]
 
-  def output: Stream[IO, Byte]
+  def output: Stream[IO, Out]
 
-  def error: Stream[IO, Byte]
+  def error: Stream[IO, Err]
 }
 
-class WrappedProcess(systemProcess: java.lang.Process,
-                     val input: Stream[IO, Byte],
-                     val output: Stream[IO, Byte],
-                     val error: Stream[IO, Byte]) extends RunningProcess {
+class WrappedProcess[Out, Err](systemProcess: java.lang.Process,
+                               val input: Stream[IO, Byte],
+                               val output: Stream[IO, Out],
+                               val error: Stream[IO, Err])
+  extends RunningProcess[Out, Err] {
 
   override def isAlive: IO[Boolean] =
     IO {
