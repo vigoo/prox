@@ -16,7 +16,7 @@ trait ProcessErrorTarget[O] extends ProcessIO[O]
 
 trait CanBeProcessOutputTarget[To] {
   type Out
-  def target(to: To): ProcessOutputTarget[Out]
+  def apply(to: To): ProcessOutputTarget[Out]
 }
 
 object CanBeProcessOutputTarget {
@@ -25,7 +25,7 @@ object CanBeProcessOutputTarget {
   def create[To, Out0](fn: To => ProcessOutputTarget[Out0]): Aux[To, Out0] =
     new CanBeProcessOutputTarget[To] {
       override type Out = Out0
-      override def target(to: To): ProcessOutputTarget[Out] = fn(to)
+      override def apply(to: To): ProcessOutputTarget[Out] = fn(to)
     }
 
   implicit val pathAsTarget: Aux[Path, Byte] =
@@ -42,7 +42,7 @@ object CanBeProcessOutputTarget {
 
 trait CanBeProcessErrorTarget[To] {
   type Err
-  def target(to: To): ProcessErrorTarget[Err]
+  def apply(to: To): ProcessErrorTarget[Err]
 }
 
 object CanBeProcessErrorTarget {
@@ -51,7 +51,7 @@ object CanBeProcessErrorTarget {
   def create[To, Err0](fn: To => ProcessErrorTarget[Err0]): Aux[To, Err0] =
     new CanBeProcessErrorTarget[To] {
       override type Err = Err0
-      override def target(to: To): ProcessErrorTarget[Err] = fn(to)
+      override def apply(to: To): ProcessErrorTarget[Err] = fn(to)
     }
 
   implicit val pathAsErrorTarget: Aux[Path, Byte] =

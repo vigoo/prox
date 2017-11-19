@@ -114,7 +114,7 @@ object RedirectInput {
           process.command,
           process.arguments,
           process.workingDirectory,
-          implicitly[CanBeProcessInputSource[From]].source(from),
+          implicitly[CanBeProcessInputSource[From]].apply(from),
           process.outputTarget,
           process.errorTarget
         )
@@ -158,7 +158,7 @@ object RedirectOutput {
           process.arguments,
           process.workingDirectory,
           process.inputSource,
-          target.target(to),
+          target(to),
           process.errorTarget
         )
     }
@@ -184,48 +184,50 @@ object RedirectOutput {
     }
 }
 
-trait RedirectError[PN <: ProcessNode[_, _, _, _, NotRedirected]] {
-  type Result[NewErr] <: ProcessNode[_, NewErr, _, _, Redirected]
-  def apply[To, NewErr](process: PN, to: To)(implicit target: CanBeProcessErrorTarget.Aux[To, NewErr]): Result[NewErr]
+trait RedirectError[PN <: ProcessNode[_, _, _, _, NotRedirected], To, NewErr] {
+  type Result <: ProcessNode[_, NewErr, _, _, Redirected]
+  def apply(process: PN, to: To)(implicit target: CanBeProcessErrorTarget.Aux[To, NewErr]): Result
 }
 
 object RedirectError {
-  type Aux[PN <: ProcessNode[_, _, _, _, NotRedirected], Result0[_]] =
-    RedirectError[PN] { type Result[NewErr] = Result0[NewErr] }
+  type Aux[PN <: ProcessNode[_, _, _, _, NotRedirected], To, NewErr, Result0] =
+    RedirectError[PN, To, NewErr] { type Result = Result0 }
 
-  implicit def redirectProcessError[Out, Err, IRS <: RedirectionState, ORS <: RedirectionState]:
-  Aux[Process[Out, Err, IRS, ORS, NotRedirected], Process[Out, ?, IRS, ORS, Redirected]] =
-    new RedirectError[Process[Out, Err, IRS, ORS, NotRedirected]] {
-      override type Result[NewErr] = Process[Out, NewErr, IRS, ORS, Redirected]
+  implicit def redirectProcessError[Out, Err, IRS <: RedirectionState, ORS <: RedirectionState, To, NewErr]:
+  Aux[Process[Out, Err, IRS, ORS, NotRedirected], To, NewErr, Process[Out, NewErr, IRS, ORS, Redirected]] =
+    new RedirectError[Process[Out, Err, IRS, ORS, NotRedirected], To, NewErr] {
+      override type Result = Process[Out, NewErr, IRS, ORS, Redirected]
 
-      override def apply[To, NewErr](process: Process[Out, Err, IRS, ORS, NotRedirected], to: To)
-                                    (implicit target: CanBeProcessErrorTarget.Aux[To, NewErr]): Result[NewErr] =
+      override def apply(process: Process[Out, Err, IRS, ORS, NotRedirected], to: To)
+                        (implicit target: CanBeProcessErrorTarget.Aux[To, NewErr]): Result =
         new Process(
           process.command,
           process.arguments,
           process.workingDirectory,
           process.inputSource,
           process.outputTarget,
-          target.target(to)
+          target(to)
         )
     }
 
   implicit def redirectPipedProcessError[
-    Out, Err, PN1Out, PN1Err,
-    PN1 <: ProcessNode[PN1Out, PN1Err, _, _, _],
-    PN2 <: ProcessNode[_, _, _, _, NotRedirected],
-    IRS <: RedirectionState, ORS <: RedirectionState,
-    PN2Redirected[_] <: ProcessNode[_, _, _, _, Redirected]]
-  (implicit redirectPN2Error: RedirectError.Aux[PN2, PN2Redirected]):
-  Aux[PipedProcess[Out, Err, PN1Out, PN1Err, PN1, PN2, IRS, ORS, NotRedirected], Lambda[err => PipedProcess[Out, err, PN1Out, PN1Err, PN1, PN2Redirected[err], IRS, ORS, Redirected]]] =
-    new RedirectError[PipedProcess[Out, Err, PN1Out, PN1Err, PN1, PN2, IRS, ORS, NotRedirected]] {
-      override type Result[NewErr] = PipedProcess[Out, NewErr, PN1Out, PN1Err, PN1, PN2Redirected[NewErr], IRS, ORS, Redirected]
+  Out, Err, PN1Out, PN1Err,
+  PN1 <: ProcessNode[PN1Out, PN1Err, _, _, _],
+  PN2 <: ProcessNode[_, _, _, _, NotRedirected],
+  IRS <: RedirectionState, ORS <: RedirectionState,
+  PN2Redirected <: ProcessNode[_, _, _, _, Redirected],
+  To, NewErr]
+  (implicit redirectPN2Error: RedirectError.Aux[PN2, To, NewErr, PN2Redirected]):
+  Aux[PipedProcess[Out, Err, PN1Out, PN1Err, PN1, PN2, IRS, ORS, NotRedirected],
+    To, NewErr,
+    PipedProcess[Out, NewErr, PN1Out, PN1Err, PN1, PN2Redirected, IRS, ORS, Redirected]] =
+    new RedirectError[PipedProcess[Out, Err, PN1Out, PN1Err, PN1, PN2, IRS, ORS, NotRedirected], To, NewErr] {
+      override type Result = PipedProcess[Out, NewErr, PN1Out, PN1Err, PN1, PN2Redirected, IRS, ORS, Redirected]
 
-      override def apply[To, NewErr](process: PipedProcess[Out, Err, PN1Out, PN1Err, PN1, PN2, IRS, ORS, NotRedirected], to: To)
-                                    (implicit target: CanBeProcessErrorTarget.Aux[To, NewErr]): Result[NewErr] =
-        new PipedProcess[Out, NewErr, PN1Out, PN1Err, PN1, PN2Redirected[NewErr], IRS, ORS, Redirected](
-          process.from, process.createTo.andThen(redirectPN2Error(_, to))
-        )
+      override def apply(process: PipedProcess[Out, Err, PN1Out, PN1Err, PN1, PN2, IRS, ORS, NotRedirected], to: To)
+                        (implicit target: CanBeProcessErrorTarget.Aux[To, NewErr]): Result =
+        new PipedProcess[Out, NewErr, PN1Out, PN1Err, PN1, PN2Redirected, IRS, ORS, Redirected](
+          process.from, process.createTo.andThen(redirectPN2Error(_, to)))
     }
 }
 
@@ -294,9 +296,9 @@ object syntax {
   }
 
   implicit class ProcessNodeErrorRedirect[PN <: ProcessNode[_, _, _, _, NotRedirected]](processNode: PN) {
-    def redirectErrorTo[To, NewErr]
+    def redirectErrorTo[To, NewErr, Result <: ProcessNode[_, _, _, _, Redirected]]
       (to: To)
-      (implicit target: CanBeProcessErrorTarget.Aux[To, NewErr], redirectError: RedirectError[PN]): redirectError.Result[NewErr] = {
+      (implicit target: CanBeProcessErrorTarget.Aux[To, NewErr], redirectError: RedirectError.Aux[PN, To, NewErr, Result]): Result = {
       redirectError(processNode, to)
     }
   }

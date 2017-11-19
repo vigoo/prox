@@ -13,7 +13,7 @@ import scala.language.higherKinds
 trait ProcessInputSource extends ProcessIO[Byte]
 
 trait CanBeProcessInputSource[From] {
-  def source(from: From): ProcessInputSource
+  def apply(from: From): ProcessInputSource
 }
 
 object CanBeProcessInputSource {
