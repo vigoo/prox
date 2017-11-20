@@ -91,8 +91,6 @@ Similarly the output can be redirected to a **pipe** as following:
 val captured = Process("cat") < source > identity[Stream[IO, Byte]]
 ```
 
-**NOTE 1**: Currently the input and output streams are fixed to `Byte`. This means that *Streams* used as source must be converted to a `Stream[IO, Byte]` first, and the output is always a `Pipe[IO, Byte, Byte]` which can later be transformed. This limitation will be lifted soon.
-
 Calling `start` on a process which has its streams connected to [fs2](https://github.com/functional-streams-for-scala/fs2) streams sets up the *IO operation*, but the streams must be executed manually 
 as the task requires. For example to send a string through `cat` and capture the output we 
 have to run both the input stream and run fold the output stream, both exposed on 
