@@ -42,12 +42,11 @@ object Start {
         builder.redirectOutput(process.outputTarget.toRedirect)
         builder.redirectError(process.errorTarget.toRedirect)
         for {
-          proc <- IO {
-            builder.start
-          }
+          proc <- IO(builder.start)
           inputStream = process.inputSource.connect(proc)
           outputStream = process.outputTarget.connect(proc)
           errorStream = process.errorTarget.connect(proc)
+          _ <- inputStream.run
         } yield new WrappedProcess(proc, inputStream, outputStream, errorStream)
       }
 
@@ -86,9 +85,7 @@ object Start {
           val to = pipe.createTo(PipeConstruction(runningFrom.output, runningFrom.error))
           start2.toHList(to).flatMap { runningTargetProcesses =>
             val runningTo = runningTargetProcesses.head
-            runningTo.input.run.map { _ =>
-              runningSourceProcesses ::: runningTargetProcesses
-            }
+            IO(runningSourceProcesses ::: runningTargetProcesses)
           }
         }
       }
@@ -122,10 +119,10 @@ object RedirectInput {
 
   implicit def redirectPipedProcessInput[
     Out, Err, PN1Out, PN1Err,
-    PN1 <: ProcessNode[PN1Out, PN1Err, NotRedirected, _, _],
+    PN1 <: ProcessNode[_, _, NotRedirected, _, _],
     PN2 <: ProcessNode[_, _, _, _, _],
     ORS <: RedirectionState, ERS <: RedirectionState,
-    PN1Redirected <: ProcessNode[PN1Out, PN1Err, Redirected, _, _]]
+    PN1Redirected <: ProcessNode[_, _, Redirected, _, _]]
     (implicit redirectPN1Input: RedirectInput.Aux[PN1, PN1Redirected]):
     Aux[PipedProcess[Out, Err, PN1Out, PN1Err, PN1, PN2, NotRedirected, ORS, ERS], PipedProcess[Out, Err, PN1Out, PN1Err, PN1Redirected, PN2, Redirected, ORS, ERS]] =
     new RedirectInput[PipedProcess[Out, Err, PN1Out, PN1Err, PN1, PN2, NotRedirected, ORS, ERS]] {

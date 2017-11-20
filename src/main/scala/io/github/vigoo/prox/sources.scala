@@ -5,7 +5,7 @@ import java.lang.ProcessBuilder.Redirect
 import java.nio.file.Path
 
 import cats.effect.IO
-import fs2.{Pure, Stream, io}
+import fs2.{Pure, Sink, Stream, io}
 
 import scala.concurrent.ExecutionContext
 import scala.language.higherKinds

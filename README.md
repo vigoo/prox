@@ -91,17 +91,16 @@ Similarly the output can be redirected to a **pipe** as following:
 val captured = Process("cat") < source > identity[Stream[IO, Byte]]
 ```
 
-Calling `start` on a process which has its streams connected to [fs2](https://github.com/functional-streams-for-scala/fs2) streams sets up the *IO operation*, but the streams must be executed manually 
+Calling `start` on a process which has its streams connected to [fs2](https://github.com/functional-streams-for-scala/fs2) streams sets up the *IO operation* and starts the *input streams*, but the *output streams* must be executed manually 
 as the task requires. For example to send a string through `cat` and capture the output we 
-have to run both the input stream and run fold the output stream, both exposed on 
+have to run fold the output stream, exposed on 
 the `RunningProcess` interface:
 
 ```scala
 val source = Stream("Hello world").through(text.utf8Encode)
 val program: IO[String] = for {
-  runningProcess <- (Process("cat") < source > identity[Stream[IO, Byte]]).start
-  _ <- runningProcess.input.run
-  contents <- running.output.through(text.utf8Decode).runFoldMonoid
+  runningProcess <- (Process("cat") < source > text.utf8Decode[IO]).start
+  contents <- running.output.runFoldMonoid
   _ <- runningProcess.waitForExit()
 } yield contents
 ```

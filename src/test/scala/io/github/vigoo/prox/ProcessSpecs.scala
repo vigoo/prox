@@ -1,6 +1,7 @@
 package io.github.vigoo.prox
 
 import java.io.File
+import java.nio.file.{Files, Paths}
 
 import cats.effect.IO
 import cats.implicits._
@@ -9,8 +10,8 @@ import org.specs2.Specification
 
 import scala.concurrent.ExecutionContext.Implicits.global
 import shapeless.test.illTyped
-
 import syntax._
+import path._
 
 // scalastyle:off public.methods.have.type
 // scalastyle:off public.member.have.type
@@ -23,10 +24,15 @@ class ProcessSpecs extends Specification { def is = s2"""
     executed by redirecting it's error to a stream                  $simpleProcessStreamError
     executed by using a stream as it's input                        $simpleProcessStreamInput
     piped to another                                                $simpleProcessPiping
+    piped to another getting a HList of running processes           $simpleProcessPipingHList
     chained by multiple piping operations                           $multiProcessPiping
     chained by multiple piping operations, preserving error redir   $multiProcessPipingWithErrorRedir
     executed by redirecting it's output to a non-byte stream        $typedProcessStreamOutput
     executed by redirecting it's error to a non-byte stream         $typedProcessStreamError
+    specified to run in a given directory                           $workingDirectoryWorks
+    piped and then its input redirected to a stream                 $pipedProcessStreamInput
+    piped and then its input redirected to a file                   $pipedProcessFileInput
+    piped and then its error redirected to a stream                 $pipedProcessStreamError
 
   The DSL prevents
     redirecting the output twice                    $doubleOutputRedirectIsIllegal
@@ -44,6 +50,17 @@ class ProcessSpecs extends Specification { def is = s2"""
       falseResult <- falseRunning.waitForExit()
     } yield (trueResult.exitCode, falseResult.exitCode)
     program.unsafeRunSync() must beEqualTo((0, 1))
+  }
+
+  def workingDirectoryWorks = {
+    val tempDirectory = Files.createTempDirectory("prox")
+    val program = for {
+      pwdRunning <- ((Process("pwd") in tempDirectory) > text.utf8Decode[IO]).start
+      _ <- pwdRunning.waitForExit()
+      contents <- pwdRunning.output.runFoldMonoid
+    } yield contents.lines.toList.headOption
+
+    program.unsafeRunSync() must beSome(tempDirectory.toString) or beSome(s"/private${tempDirectory}")
   }
 
   def simpleProcessFileOutput = {
@@ -75,7 +92,7 @@ class ProcessSpecs extends Specification { def is = s2"""
       contents <- running.output.runFoldMonoid
     } yield contents
 
-    program.attempt.unsafeRunSync() must beEqualTo(Right("Hello world!\n"))
+    program.attempt.unsafeRunSync() must beRight("Hello world!\n")
   }
 
   def simpleProcessStreamError = {
@@ -105,12 +122,51 @@ class ProcessSpecs extends Specification { def is = s2"""
     val target: Pipe[IO, Byte, Byte] = identity[Stream[IO, Byte]]
     val program = for {
       running <- (Process("wc", List("-w")) < source > target).start
-      _ <- running.input.run
       contents <- running.output.through(text.utf8Decode).runFoldMonoid
       _ <- running.waitForExit()
     } yield contents.trim
 
     program.unsafeRunSync() must beEqualTo("5")
+  }
+
+  def pipedProcessFileInput = {
+    val tempFile = Files.createTempFile("prox", "txt")
+    Files.write(tempFile, "This is a test string".getBytes("UTF-8"))
+    val pipedProcess = Process("cat") | Process("wc", List("-w"))
+    val program = for {
+      runningProcesses <- (pipedProcess < tempFile > text.utf8Decode[IO]).start
+      (runningCat, runningWc) = runningProcesses
+      contents <- runningWc.output.runFoldMonoid
+      _ <- runningCat.waitForExit()
+      _ <- runningWc.waitForExit()
+    } yield contents.trim
+
+    program.unsafeRunSync() must beEqualTo("5")
+  }
+
+  def pipedProcessStreamInput = {
+    val source: Stream[IO, Byte] = Stream("This is a test string").through(text.utf8Encode)
+    val pipedProcess = Process("cat") | Process("wc", List("-w"))
+    val program = for {
+      runningProcesses <- (pipedProcess < source > text.utf8Decode[IO]).start
+      (runningCat, runningWc) = runningProcesses
+      contents <- runningWc.output.runFoldMonoid
+      _ <- { println("Waiting for exit"); runningCat.waitForExit() }
+      _ <- runningWc.waitForExit()
+    } yield contents.trim
+
+    program.unsafeRunSync() must beEqualTo("5")
+  }
+
+  def pipedProcessStreamError = {
+    val program = for {
+      rps <- ((Process("true") | Process("perl", List("-e", """print STDERR "Hello""""))) redirectErrorTo text.utf8Decode[IO]).start
+      (_, running) = rps
+      _ <- running.waitForExit()
+      contents <- running.error.runFoldMonoid
+    } yield contents
+
+    program.unsafeRunSync() must beEqualTo("Hello")
   }
 
   def simpleProcessPiping = {
@@ -124,6 +180,34 @@ class ProcessSpecs extends Specification { def is = s2"""
     } yield contents.trim
 
     program.unsafeRunSync() must beEqualTo("5")
+  }
+
+  def simpleProcessPipingHList = {
+    val target: Pipe[IO, Byte, Byte] = identity[Stream[IO, Byte]]
+    val program = for {
+      rpHL <- (Process("echo", List("This is a test string")) | (Process("wc", List("-w")) > target)).startHL
+      runningEcho = rpHL.head
+      runningWc = rpHL.tail.head
+      contents <- runningWc.output.through(text.utf8Decode).runFoldMonoid
+      _ <- runningEcho.waitForExit()
+      _ <- runningWc.waitForExit()
+    } yield contents.trim
+
+    program.unsafeRunSync() must beEqualTo("5")
+  }
+
+  def multiProcessPiping = {
+    val target: Pipe[IO, Byte, Byte] = identity[Stream[IO, Byte]]
+    val program = for {
+      rps <- (Process("echo", List("cat\ncat\ndog\napple")) | Process("sort") | (Process("uniq", List("-c")) > target)).start
+      (runningEcho, runningSort, runningUniq) = rps
+      contents <- runningUniq.output.through(text.utf8Decode).runFoldMonoid
+      _ <- runningEcho.waitForExit()
+      _ <- runningSort.waitForExit()
+      _ <- runningUniq.waitForExit()
+    } yield contents.lines.map(_.trim).toList
+
+    program.unsafeRunSync() must beEqualTo(List("1 apple", "2 cat", "1 dog"))
   }
 
   def multiProcessPipingWithErrorRedir = {
@@ -141,20 +225,6 @@ class ProcessSpecs extends Specification { def is = s2"""
     } yield (perlErrors, sortErrors, uniqErrors)
 
     program.unsafeRunSync() must beEqualTo((Vector("Hello", "world"), Vector.empty, Vector.empty))
-  }
-
-  def multiProcessPiping = {
-    val target: Pipe[IO, Byte, Byte] = identity[Stream[IO, Byte]]
-    val program = for {
-      rps <- (Process("echo", List("cat\ncat\ndog\napple")) | Process("sort") | (Process("uniq", List("-c")) > target)).start
-      (runningEcho, runningSort, runningUniq) = rps
-      contents <- runningUniq.output.through(text.utf8Decode).runFoldMonoid
-      _ <- runningEcho.waitForExit()
-      _ <- runningSort.waitForExit()
-      _ <- runningUniq.waitForExit()
-    } yield contents.lines.map(_.trim).toList
-
-    program.unsafeRunSync() must beEqualTo(List("1 apple", "2 cat", "1 dog"))
   }
 
   def doubleOutputRedirectIsIllegal = {
