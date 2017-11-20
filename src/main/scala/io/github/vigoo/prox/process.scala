@@ -9,7 +9,7 @@ import fs2._
 import scala.concurrent.ExecutionContext
 import scala.language.{higherKinds, implicitConversions}
 
-case class ProcessResult(exitCode: Int)
+case class ProcessResult[Out, Err](exitCode: Int, fullOutput: Vector[Out], fullError: Vector[Err])
 
 trait ProcessIO[O] {
   def toRedirect: Redirect
@@ -62,23 +62,17 @@ object Process {
 trait RunningProcess[Out, Err] {
   def isAlive: IO[Boolean]
 
-  def waitForExit(): IO[ProcessResult]
+  def waitForExit(): IO[ProcessResult[Out, Err]]
 
-  def kill(): IO[ProcessResult]
+  def kill(): IO[ProcessResult[Out, Err]]
 
-  def terminate(): IO[ProcessResult]
-
-  def input: Stream[IO, Byte]
-
-  def output: Stream[IO, Out]
-
-  def error: Stream[IO, Err]
+  def terminate(): IO[ProcessResult[Out, Err]]
 }
 
 class WrappedProcess[Out, Err](systemProcess: java.lang.Process,
-                               val input: Stream[IO, Byte],
-                               val output: Stream[IO, Out],
-                               val error: Stream[IO, Err])
+                               runningInput: IO[Unit],
+                               runningOutput: IO[Vector[Out]],
+                               runningError: IO[Vector[Err]])
   extends RunningProcess[Out, Err] {
 
   override def isAlive: IO[Boolean] =
@@ -86,28 +80,22 @@ class WrappedProcess[Out, Err](systemProcess: java.lang.Process,
       systemProcess.isAlive
     }
 
-  override def waitForExit(): IO[ProcessResult] = {
+  override def waitForExit(): IO[ProcessResult[Out, Err]] = {
     for {
-      exitCode <- IO {
-        systemProcess.waitFor()
-      }
-    } yield ProcessResult(exitCode)
+      exitCode <- IO(systemProcess.waitFor())
+    } yield ProcessResult(exitCode, runningOutput.unsafeRunSync(), runningError.unsafeRunSync())
   }
 
-  override def kill(): IO[ProcessResult] = {
+  override def kill(): IO[ProcessResult[Out, Err]] = {
     for {
-      _ <- IO {
-        systemProcess.destroyForcibly()
-      }
+      _ <- IO(systemProcess.destroyForcibly())
       exitCode <- waitForExit()
     } yield exitCode
   }
 
-  override def terminate(): IO[ProcessResult] = {
+  override def terminate(): IO[ProcessResult[Out, Err]] = {
     for {
-      _ <- IO {
-        systemProcess.destroy()
-      }
+      _ <- IO(systemProcess.destroy())
       exitCode <- waitForExit()
     } yield exitCode
   }

@@ -46,8 +46,10 @@ object Start {
           inputStream = process.inputSource.connect(proc)
           outputStream = process.outputTarget.connect(proc)
           errorStream = process.errorTarget.connect(proc)
-          _ <- async.start(inputStream.run)
-        } yield new WrappedProcess(proc, inputStream, outputStream, errorStream)
+          runningInput <- async.start(inputStream.run)
+          runningOutput <- async.start(outputStream.runLog)
+          runningError <- async.start(errorStream.runLog)
+        } yield new WrappedProcess(proc, runningInput, runningOutput, runningError)
       }
 
       override def toHList(process: Process[Out, Err, IRS, ORS, ERS])(implicit executionContext: ExecutionContext): IO[RunningProcessList] =
@@ -80,6 +82,9 @@ object Start {
       }
 
       override def toHList(pipe: PipedProcess[Out, Err, Byte, PN1Err, PN1, PN2, IRS, ORS, ERS])(implicit executionContext: ExecutionContext): IO[RPL] = {
+        // TODO: tell start to not start the last outputs
+        // TODO: store the stream too in RunningProcesses
+        // TOOD: target's input stream's run will run the source's output stream
         start1.toHList(pipe.from).flatMap { runningSourceProcesses =>
           val runningFrom = runningSourceProcesses.last.asInstanceOf[RunningProcess[Byte, PN1Err]]
           val to = pipe.createTo(PipeConstruction(runningFrom.output, runningFrom.error))
