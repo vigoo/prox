@@ -56,9 +56,9 @@ class ProcessSpecs extends Specification { def is = s2"""
     val tempDirectory = Files.createTempDirectory("prox")
     val program = for {
       pwdRunning <- ((Process("pwd") in tempDirectory) > text.utf8Decode[IO]).start
+      contents <- async.start(pwdRunning.output.runFoldMonoid)
       _ <- pwdRunning.waitForExit()
-      contents <- pwdRunning.output.runFoldMonoid
-    } yield contents.lines.toList.headOption
+    } yield contents.unsafeRunSync().lines.toList.headOption
 
     program.unsafeRunSync() must beSome(tempDirectory.toString) or beSome(s"/private${tempDirectory}")
   }
@@ -67,9 +67,9 @@ class ProcessSpecs extends Specification { def is = s2"""
     val tempFile = File.createTempFile("test", "txt")
     val program = for {
       running <- (Process("echo", List("Hello world!")) > tempFile.toPath).start
+      contents <- async.start(io.file.readAll[IO](tempFile.toPath, 1024).through(text.utf8Decode).runFoldMonoid)
       _ <- running.waitForExit()
-      contents <- io.file.readAll[IO](tempFile.toPath, 1024).through(text.utf8Decode).runFoldMonoid
-    } yield contents
+    } yield contents.unsafeRunSync()
 
     program.unsafeRunSync() must beEqualTo("Hello world!\n")
   }
@@ -78,9 +78,9 @@ class ProcessSpecs extends Specification { def is = s2"""
     val target: Pipe[IO, Byte, Byte] = identity[Stream[IO, Byte]]
     val program = for {
       running <- (Process("echo", List("Hello world!")) > target).start
+      contents <- async.start(running.output.through(text.utf8Decode).runFoldMonoid)
       _ <- running.waitForExit()
-      contents <- running.output.through(text.utf8Decode).runFoldMonoid
-    } yield contents
+    } yield contents.unsafeRunSync()
 
     program.unsafeRunSync() must beEqualTo("Hello world!\n")
   }
@@ -88,9 +88,9 @@ class ProcessSpecs extends Specification { def is = s2"""
   def typedProcessStreamOutput = {
     val program = for {
       running <- (Process("echo", List("Hello world!")) > text.utf8Decode[IO]).start
+      contents <- async.start(running.output.runFoldMonoid)
       _ <- running.waitForExit()
-      contents <- running.output.runFoldMonoid
-    } yield contents
+    } yield contents.unsafeRunSync()
 
     program.attempt.unsafeRunSync() must beRight("Hello world!\n")
   }
@@ -99,9 +99,9 @@ class ProcessSpecs extends Specification { def is = s2"""
     val target: Pipe[IO, Byte, Byte] = identity[Stream[IO, Byte]]
     val program = for {
       running <- (Process("perl", List("-e", """print STDERR "Hello"""")) redirectErrorTo target).start
+      contents <- async.start(running.error.through(text.utf8Decode).runFoldMonoid)
       _ <- running.waitForExit()
-      contents <- running.error.through(text.utf8Decode).runFoldMonoid
-    } yield contents
+    } yield contents.unsafeRunSync()
 
     program.unsafeRunSync() must beEqualTo("Hello")
   }
@@ -110,9 +110,9 @@ class ProcessSpecs extends Specification { def is = s2"""
     val target: Pipe[IO, Byte, String] = text.utf8Decode.andThen(text.lines)
     val program = for {
       running <- (Process("perl", List("-e", """print STDERR "Hello\nworld"""")) redirectErrorTo target).start
+      contents <- async.start(running.error.runLog)
       _ <- running.waitForExit()
-      contents <- running.error.runLog
-    } yield contents
+    } yield contents.unsafeRunSync()
 
     program.unsafeRunSync() must beEqualTo(Vector("Hello", "world"))
   }
@@ -122,9 +122,9 @@ class ProcessSpecs extends Specification { def is = s2"""
     val target: Pipe[IO, Byte, Byte] = identity[Stream[IO, Byte]]
     val program = for {
       running <- (Process("wc", List("-w")) < source > target).start
-      contents <- running.output.through(text.utf8Decode).runFoldMonoid
+      contents <- async.start(running.output.through(text.utf8Decode).runFoldMonoid)
       _ <- running.waitForExit()
-    } yield contents.trim
+    } yield contents.unsafeRunSync().trim
 
     program.unsafeRunSync() must beEqualTo("5")
   }
@@ -136,10 +136,10 @@ class ProcessSpecs extends Specification { def is = s2"""
     val program = for {
       runningProcesses <- (pipedProcess < tempFile > text.utf8Decode[IO]).start
       (runningCat, runningWc) = runningProcesses
-      contents <- runningWc.output.runFoldMonoid
+      contents <- async.start(runningWc.output.runFoldMonoid)
       _ <- runningCat.waitForExit()
       _ <- runningWc.waitForExit()
-    } yield contents.trim
+    } yield contents.unsafeRunSync().trim
 
     program.unsafeRunSync() must beEqualTo("5")
   }
@@ -150,10 +150,10 @@ class ProcessSpecs extends Specification { def is = s2"""
     val program = for {
       runningProcesses <- (pipedProcess < source > text.utf8Decode[IO]).start
       (runningCat, runningWc) = runningProcesses
-      contents <- runningWc.output.runFoldMonoid
-      _ <- { println("Waiting for exit"); runningCat.waitForExit() }
+      contents <- async.start(runningWc.output.runFoldMonoid)
+      _ <- runningCat.waitForExit()
       _ <- runningWc.waitForExit()
-    } yield contents.trim
+    } yield contents.unsafeRunSync().trim
 
     program.unsafeRunSync() must beEqualTo("5")
   }
@@ -162,9 +162,9 @@ class ProcessSpecs extends Specification { def is = s2"""
     val program = for {
       rps <- ((Process("true") | Process("perl", List("-e", """print STDERR "Hello""""))) redirectErrorTo text.utf8Decode[IO]).start
       (_, running) = rps
+      contents <- async.start(running.error.runFoldMonoid)
       _ <- running.waitForExit()
-      contents <- running.error.runFoldMonoid
-    } yield contents
+    } yield contents.unsafeRunSync()
 
     program.unsafeRunSync() must beEqualTo("Hello")
   }
@@ -174,10 +174,10 @@ class ProcessSpecs extends Specification { def is = s2"""
     val program = for {
       rps <- (Process("echo", List("This is a test string")) | (Process("wc", List("-w")) > target)).start
       (runningEcho, runningWc) = rps
-      contents <- runningWc.output.through(text.utf8Decode).runFoldMonoid
+      contents <- async.start(runningWc.output.through(text.utf8Decode).runFoldMonoid)
       _ <- runningEcho.waitForExit()
       _ <- runningWc.waitForExit()
-    } yield contents.trim
+    } yield contents.unsafeRunSync().trim
 
     program.unsafeRunSync() must beEqualTo("5")
   }
@@ -201,11 +201,11 @@ class ProcessSpecs extends Specification { def is = s2"""
     val program = for {
       rps <- (Process("echo", List("cat\ncat\ndog\napple")) | Process("sort") | (Process("uniq", List("-c")) > target)).start
       (runningEcho, runningSort, runningUniq) = rps
-      contents <- runningUniq.output.through(text.utf8Decode).runFoldMonoid
+      contents <- async.start(runningUniq.output.through(text.utf8Decode).runFoldMonoid)
       _ <- runningEcho.waitForExit()
       _ <- runningSort.waitForExit()
       _ <- runningUniq.waitForExit()
-    } yield contents.lines.map(_.trim).toList
+    } yield contents.unsafeRunSync().lines.map(_.trim).toList
 
     program.unsafeRunSync() must beEqualTo(List("1 apple", "2 cat", "1 dog"))
   }
@@ -215,14 +215,14 @@ class ProcessSpecs extends Specification { def is = s2"""
     val program = for {
       rps <- ((Process("perl", List("-e", """print STDERR "Hello\nworld"""")) redirectErrorTo errorTarget) | (Process("sort") redirectErrorTo errorTarget) | (Process("uniq", List("-c")) redirectErrorTo errorTarget)).start
       (runningPerl, runningSort, runningUniq) = rps
-      contents <- runningUniq.output.through(text.utf8Decode).runFoldMonoid
-      perlErrors <- runningPerl.error.runLog
-      sortErrors <- runningSort.error.runLog
-      uniqErrors <- runningUniq.error.runLog
+      contents <- async.start(runningUniq.output.through(text.utf8Decode).runFoldMonoid)
+      perlErrors <- async.start(runningPerl.error.runLog)
+      sortErrors <- async.start(runningSort.error.runLog)
+      uniqErrors <- async.start(runningUniq.error.runLog)
       _ <- runningPerl.waitForExit()
       _ <- runningSort.waitForExit()
       _ <- runningUniq.waitForExit()
-    } yield (perlErrors, sortErrors, uniqErrors)
+    } yield (perlErrors.unsafeRunSync(), sortErrors.unsafeRunSync(), uniqErrors.unsafeRunSync())
 
     program.unsafeRunSync() must beEqualTo((Vector("Hello", "world"), Vector.empty, Vector.empty))
   }

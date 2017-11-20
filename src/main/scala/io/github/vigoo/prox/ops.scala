@@ -46,7 +46,7 @@ object Start {
           inputStream = process.inputSource.connect(proc)
           outputStream = process.outputTarget.connect(proc)
           errorStream = process.errorTarget.connect(proc)
-          _ <- inputStream.run
+          _ <- async.start(inputStream.run)
         } yield new WrappedProcess(proc, inputStream, outputStream, errorStream)
       }
 
