@@ -13,8 +13,8 @@ trait Start[PN <: ProcessNode[_, _, _, _, _]] {
   type RunningProcesses
   type RunningProcessList <: HList
 
-  def apply(process: PN)(implicit executionContext: ExecutionContext): IO[RunningProcesses]
-  def toHList(process: PN)(implicit executionContext: ExecutionContext): IO[RunningProcessList]
+  def apply(process: PN, dontStartOutput: Boolean = false)(implicit executionContext: ExecutionContext): IO[RunningProcesses]
+  def toHList(process: PN, dontStartOutput: Boolean = false)(implicit executionContext: ExecutionContext): IO[RunningProcessList]
 }
 
 object Start {
@@ -30,7 +30,8 @@ object Start {
     new Start[Process[Out, Err, IRS, ORS, ERS]] {
       override type RunningProcesses = RunningProcess[Out, Err]
       override type RunningProcessList = RunningProcess[Out, Err] :: HNil
-      override def apply(process: Process[Out, Err, IRS, ORS, ERS])(implicit executionContext: ExecutionContext): IO[RunningProcess[Out, Err]] = {
+      override def apply(process: Process[Out, Err, IRS, ORS, ERS], dontStartOutput: Boolean)
+                        (implicit executionContext: ExecutionContext): IO[RunningProcess[Out, Err]] = {
         def withWorkingDirectory(builder: ProcessBuilder): ProcessBuilder =
           process.workingDirectory match {
             case Some(directory) => builder.directory(directory.toFile)
@@ -47,17 +48,22 @@ object Start {
           outputStream = process.outputTarget.connect(proc)
           errorStream = process.errorTarget.connect(proc)
           runningInput <- async.start(inputStream.run)
-          runningOutput <- async.start(outputStream.runLog)
+          runningOutput <- if (dontStartOutput) { IO(IO(Vector.empty)) } else { async.start(outputStream.runLog) }
           runningError <- async.start(errorStream.runLog)
-        } yield new WrappedProcess(proc, runningInput, runningOutput, runningError)
+        } yield new WrappedProcess(
+            proc,
+            if (dontStartOutput) Some(outputStream) else None,
+            runningInput,
+            runningOutput,
+            runningError)
       }
 
-      override def toHList(process: Process[Out, Err, IRS, ORS, ERS])(implicit executionContext: ExecutionContext): IO[RunningProcessList] =
-        apply(process).map(runningProcess => runningProcess :: HNil)
+      override def toHList(process: Process[Out, Err, IRS, ORS, ERS], dontStartOutput: Boolean)(implicit executionContext: ExecutionContext): IO[RunningProcessList] =
+        apply(process, dontStartOutput).map(runningProcess => runningProcess :: HNil)
     }
 
   implicit def startPipedProcess[
-    Out, Err, PN1Err,
+    Out, Err,
     PN1 <: ProcessNode[_, _, _, _, _],
     PN2 <: ProcessNode[_, _, _, _, _],
     IRS <: RedirectionState, ORS <: RedirectionState, ERS <: RedirectionState,
@@ -68,27 +74,26 @@ object Start {
      start1: Start.Aux[PN1, RP1, RPL1],
      start2: Start.Aux[PN2, RP2, RPL2],
      last1: Last.Aux[RPL1, RP1Last],
-     rp1LastType: RP1Last <:< RunningProcess[Byte, PN1Err],
+     rp1LastType: RP1Last <:< RunningProcess[Byte, _],
      hcons2: IsHCons.Aux[RPL2, RP2Head, RP2Tail],
      prepend: Prepend.Aux[RPL1, RPL2, RPL],
      tupler: Tupler.Aux[RPL, RPT]):
-    Aux[PipedProcess[Out, Err, Byte, PN1Err, PN1, PN2, IRS, ORS, ERS], RPT, RPL] =
-    new Start[PipedProcess[Out, Err, Byte, PN1Err, PN1, PN2, IRS, ORS, ERS]] {
+    Aux[PipedProcess[Out, Err, Byte, PN1, PN2, IRS, ORS, ERS], RPT, RPL] =
+    new Start[PipedProcess[Out, Err, Byte, PN1, PN2, IRS, ORS, ERS]] {
       override type RunningProcesses = RPT
       override type RunningProcessList = RPL
 
-      override def apply(pipe: PipedProcess[Out, Err, Byte, PN1Err, PN1, PN2, IRS, ORS, ERS])(implicit executionContext: ExecutionContext): IO[RPT] = {
-        toHList(pipe).map(_.tupled)
+      override def apply(pipe: PipedProcess[Out, Err, Byte, PN1, PN2, IRS, ORS, ERS], dontStartOutput: Boolean)
+                        (implicit executionContext: ExecutionContext): IO[RPT] = {
+        toHList(pipe, dontStartOutput).map(_.tupled)
       }
 
-      override def toHList(pipe: PipedProcess[Out, Err, Byte, PN1Err, PN1, PN2, IRS, ORS, ERS])(implicit executionContext: ExecutionContext): IO[RPL] = {
-        // TODO: tell start to not start the last outputs
-        // TODO: store the stream too in RunningProcesses
-        // TOOD: target's input stream's run will run the source's output stream
-        start1.toHList(pipe.from).flatMap { runningSourceProcesses =>
-          val runningFrom = runningSourceProcesses.last.asInstanceOf[RunningProcess[Byte, PN1Err]]
-          val to = pipe.createTo(PipeConstruction(runningFrom.output, runningFrom.error))
-          start2.toHList(to).flatMap { runningTargetProcesses =>
+      override def toHList(pipe: PipedProcess[Out, Err, Byte, PN1, PN2, IRS, ORS, ERS], dontStartOutput: Boolean)
+                          (implicit executionContext: ExecutionContext): IO[RPL] = {
+        start1.toHList(pipe.from, dontStartOutput = true).flatMap { runningSourceProcesses =>
+          val runningFrom = runningSourceProcesses.last.asInstanceOf[RunningProcess[Byte, _]]
+          val to = pipe.createTo(PipeConstruction(runningFrom.notStartedOutput.get))
+          start2.toHList(to, dontStartOutput).flatMap { runningTargetProcesses =>
             val runningTo = runningTargetProcesses.head
             IO(runningSourceProcesses ::: runningTargetProcesses)
           }
@@ -123,18 +128,18 @@ object RedirectInput {
     }
 
   implicit def redirectPipedProcessInput[
-    Out, Err, PN1Out, PN1Err,
+    Out, Err, PN1Out,
     PN1 <: ProcessNode[_, _, NotRedirected, _, _],
     PN2 <: ProcessNode[_, _, _, _, _],
     ORS <: RedirectionState, ERS <: RedirectionState,
     PN1Redirected <: ProcessNode[_, _, Redirected, _, _]]
     (implicit redirectPN1Input: RedirectInput.Aux[PN1, PN1Redirected]):
-    Aux[PipedProcess[Out, Err, PN1Out, PN1Err, PN1, PN2, NotRedirected, ORS, ERS], PipedProcess[Out, Err, PN1Out, PN1Err, PN1Redirected, PN2, Redirected, ORS, ERS]] =
-    new RedirectInput[PipedProcess[Out, Err, PN1Out, PN1Err, PN1, PN2, NotRedirected, ORS, ERS]] {
-      override type Result = PipedProcess[Out, Err, PN1Out, PN1Err, PN1Redirected, PN2, Redirected, ORS, ERS]
+    Aux[PipedProcess[Out, Err, PN1Out, PN1, PN2, NotRedirected, ORS, ERS], PipedProcess[Out, Err, PN1Out, PN1Redirected, PN2, Redirected, ORS, ERS]] =
+    new RedirectInput[PipedProcess[Out, Err, PN1Out, PN1, PN2, NotRedirected, ORS, ERS]] {
+      override type Result = PipedProcess[Out, Err, PN1Out, PN1Redirected, PN2, Redirected, ORS, ERS]
 
-      override def apply[From: CanBeProcessInputSource](process: PipedProcess[Out, Err, PN1Out, PN1Err, PN1, PN2, NotRedirected, ORS, ERS], from: From): Result = {
-        new PipedProcess[Out, Err, PN1Out, PN1Err, PN1Redirected, PN2, Redirected, ORS, ERS](redirectPN1Input(process.from, from), process.createTo)
+      override def apply[From: CanBeProcessInputSource](process: PipedProcess[Out, Err, PN1Out, PN1, PN2, NotRedirected, ORS, ERS], from: From): Result = {
+        new PipedProcess[Out, Err, PN1Out, PN1Redirected, PN2, Redirected, ORS, ERS](redirectPN1Input(process.from, from), process.createTo)
       }
     }
 }
@@ -166,22 +171,22 @@ object RedirectOutput {
     }
 
   implicit def redirectPipedProcessOutput[
-    Out, Err, PN1Out, PN1Err,
-    PN1 <: ProcessNode[PN1Out, PN1Err, _, _, _],
+    Out, Err, PN1Out,
+    PN1 <: ProcessNode[PN1Out, _, _, _, _],
     PN2 <: ProcessNode[_, _, _, NotRedirected, _],
     IRS <: RedirectionState, ERS <: RedirectionState,
     PN2Redirected <: ProcessNode[_, _, _, Redirected, _],
     To, NewOut]
   (implicit redirectPN2Output: RedirectOutput.Aux[PN2, To, NewOut, PN2Redirected]):
-  Aux[PipedProcess[Out, Err, PN1Out, PN1Err, PN1, PN2, IRS, NotRedirected, ERS],
+  Aux[PipedProcess[Out, Err, PN1Out, PN1, PN2, IRS, NotRedirected, ERS],
       To, NewOut,
-      PipedProcess[NewOut, Err, PN1Out, PN1Err, PN1, PN2Redirected, IRS, Redirected, ERS]] =
-    new RedirectOutput[PipedProcess[Out, Err, PN1Out, PN1Err, PN1, PN2, IRS, NotRedirected, ERS], To, NewOut] {
-      override type Result = PipedProcess[NewOut, Err, PN1Out, PN1Err, PN1, PN2Redirected, IRS, Redirected, ERS]
+      PipedProcess[NewOut, Err, PN1Out, PN1, PN2Redirected, IRS, Redirected, ERS]] =
+    new RedirectOutput[PipedProcess[Out, Err, PN1Out, PN1, PN2, IRS, NotRedirected, ERS], To, NewOut] {
+      override type Result = PipedProcess[NewOut, Err, PN1Out, PN1, PN2Redirected, IRS, Redirected, ERS]
 
-      override def apply(process: PipedProcess[Out, Err, PN1Out, PN1Err, PN1, PN2, IRS, NotRedirected, ERS], to: To)
+      override def apply(process: PipedProcess[Out, Err, PN1Out, PN1, PN2, IRS, NotRedirected, ERS], to: To)
                         (implicit target: CanBeProcessOutputTarget.Aux[To, NewOut]): Result =
-        new PipedProcess[NewOut, Err, PN1Out, PN1Err, PN1, PN2Redirected, IRS, Redirected, ERS](
+        new PipedProcess[NewOut, Err, PN1Out, PN1, PN2Redirected, IRS, Redirected, ERS](
           process.from, process.createTo.andThen(redirectPN2Output(_, to)))
     }
 }
@@ -213,22 +218,22 @@ object RedirectError {
     }
 
   implicit def redirectPipedProcessError[
-  Out, Err, PN1Out, PN1Err,
-  PN1 <: ProcessNode[PN1Out, PN1Err, _, _, _],
+  Out, Err, PN1Out,
+  PN1 <: ProcessNode[PN1Out, _, _, _, _],
   PN2 <: ProcessNode[_, _, _, _, NotRedirected],
   IRS <: RedirectionState, ORS <: RedirectionState,
   PN2Redirected <: ProcessNode[_, _, _, _, Redirected],
   To, NewErr]
   (implicit redirectPN2Error: RedirectError.Aux[PN2, To, NewErr, PN2Redirected]):
-  Aux[PipedProcess[Out, Err, PN1Out, PN1Err, PN1, PN2, IRS, ORS, NotRedirected],
+  Aux[PipedProcess[Out, Err, PN1Out, PN1, PN2, IRS, ORS, NotRedirected],
     To, NewErr,
-    PipedProcess[Out, NewErr, PN1Out, PN1Err, PN1, PN2Redirected, IRS, ORS, Redirected]] =
-    new RedirectError[PipedProcess[Out, Err, PN1Out, PN1Err, PN1, PN2, IRS, ORS, NotRedirected], To, NewErr] {
-      override type Result = PipedProcess[Out, NewErr, PN1Out, PN1Err, PN1, PN2Redirected, IRS, ORS, Redirected]
+    PipedProcess[Out, NewErr, PN1Out, PN1, PN2Redirected, IRS, ORS, Redirected]] =
+    new RedirectError[PipedProcess[Out, Err, PN1Out, PN1, PN2, IRS, ORS, NotRedirected], To, NewErr] {
+      override type Result = PipedProcess[Out, NewErr, PN1Out, PN1, PN2Redirected, IRS, ORS, Redirected]
 
-      override def apply(process: PipedProcess[Out, Err, PN1Out, PN1Err, PN1, PN2, IRS, ORS, NotRedirected], to: To)
+      override def apply(process: PipedProcess[Out, Err, PN1Out, PN1, PN2, IRS, ORS, NotRedirected], to: To)
                         (implicit target: CanBeProcessErrorTarget.Aux[To, NewErr]): Result =
-        new PipedProcess[Out, NewErr, PN1Out, PN1Err, PN1, PN2Redirected, IRS, ORS, Redirected](
+        new PipedProcess[Out, NewErr, PN1Out, PN1, PN2Redirected, IRS, ORS, Redirected](
           process.from, process.createTo.andThen(redirectPN2Error(_, to)))
     }
 }
@@ -244,23 +249,23 @@ object Piping {
     Piping[PN1, PN2] { type ResultProcess = RP }
 
   implicit def pipeProcess[
-    PN1Err, PN1IRS <: RedirectionState, PN1ERS <: RedirectionState,
+    PN1IRS <: RedirectionState, PN1ERS <: RedirectionState,
     PN2Out, PN2Err, PN2ORS <: RedirectionState, PN2ERS <: RedirectionState,
     PN1 <: ProcessNode[_, _, _, NotRedirected, _],
     PN2 <: ProcessNode[_, _, NotRedirected, _, _],
     PN1Redirected <: ProcessNode[_, _, _, Redirected, _],
     PN2Redirected <: ProcessNode[_, _, Redirected, _, _]]
     (implicit
-     pn1SubTyping: PN1 <:< ProcessNode[Byte, PN1Err, PN1IRS, NotRedirected, PN1ERS],
+     pn1SubTyping: PN1 <:< ProcessNode[Byte, _, PN1IRS, NotRedirected, PN1ERS],
      pn2SubTyping: PN2 <:< ProcessNode[PN2Out, PN2Err, NotRedirected, PN2ORS, PN2ERS],
      redirectPN1Output: RedirectOutput.Aux[PN1, Pipe[IO, Byte, Byte], Byte, PN1Redirected],
      redirectPN2Input: RedirectInput.Aux[PN2, PN2Redirected]):
     Aux[PN1,
         PN2,
-        PipedProcess[PN2Out, PN2Err, Byte, PN1Err, PN1Redirected, PN2Redirected, PN1IRS, PN2ORS, PN2ERS]] =
+        PipedProcess[PN2Out, PN2Err, Byte, PN1Redirected, PN2Redirected, PN1IRS, PN2ORS, PN2ERS]] =
     new Piping[PN1, PN2] {
       override type ResultProcess =
-        PipedProcess[PN2Out, PN2Err, Byte, PN1Err,
+        PipedProcess[PN2Out, PN2Err, Byte,
                      PN1Redirected,
                      PN2Redirected,
                      PN1IRS, PN2ORS, PN2ERS]

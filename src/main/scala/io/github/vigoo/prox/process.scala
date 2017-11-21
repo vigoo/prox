@@ -16,7 +16,7 @@ trait ProcessIO[O] {
   def connect(systemProcess: java.lang.Process)(implicit executionContext: ExecutionContext): Stream[IO, O]
 }
 
-case class PipeConstruction[Out, Err](outStream: Stream[IO, Out], errStream: Stream[IO, Err])
+case class PipeConstruction[Out](outStream: Stream[IO, Out])
 
 sealed trait RedirectionState
 
@@ -27,8 +27,8 @@ trait Redirected extends RedirectionState
 sealed trait ProcessNode[Out, Err, IRS <: RedirectionState, ORS <: RedirectionState, ERS <: RedirectionState] {
 }
 
-class PipedProcess[Out, Err, PN1Out, PN1Err, PN1 <: ProcessNode[_, _, _, _, _], PN2 <: ProcessNode[_, _, _, _, _], IRS <: RedirectionState, ORS <: RedirectionState, ERS <: RedirectionState]
-(val from: PN1, val createTo: PipeConstruction[PN1Out, PN1Err] => PN2)
+class PipedProcess[Out, Err, PN1Out, PN1 <: ProcessNode[_, _, _, _, _], PN2 <: ProcessNode[_, _, _, _, _], IRS <: RedirectionState, ORS <: RedirectionState, ERS <: RedirectionState]
+(val from: PN1, val createTo: PipeConstruction[PN1Out] => PN2)
   extends ProcessNode[Out, Err, IRS, ORS, ERS] {
 }
 
@@ -67,9 +67,12 @@ trait RunningProcess[Out, Err] {
   def kill(): IO[ProcessResult[Out, Err]]
 
   def terminate(): IO[ProcessResult[Out, Err]]
+
+  def notStartedOutput: Option[Stream[IO, Out]]
 }
 
 class WrappedProcess[Out, Err](systemProcess: java.lang.Process,
+                               val notStartedOutput: Option[Stream[IO, Out]],
                                runningInput: IO[Unit],
                                runningOutput: IO[Vector[Out]],
                                runningError: IO[Vector[Err]])

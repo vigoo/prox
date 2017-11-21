@@ -33,11 +33,6 @@ object CanBeProcessOutputTarget {
 
   implicit def pipeAsTarget[Out]: Aux[Pipe[IO, Byte, Out], Out] =
     create((pipe: Pipe[IO, Byte, Out]) => new OutputStreamingTarget(pipe))
-
-  implicit def sinkAsTarget(implicit executionContext: ExecutionContext): Aux[Sink[IO, Byte], Byte] =
-    create((sink: Sink[IO, Byte]) => new OutputStreamingTarget(in =>
-      in.observe(sink)
-    ))
 }
 
 trait CanBeProcessErrorTarget[To] {
@@ -59,11 +54,6 @@ object CanBeProcessErrorTarget {
 
   implicit def pipeAsErrorTarget[Err]: Aux[Pipe[IO, Byte, Err], Err] =
     create((pipe: Pipe[IO, Byte, Err]) => new ErrorStreamingTarget(pipe))
-
-  implicit def sinkAsErrorTarget(implicit executionContext: ExecutionContext): Aux[Sink[IO, Byte], Byte] =
-    create((sink: Sink[IO, Byte]) => new ErrorStreamingTarget(in =>
-      in.observe(sink)
-    ))
 }
 
 object StdOut extends ProcessOutputTarget[Byte] {
