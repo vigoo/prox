@@ -264,7 +264,7 @@ object Piping {
     (implicit
      pn1SubTyping: PN1 <:< ProcessNode[Byte, _, PN1IRS, NotRedirected, PN1ERS],
      pn2SubTyping: PN2 <:< ProcessNode[PN2Out, PN2Err, NotRedirected, PN2ORS, PN2ERS],
-     redirectPN1Output: RedirectOutput.Aux[PN1, Pipe[IO, Byte, Byte], Byte, Unit, PN1Redirected],
+     redirectPN1Output: RedirectOutput.Aux[PN1, Ignore[Byte], Byte, Unit, PN1Redirected],
      redirectPN2Input: RedirectInput.Aux[PN2, PN2Redirected]):
     Aux[PN1,
         PN2,
@@ -277,7 +277,7 @@ object Piping {
                      PN1IRS, PN2ORS, PN2ERS]
 
       override def apply(from: PN1, to: PN2): ResultProcess = {
-        val channel: Pipe[IO, Byte, Byte] = identity[Stream[IO, Byte]]
+        val channel = Ignore(identity[Stream[IO, Byte]])
         new PipedProcess(
           redirectPN1Output(from, channel),
           construction => redirectPN2Input(to, construction.outStream))
