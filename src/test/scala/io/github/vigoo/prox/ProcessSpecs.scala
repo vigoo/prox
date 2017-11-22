@@ -35,6 +35,7 @@ class ProcessSpecs extends Specification { def is = s2"""
     piped and then its error redirected to a stream                 $pipedProcessStreamError
     be checked if it is alive                                       $isAlive
     be terminated                                                   $terminateSignal
+    be killed                                                       $killSignal
 
   The DSL prevents
     redirecting the output twice                    $doubleOutputRedirectIsIllegal
@@ -59,9 +60,9 @@ class ProcessSpecs extends Specification { def is = s2"""
     val program = for {
       pwdRunning <- ((Process("pwd") in tempDirectory) > text.utf8Decode[IO]).start
       pwdResult <- pwdRunning.waitForExit()
-    } yield pwdResult.fullOutput.headOption
+    } yield pwdResult.fullOutput.trim
 
-    program.unsafeRunSync() must beSome(tempDirectory.toString) or beSome(s"/private${tempDirectory}")
+    program.unsafeRunSync() must beOneOf(tempDirectory.toString, s"/private${tempDirectory}")
   }
 
   def simpleProcessFileOutput = {
@@ -122,7 +123,7 @@ class ProcessSpecs extends Specification { def is = s2"""
     val program = for {
       running <- (Process("wc", List("-w")) < source > text.utf8Decode[IO]).start
       result <- running.waitForExit()
-    } yield result.fullOutput
+    } yield result.fullOutput.trim
 
     program.unsafeRunSync() must beEqualTo("5")
   }
@@ -136,7 +137,7 @@ class ProcessSpecs extends Specification { def is = s2"""
       (runningCat, runningWc) = runningProcesses
       _ <- runningCat.waitForExit()
       wcResult <- runningWc.waitForExit()
-    } yield wcResult.fullOutput
+    } yield wcResult.fullOutput.trim
 
     program.unsafeRunSync() must beEqualTo("5")
   }
@@ -149,7 +150,7 @@ class ProcessSpecs extends Specification { def is = s2"""
       (runningCat, runningWc) = runningProcesses
       _ <- runningCat.waitForExit()
       wcResult <- runningWc.waitForExit()
-    } yield wcResult.fullOutput
+    } yield wcResult.fullOutput.trim
 
     program.unsafeRunSync() must beEqualTo("5")
   }
@@ -170,7 +171,7 @@ class ProcessSpecs extends Specification { def is = s2"""
       (runningEcho, runningWc) = rps
       _ <- runningEcho.waitForExit()
       wcResult <- runningWc.waitForExit()
-    } yield wcResult.fullOutput
+    } yield wcResult.fullOutput.trim
 
     program.unsafeRunSync() must beEqualTo("5")
   }
@@ -182,7 +183,7 @@ class ProcessSpecs extends Specification { def is = s2"""
       runningWc = rpHL.tail.head
       _ <- runningEcho.waitForExit()
       wcResult <- runningWc.waitForExit()
-    } yield wcResult.fullOutput
+    } yield wcResult.fullOutput.trim
 
     program.unsafeRunSync() must beEqualTo("5")
   }
@@ -194,13 +195,13 @@ class ProcessSpecs extends Specification { def is = s2"""
       _ <- runningEcho.waitForExit()
       _ <- runningSort.waitForExit()
       uniqResult <- runningUniq.waitForExit()
-    } yield uniqResult.fullOutput.map(_.trim).toList
+    } yield uniqResult.fullOutput.lines.map(_.trim).toList
 
     program.unsafeRunSync() must beEqualTo(List("1 apple", "2 cat", "1 dog"))
   }
 
   def multiProcessPipingWithErrorRedir = {
-    val errorTarget: Pipe[IO, Byte, String] = text.utf8Decode.andThen(text.lines)
+    val errorTarget = Log(text.utf8Decode[IO].andThen(text.lines[IO]))
     val program = for {
       rps <- ((Process("perl", List("-e", """print STDERR "Hello\nworld"""")) redirectErrorTo errorTarget) | (Process("sort") redirectErrorTo errorTarget) | (Process("uniq", List("-c")) redirectErrorTo errorTarget)).start
       (runningPerl, runningSort, runningUniq) = rps
@@ -225,11 +226,22 @@ class ProcessSpecs extends Specification { def is = s2"""
 
   def terminateSignal = {
     val program = for {
-      running <- (Process("perl", List("-e", """$SIG{TERM} = sub { die "got terminated" }; sleep 30""")) > text.utf8Decode[IO]).start
+      running <- Process("perl", List("-e", """$SIG{TERM} = sub { exit 1 }; sleep 30; exit 0""")).start
+      _ <- IO { Thread.sleep(250); }
       result <- running.terminate()
-    } yield result.fullOutput
+    } yield (result.exitCode)
 
-    program.unsafeRunSync() must beEqualTo("got terminated")
+    program.unsafeRunSync() must beEqualTo(1)
+  }
+
+  def killSignal = {
+    val program = for {
+      running <- Process("perl", List("-e", """$SIG{TERM} = 'IGNORE'; sleep 30; exit 2""")).start
+      _ <- IO { Thread.sleep(250); }
+      result <- running.kill()
+    } yield (result.exitCode)
+
+    program.unsafeRunSync() must beEqualTo(137)
   }
 
   def doubleOutputRedirectIsIllegal = {

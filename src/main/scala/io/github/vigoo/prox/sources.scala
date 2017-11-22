@@ -5,12 +5,12 @@ import java.lang.ProcessBuilder.Redirect
 import java.nio.file.Path
 
 import cats.effect.IO
-import fs2.{Pure, Sink, Stream, io}
+import fs2._
 
 import scala.concurrent.ExecutionContext
 import scala.language.higherKinds
 
-trait ProcessInputSource extends ProcessIO[Byte]
+trait ProcessInputSource extends ProcessIO[Byte, Unit]
 
 trait CanBeProcessInputSource[From] {
   def apply(from: From): ProcessInputSource
@@ -32,12 +32,18 @@ object StdIn extends ProcessInputSource {
 
   override def connect(systemProcess: lang.Process)(implicit executionContext: ExecutionContext): Stream[IO, Byte] =
     Stream.empty
+
+  override def run(stream: Stream[IO, Byte])(implicit executionContext: ExecutionContext): IO[IO[Unit]] =
+    IO(IO(()))
 }
 
 class FileSource(path: Path) extends ProcessInputSource {
   override def toRedirect: Redirect = Redirect.from(path.toFile)
   override def connect(systemProcess: lang.Process)(implicit executionContext: ExecutionContext): Stream[IO, Byte] =
     Stream.empty
+
+  override def run(stream: Stream[IO, Byte])(implicit executionContext: ExecutionContext) =
+    IO(IO(()))
 }
 
 class InputStreamingSource(source: Stream[IO, Byte]) extends ProcessInputSource {
@@ -45,4 +51,7 @@ class InputStreamingSource(source: Stream[IO, Byte]) extends ProcessInputSource 
   override def connect(systemProcess: lang.Process)(implicit executionContext: ExecutionContext): Stream[IO, Byte] = {
     source.observe(io.writeOutputStreamAsync[IO](IO { systemProcess.getOutputStream }, closeAfterUse = true))
   }
+
+  override def run(stream: Stream[IO, Byte])(implicit executionContext: ExecutionContext): IO[IO[Unit]] =
+    async.start(stream.run)
 }
