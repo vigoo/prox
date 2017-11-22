@@ -91,19 +91,29 @@ Similarly the output can be redirected to a **pipe** as following:
 val captured = Process("cat") < source > identity[Stream[IO, Byte]]
 ```
 
-Calling `start` on a process which has its streams connected to [fs2](https://github.com/functional-streams-for-scala/fs2) streams sets up the *IO operation* and starts the *input streams*, but the *output streams* must be executed manually 
-as the task requires. For example to send a string through `cat` and capture the output we 
-have to run fold the output stream, exposed on 
-the `RunningProcess` interface:
+Calling `start` on a process which has its streams connected to [fs2](https://github.com/functional-streams-for-scala/fs2) streams sets up the *IO operation* and starts all the involved *streams* asynchronously.
+
+The default type classes implement the following behavior depending on the target:
+
+- If the target is a `Sink`, the stream is started by `run` and the result type is `Unit`
+- If the pipe's output is `Out` and there is a `Monoid` instance for `Out`, the stream is started by `runFoldMonoid` and the result type is `Out`
+- Otherwise if the pipe's output is `Out`, the stream is started by `runLog` and the result type is `Vector[Out]`  
+
+For example to send a string through `cat` and capture the output:
 
 ```scala
 val source = Stream("Hello world").through(text.utf8Encode)
 val program: IO[String] = for {
   runningProcess <- (Process("cat") < source > text.utf8Decode[IO]).start
-  contents <- running.output.runFoldMonoid
-  _ <- runningProcess.waitForExit()
-} yield contents
+  result <- runningProcess.waitForExit()
+} yield result.fullOutput
 ```
+
+There are three wrappers for pipes to customize this behavior without implementing an own instance of `CanBeOutputTarget[T]`:
+
+- `Ignore(pipe)` results in running the stream with `run`, having a result of `Unit`
+- `Log(pipe)` results in running the stream with `runLog` even if `Out` is a `Monoid`, having a result of `Vector[Out]`
+- `Fold(pipe, init: Res, f: (Res, Out) => Res)` results in running the stream with `runFold(init)(f)`, having a result of `Res`  
 
 ### Piping
 The library also provides a way to **pipe two or more processes together**. This is implemented by the *stream support* above internally.
