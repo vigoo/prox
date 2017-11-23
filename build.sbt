@@ -18,3 +18,46 @@ coverageEnabled := true
 
 scalacOptions ++= Seq("-Ypartial-unification")
 scalacOptions in Test ++= Seq("-Yrangepos")
+
+publishMavenStyle := true
+
+pomIncludeRepository := { _ => false }
+
+publishTo := {
+  val nexus = "https://oss.sonatype.org/"
+  if (isSnapshot.value)
+    Some("snapshots" at nexus + "content/repositories/snapshots")
+  else
+    Some("releases"  at nexus + "service/local/staging/deploy/maven2")
+}
+
+pomExtra := (
+  <url>https://github.com/vigoo/prox</url>
+    <licenses>
+      <license>
+        <name>Apache 2</name>
+        <url>http://www.apache.org/licenses/LICENSE-2.0.txt</url>
+      </license>
+    </licenses>
+    <scm>
+      <url>git@github.com:vigoo/prox.git</url>
+      <connection>scm:git:git@github.com:vigoo/prox.git</connection>
+    </scm>
+    <developers>
+      <developer>
+        <id>vigoo</id>
+        <name>Daniel Vigovszky</name>
+        <url>https://github.com/vigoo</url>
+      </developer>
+    </developers>)
+
+(for {
+  username <- Option(System.getenv().get("SONATYPE_USERNAME"))
+  password <- Option(System.getenv().get("SONATYPE_PASSWORD"))
+} yield
+  credentials += Credentials(
+    "Sonatype Nexus Repository Manager",
+    "oss.sonatype.org",
+    username,
+    password)
+  ).getOrElse(credentials ++= Seq())
