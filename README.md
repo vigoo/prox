@@ -12,6 +12,12 @@ It works by first defining a one or more processes then starting them, getting a
 
 ### Getting started
 
+Add the following dependency:
+
+```scala
+libraryDependencies += "io.github.vigoo" %% "prox" % "0.1-SNAPSHOT"
+```
+
 Let's start by defining a single process with the `Process` constructor, taking a command and optionally a list of arguments and a working directory:
 
 ```scala

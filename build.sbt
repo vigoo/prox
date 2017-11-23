@@ -1,7 +1,7 @@
 name := "prox"
 organization := "io.github.vigoo"
 
-version := "0.1"
+version := "0.1-SNAPSHOT"
 
 scalaVersion := "2.12.4"
 
@@ -16,12 +16,16 @@ libraryDependencies ++= Seq(
 
 coverageEnabled := true
 
-scalacOptions ++= Seq("-Ypartial-unification")
+scalacOptions ++= Seq("-Ypartial-unification", "-deprecation")
 scalacOptions in Test ++= Seq("-Yrangepos")
+
+// Publishing
 
 publishMavenStyle := true
 
 pomIncludeRepository := { _ => false }
+
+isSnapshot := version.value endsWith "SNAPSHOT"
 
 publishTo := {
   val nexus = "https://oss.sonatype.org/"
