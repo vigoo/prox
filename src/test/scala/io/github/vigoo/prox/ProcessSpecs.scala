@@ -215,7 +215,7 @@ class ProcessSpecs extends Specification { def is = s2"""
 
   def isAlive = {
     val program = for {
-      running <- Process("cat").start
+      running <- Process("sleep", List("10")).start
       isAliveBefore <- running.isAlive
       _ <- running.terminate()
       isAliveAfter <- running.isAlive
