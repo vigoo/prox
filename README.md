@@ -15,6 +15,8 @@ It works by first defining a one or more processes then starting them, getting a
 Add the following dependency:
 
 ```scala
+resolvers += Resolver.sonatypeRepo("snapshots")
+
 libraryDependencies += "io.github.vigoo" %% "prox" % "0.1-SNAPSHOT"
 ```
 
