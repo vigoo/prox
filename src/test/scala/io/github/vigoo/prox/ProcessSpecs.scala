@@ -11,7 +11,6 @@ import org.specs2.Specification
 import scala.concurrent.ExecutionContext.Implicits.global
 import shapeless.test.illTyped
 import syntax._
-import path._
 
 // scalastyle:off public.methods.have.type
 // scalastyle:off public.member.have.type
@@ -37,12 +36,26 @@ class ProcessSpecs extends Specification { def is = s2"""
     be terminated                                                   $terminateSignal
     be killed                                                       $killSignal
 
+  Stream output targets can be
+    folded automatically for monoids                                $outFoldMonoid
+    logged automatically for non monoids                            $outLogNonMonoid
+    logged for monoids                                              $outLogMonoid
+    ignored                                                         $outIgnore
+    folded with custom function                                     $outCustomFold
+
+  Stream error targets can be
+    folded automatically for monoids                                $errFoldMonoid
+    logged automatically for non monoids                            $errLogNonMonoid
+    logged for monoids                                              $errLogMonoid
+    ignored                                                         $errIgnore
+    folded with custom function                                     $errCustomFold
+
   The DSL prevents
-    redirecting the output twice                    $doubleOutputRedirectIsIllegal
-    redirecting the input twice                     $doubleInputRedirectIsIllegal
-    redirecting the error twice                     $doubleErrorRedirectIsIllegal
-    piping a process with redirected output         $pipingRedirectedOutputIsIllegal
-    piping to a process with redirected input       $pipingToRedirectedInputIsIllegal
+    redirecting the output twice                                    $doubleOutputRedirectIsIllegal
+    redirecting the input twice                                     $doubleInputRedirectIsIllegal
+    redirecting the error twice                                     $doubleErrorRedirectIsIllegal
+    piping a process with redirected output                         $pipingRedirectedOutputIsIllegal
+    piping to a process with redirected input                       $pipingToRedirectedInputIsIllegal
   """
 
   def simpleProcessGetExitCode = {
@@ -242,6 +255,100 @@ class ProcessSpecs extends Specification { def is = s2"""
     } yield (result.exitCode)
 
     program.unsafeRunSync() must beEqualTo(137)
+  }
+
+  def outFoldMonoid = {
+    val program = for {
+      running <- (Process("echo", List("Hello\nworld!")) > text.utf8Decode[IO].andThen(text.lines[IO])).start
+      result <- running.waitForExit()
+    } yield result.fullOutput
+
+    program.unsafeRunSync() must beEqualTo("Helloworld!")
+  }
+
+  case class StringLength(value: Int)
+
+  def outLogNonMonoid = {
+    val program = for {
+      running <- (Process("echo", List("Hello\nworld!")) > text.utf8Decode[IO].andThen(text.lines[IO]).andThen(_.map(s => StringLength(s.length)))).start
+      result <- running.waitForExit()
+    } yield result.fullOutput
+
+    program.unsafeRunSync() must beEqualTo(Vector(StringLength(5), StringLength(6), StringLength(0)))
+  }
+
+  def outLogMonoid = {
+    val program = for {
+      running <- (Process("echo", List("Hello\nworld!")) > Log(text.utf8Decode[IO].andThen(text.lines[IO]).andThen(_.map(_.length)))).start
+      result <- running.waitForExit()
+    } yield result.fullOutput
+
+    program.unsafeRunSync() must beEqualTo(Vector(5, 6, 0))
+  }
+
+  def outIgnore = {
+    val program = for {
+      running <- (Process("echo", List("Hello\nworld!")) > Ignore(text.utf8Decode[IO].andThen(text.lines[IO]))).start
+      result <- running.waitForExit()
+    } yield result.fullOutput
+
+    program.unsafeRunSync() must beEqualTo(())
+  }
+
+  def outCustomFold = {
+    val program = for {
+      running <- (Process("echo", List("Hello\nworld!")) >
+        Fold(text.utf8Decode[IO].andThen(text.lines[IO]), Vector.empty, (l: Vector[Option[Char]], s: String) => l :+ s.headOption)).start
+      result <- running.waitForExit()
+    } yield result.fullOutput
+
+    program.unsafeRunSync() must beEqualTo(Vector(Some('H'), Some('w'), None))
+  }
+
+  def errFoldMonoid = {
+    val program = for {
+      running <- (Process("perl", List("-e", "print STDERR 'Hello\nworld!\n'")) redirectErrorTo text.utf8Decode[IO].andThen(text.lines[IO])).start
+        result <- running.waitForExit()
+    } yield result.fullError
+
+    program.unsafeRunSync() must beEqualTo("Helloworld!")
+  }
+
+  def errLogNonMonoid = {
+    val program = for {
+      running <- (Process("perl", List("-e", "print STDERR 'Hello\nworld!\n'")) redirectErrorTo text.utf8Decode[IO].andThen(text.lines[IO]).andThen(_.map(s => StringLength(s.length)))).start
+      result <- running.waitForExit()
+    } yield result.fullError
+
+    program.unsafeRunSync() must beEqualTo(Vector(StringLength(5), StringLength(6), StringLength(0)))
+  }
+
+  def errLogMonoid = {
+    val program = for {
+      running <- (Process("perl", List("-e", "print STDERR 'Hello\nworld!\n'")) redirectErrorTo Log(text.utf8Decode[IO].andThen(text.lines[IO]).andThen(_.map(_.length)))).start
+      result <- running.waitForExit()
+    } yield result.fullError
+
+    program.unsafeRunSync() must beEqualTo(Vector(5, 6, 0))
+  }
+
+  def errIgnore = {
+    val program = for {
+      running <- (Process("perl", List("-e", "print STDERR 'Hello\nworld!\n'")) redirectErrorTo Ignore(text.utf8Decode[IO].andThen(text.lines[IO]))).start
+      result <- running.waitForExit()
+    } yield result.fullError
+
+    program.unsafeRunSync() must beEqualTo(())
+  }
+
+  def errCustomFold = {
+    val program = for {
+      running <- (Process("perl", List("-e", "print STDERR 'Hello\nworld!\n'")) redirectErrorTo
+        Fold(text.utf8Decode[IO].andThen(text.lines[IO]), Vector.empty, (l: Vector[Option[Char]], s: String) => l :+ s.headOption)).start
+      result <- running.waitForExit()
+    } yield result.fullError
+
+    program.unsafeRunSync() must beEqualTo(Vector(Some('H'), Some('w'), None))
   }
 
   def doubleOutputRedirectIsIllegal = {

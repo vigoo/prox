@@ -102,7 +102,7 @@ trait LowPriorityCanBeProcessErrorTarget {
     })
 }
 
-object CanBeProcessErrorTarget {
+object CanBeProcessErrorTarget extends LowPriorityCanBeProcessErrorTarget {
   type Aux[To, Err0, ErrResult0] = CanBeProcessErrorTarget[To] {
     type Err = Err0
     type ErrResult = ErrResult0
@@ -164,7 +164,7 @@ object StdError extends ProcessErrorTarget[Byte, Unit] {
     Stream.empty
 
   override def run(stream: Stream[IO, Byte])(implicit executionContext: ExecutionContext): IO[IO[Unit]] =
-    IO(IO())
+    IO(IO(()))
 }
 
 class FileTarget(path: Path) extends ProcessOutputTarget[Byte, Unit] with ProcessErrorTarget[Byte, Unit] {
