@@ -246,7 +246,7 @@ object RedirectError {
 
 trait Piping[PN1 <: ProcessNode[_, _, _, NotRedirected, _], PN2 <: ProcessNode[_, _, NotRedirected, _, _]] {
   type ResultProcess <: ProcessNode[_, _, _, _, _]
-  def apply(from: PN1, to: PN2): ResultProcess
+  def apply(from: PN1, to: PN2, via: Pipe[IO, Byte, Byte]): ResultProcess
 }
 
 
@@ -276,13 +276,18 @@ object Piping {
                      PN2Redirected,
                      PN1IRS, PN2ORS, PN2ERS]
 
-      override def apply(from: PN1, to: PN2): ResultProcess = {
-        val channel = Ignore(identity[Stream[IO, Byte]])
+      override def apply(from: PN1, to: PN2, via: Pipe[IO, Byte, Byte]): ResultProcess = {
+        val channel = Ignore(via)
         new PipedProcess(
           redirectPN1Output(from, channel),
           construction => redirectPN2Input(to, construction.outStream))
       }
     }
+}
+
+class PipeBuilder[PN <: ProcessNode[_, _, _, NotRedirected, _]](processNode: PN, via: Pipe[IO, Byte, Byte]) {
+  def to[PN2 <: ProcessNode[_, _, NotRedirected, _, _], RP <: ProcessNode[_, _, _, _, _]](to: PN2)(implicit piping: Piping.Aux[PN, PN2, RP]): RP =
+    piping(processNode, to, via)
 }
 
 object syntax {
@@ -297,7 +302,10 @@ object syntax {
     def |[PN2 <: ProcessNode[_, _, NotRedirected, _, _], RP <: ProcessNode[_, _, _, _, _]]
       (to: PN2)
       (implicit piping: Piping.Aux[PN, PN2, RP]): RP =
-      piping(processNode, to)
+      piping(processNode, to, identity[Stream[IO, Byte]])
+
+    def via(via: Pipe[IO, Byte, Byte]): PipeBuilder[PN] =
+      new PipeBuilder(processNode, via)
   }
 
   implicit class ProcessNodeInputRedirect[PN <: ProcessNode[_, _, NotRedirected, _, _]](processNode: PN) {

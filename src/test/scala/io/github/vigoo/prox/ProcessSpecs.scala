@@ -25,6 +25,7 @@ class ProcessSpecs extends Specification { def is = s2"""
     executed by redirecting it's error to a sink                    $simpleProcessSinkError
     executed by using a stream as it's input                        $simpleProcessStreamInput
     piped to another                                                $simpleProcessPiping
+    piped to another through a custom pipe                          $customProcessPiping
     piped to another getting a HList of running processes           $simpleProcessPipingHList
     chained by multiple piping operations                           $multiProcessPiping
     chained by multiple piping operations, preserving error redir   $multiProcessPipingWithErrorRedir
@@ -187,6 +188,26 @@ class ProcessSpecs extends Specification { def is = s2"""
     } yield wcResult.fullOutput.trim
 
     program.unsafeRunSync() must beEqualTo("5")
+  }
+
+  def customProcessPiping = {
+    val customPipe: Pipe[IO, Byte, Byte] =
+      (s: Stream[IO, Byte]) => s
+        .through(text.utf8Decode)
+        .through(text.lines)
+        .map(_.split(' ').toVector)
+        .map(v => v.map(_ + " !!!").mkString(" "))
+        .intersperse("\n")
+        .through(text.utf8Encode)
+
+    val program = for {
+      rps <- (Process("echo", List("This is a test string")).via(customPipe).to(Process("wc", List("-w")) > text.utf8Decode[IO])).start
+      (runningEcho, runningWc) = rps
+      _ <- runningEcho.waitForExit()
+      wcResult <- runningWc.waitForExit()
+    } yield wcResult.fullOutput.trim
+
+    program.unsafeRunSync() must beEqualTo("11")
   }
 
   def simpleProcessPipingHList = {

@@ -155,3 +155,11 @@ for {
   _ <- uniq.waitForExit()
 } yield ()
 ```
+
+The pipe between the two process can be customized with the followin syntax:
+
+
+```scala
+val customPipe: Pipe[IO, Byte, Byte] = ???
+val process = echoProcess.via(customPipe).to(wordCountProcess)
+```
