@@ -410,7 +410,7 @@ class PipeBuilder[PN <: ProcessNode[_, _, _, NotRedirected, _]](processNode: PN,
   * The operations are implemented by various type classes and exposed through extension methods defined in the
   * implicit classes in this object.
   *
-  * Examples:
+  * == Examples ==
   *
   * Starting simple and piped processes:
   * {{{

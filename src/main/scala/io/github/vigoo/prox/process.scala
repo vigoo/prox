@@ -28,10 +28,23 @@ case class ProcessResult[OutResult, ErrResult](exitCode: Int, fullOutput: OutRes
   * @tparam R Result type we get by running the redirection stream
   */
 trait ProcessIO[O, R] {
+  /** Gets the redirection mode */
   def toRedirect: Redirect
 
+  /** Sets up the redirection on the given system process
+    *
+    * @param systemProcess    The process to connect to
+    * @param executionContext Execution context for the created stream
+    * @return Returns the not yet started redirection stream
+    */
   def connect(systemProcess: java.lang.Process)(implicit executionContext: ExecutionContext): Stream[IO, O]
 
+  /** Runs the redirection stream
+    *
+    * @param stream           The stream to be executed
+    * @param executionContext Execution context to use
+    * @return Returns the async result of running the stream
+    */
   def run(stream: Stream[IO, O])(implicit executionContext: ExecutionContext): IO[IO[R]]
 }
 

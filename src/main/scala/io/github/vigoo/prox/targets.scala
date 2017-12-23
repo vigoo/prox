@@ -85,13 +85,13 @@ trait LowPriorityCanBeProcessOutputTarget {
   *
   * There are instances for the following types:
   *
-  * * [[java.nio.file.Path]] to redirect the output to a file
-  * * [[fs2.Sink]] to redirect the output to a sink. The result type is [[Unit]].
-  * * [[fs2.Pipe]] if the pipe's output element type is a [[cats.Monoid]]. The result type is its element type.
-  * * [[fs2.Pipe]] if the pipe's output element type is not a [[cats.Monoid]]. The result type is a [[Vector]] of its element type.
-  * * [[Ignore]]
-  * * [[Log]]
-  * * [[Fold]]
+  *  - [[java.nio.file.Path]] to redirect the output to a file
+  *  - [[fs2.Sink]] to redirect the output to a sink. The result type is [[Unit]].
+  *  - [[fs2.Pipe]] if the pipe's output element type is a [[cats.Monoid]]. The result type is its element type.
+  *  - [[fs2.Pipe]] if the pipe's output element type is not a [[cats.Monoid]]. The result type is a [[Vector]] of its element type.
+  *  - [[Ignore]]
+  *  - [[Log]]
+  *  - [[Fold]]
   */
 object CanBeProcessOutputTarget extends LowPriorityCanBeProcessOutputTarget {
   type Aux[To, Out0, OutResult0] = CanBeProcessOutputTarget[To] {
@@ -168,13 +168,13 @@ trait LowPriorityCanBeProcessErrorTarget {
   *
   * There are instances for the following types:
   *
-  * * [[java.nio.file.Path]] to redirect the error channel to a file
-  * * [[fs2.Sink]] to redirect the error channel to a sink. The result type is [[Unit]].
-  * * [[fs2.Pipe]] if the pipe's output element type is a [[cats.Monoid]]. The result type is its element type.
-  * * [[fs2.Pipe]] if the pipe's output element type is not a [[cats.Monoid]]. The result type is a [[Vector]] of its element type.
-  * * [[Ignore]]
-  * * [[Log]]
-  * * [[Fold]]
+  *  - [[java.nio.file.Path]] to redirect the error channel to a file
+  *  - [[fs2.Sink]] to redirect the error channel to a sink. The result type is [[Unit]].
+  *  - [[fs2.Pipe]] if the pipe's output element type is a [[cats.Monoid]]. The result type is its element type.
+  *  - [[fs2.Pipe]] if the pipe's output element type is not a [[cats.Monoid]]. The result type is a [[Vector]] of its element type.
+  *  - [[Ignore]]
+  *  - [[Log]]
+  *  - [[Fold]]
   */
 object CanBeProcessErrorTarget extends LowPriorityCanBeProcessErrorTarget {
   type Aux[To, Err0, ErrResult0] = CanBeProcessErrorTarget[To] {

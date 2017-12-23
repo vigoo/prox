@@ -28,8 +28,8 @@ trait CanBeProcessInputSource[From] {
   *
   * There are instances for the following types:
   *
-  * * [[java.nio.file.Path]] to use a file as input
-  * * [[fs2.Stream]] to use a byte stream as input
+  * - [[java.nio.file.Path]] to use a file as input
+  * - [[fs2.Stream]] to use a byte stream as input
   */
 object CanBeProcessInputSource {
   implicit val pathAsSource: CanBeProcessInputSource[Path] =
