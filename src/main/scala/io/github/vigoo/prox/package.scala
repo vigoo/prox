@@ -5,8 +5,8 @@ import io.github.vigoo.prox._
 /** Provides classes to work with system processes in a type safe way.
   *
   * == Overview ==
-  * A system process to be started is represented by the [[io.github.vigoo.prox.Process]] case class,
-  * taking a command and optionaly a list of arguments and a working directory:
+  * A system process to be started is represented by the [[Process]] case class,
+  * taking a command and optionally a list of arguments and a working directory:
   *
   * {{{
   *   import io.github.vigoo.prox._
