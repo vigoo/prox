@@ -60,7 +60,7 @@ process: Process[NotRedirected, NotRedirected, NotRedirected]
 
 The three type parameters indicate the redirection status of the processes *input*, *output* and *error* streams. The default is that they are *not redirected*, inheriting the parent processes streams.
 
-Each stream can be redirected **at most once** using the `<`, `>` and `errorTo` operators. The target of these redirections are described by three type classes: `CanBeProcessOutputTarget`, `CanBeProcessErrorTarget` and `CanBeProcessInputSource`.
+Each stream can be redirected **at most once** using the `<`, `>` and `redirectErrorTo` operators. The target of these redirections are described by three type classes: `CanBeProcessOutputTarget`, `CanBeProcessErrorTarget` and `CanBeProcessInputSource`.
 
 One type with such instances is `Path`. Let's how to redirect the output:
 
@@ -80,7 +80,7 @@ Similarly we can redirect the input and the error:
 
 ```scala
 val p1 = Process("cat") < (home / "something")
-val p2 = Process("make") errorTo (home / "errors.log")
+val p2 = Process("make") redirectErrorTo (home / "errors.log")
 ```
 
 ### Streams

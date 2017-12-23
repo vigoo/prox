@@ -11,20 +11,66 @@ import fs2._
 
 import scala.concurrent.ExecutionContext
 
+/** Base trait for output redirection handlers
+  *
+  * @tparam O The redirection stream element type
+  * @tparam R Result type we get by running the redirection stream
+  */
 trait ProcessOutputTarget[O, R] extends ProcessIO[O, R]
 
+/** Base trait for error redirection handlers
+  *
+  * @tparam O The redirection stream element type
+  * @tparam R Result type we get by running the redirection stream
+  */
 trait ProcessErrorTarget[O, R] extends ProcessIO[O, R]
 
+/** Type class for creating output redirection handlers
+  *
+  * @tparam To Type to be used as a target
+  */
 trait CanBeProcessOutputTarget[To] {
+  /** Output stream element type */
   type Out
+  /** Result type of running the output stream */
   type OutResult
+
   def apply(to: To): ProcessOutputTarget[Out, OutResult]
 }
 
+/** Wraps a pipe to modify how the stream is executed
+  *
+  * If a pipe used as an output or error target is wrapped by [[Ignore]], the stream will be executed
+  * by [[fs2.Stream.InvariantOps.run]] and the result type will be [[Unit]].
+  *
+  * @param pipe The pipe to wrap
+  * @tparam O   Stream element type
+  */
 case class Ignore[O](pipe: Pipe[IO, Byte, O])
 
+/** Wraps a pipe to modify how the stream is executed
+  *
+  * If a pipe used as an output or error target is wrapped by [[Log]], the stream will be executed
+  * by [[fs2.Stream.InvariantOps.runLog]] and the result type will be a [[Vector]] of its element
+  * type.
+  *
+  * @param pipe The pipe to wrap
+  * @tparam O   Stream element type
+  */
 case class Log[O](pipe: Pipe[IO, Byte, O])
 
+/** Wraps the pipe to modify how the stream is executed
+  *
+  * If a pipe used as an output or error target is wrapped by [[Fold]], the stream will be executed
+  * by [[fs2.Stream.InvariantOps.runFold]] and the result type will be the result type of the provided
+  * fold function.
+  *
+  * @param pipe The pipe to wrap
+  * @param init Initial value for the fold
+  * @param f    The fold function
+  * @tparam O   Stream element type
+  * @tparam R   Fold result type
+  */
 case class Fold[O, R](pipe: Pipe[IO, Byte, O], init: R, f: ((R, O) => R))
 
 trait LowPriorityCanBeProcessOutputTarget {
@@ -35,6 +81,18 @@ trait LowPriorityCanBeProcessOutputTarget {
     })
 }
 
+/** Instances of the [[CanBeProcessOutputTarget]] type class
+  *
+  * There are instances for the following types:
+  *
+  * * [[java.nio.file.Path]] to redirect the output to a file
+  * * [[fs2.Sink]] to redirect the output to a sink. The result type is [[Unit]].
+  * * [[fs2.Pipe]] if the pipe's output element type is a [[cats.Monoid]]. The result type is its element type.
+  * * [[fs2.Pipe]] if the pipe's output element type is not a [[cats.Monoid]]. The result type is a [[Vector]] of its element type.
+  * * [[Ignore]]
+  * * [[Log]]
+  * * [[Fold]]
+  */
 object CanBeProcessOutputTarget extends LowPriorityCanBeProcessOutputTarget {
   type Aux[To, Out0, OutResult0] = CanBeProcessOutputTarget[To] {
     type Out = Out0
@@ -87,6 +145,10 @@ object CanBeProcessOutputTarget extends LowPriorityCanBeProcessOutputTarget {
     })
 }
 
+/** Type class for creating error redirection handlers
+  *
+  * @tparam To Type to be used as a target
+  */
 trait CanBeProcessErrorTarget[To] {
   type Err
   type ErrResult
@@ -102,6 +164,18 @@ trait LowPriorityCanBeProcessErrorTarget {
     })
 }
 
+/** Instances of the [[CanBeProcessErrorTarget]] type class
+  *
+  * There are instances for the following types:
+  *
+  * * [[java.nio.file.Path]] to redirect the error channel to a file
+  * * [[fs2.Sink]] to redirect the error channel to a sink. The result type is [[Unit]].
+  * * [[fs2.Pipe]] if the pipe's output element type is a [[cats.Monoid]]. The result type is its element type.
+  * * [[fs2.Pipe]] if the pipe's output element type is not a [[cats.Monoid]]. The result type is a [[Vector]] of its element type.
+  * * [[Ignore]]
+  * * [[Log]]
+  * * [[Fold]]
+  */
 object CanBeProcessErrorTarget extends LowPriorityCanBeProcessErrorTarget {
   type Aux[To, Err0, ErrResult0] = CanBeProcessErrorTarget[To] {
     type Err = Err0
@@ -147,6 +221,7 @@ object CanBeProcessErrorTarget extends LowPriorityCanBeProcessErrorTarget {
     })
 }
 
+/** Default implementation of [[ProcessOutputTarget]] representing no redirection */
 object StdOut extends ProcessOutputTarget[Byte, Unit] {
   override def toRedirect: Redirect = Redirect.INHERIT
 
@@ -157,6 +232,7 @@ object StdOut extends ProcessOutputTarget[Byte, Unit] {
     IO(IO(()))
 }
 
+/** Default implementation of [[ProcessErrorTarget]] representing no redirection */
 object StdError extends ProcessErrorTarget[Byte, Unit] {
   override def toRedirect: Redirect = Redirect.INHERIT
 
@@ -167,6 +243,10 @@ object StdError extends ProcessErrorTarget[Byte, Unit] {
     IO(IO(()))
 }
 
+/** Output/error target implementation for using a file as the target
+  *
+  * @param path Path to the file to be written
+  */
 class FileTarget(path: Path) extends ProcessOutputTarget[Byte, Unit] with ProcessErrorTarget[Byte, Unit] {
   override def toRedirect: Redirect = Redirect.to(path.toFile)
 
@@ -177,6 +257,12 @@ class FileTarget(path: Path) extends ProcessOutputTarget[Byte, Unit] with Proces
     IO(IO(()))
 }
 
+/** Base class for output/error target implementations using a stream pipe as the target
+  *
+  * @param target    Target stream
+  * @param chunkSize Chunk size
+  * @tparam Out      Stream output element type
+  */
 abstract class OutputStreamingTargetBase[Out](target: Pipe[IO, Byte, Out], chunkSize: Int = 4096) {
 
   def toRedirect: Redirect = Redirect.PIPE
@@ -188,6 +274,11 @@ abstract class OutputStreamingTargetBase[Out](target: Pipe[IO, Byte, Out], chunk
   def getStream(systemProcess: java.lang.Process): IO[InputStream]
 }
 
+/** Output target implementation using a stream pipe as the target
+  *
+  * @param target    Target stream
+  * @tparam Out      Stream output element type
+  */
 abstract class OutputStreamingTarget[Out](target: Pipe[IO, Byte, Out])
   extends OutputStreamingTargetBase(target) {
 
@@ -195,7 +286,12 @@ abstract class OutputStreamingTarget[Out](target: Pipe[IO, Byte, Out])
     IO(systemProcess.getInputStream)
 }
 
-class ErrorStreamingTarget[Err](target: Pipe[IO, Byte, Err])
+/** Error target implementation using a stream pipe as the target
+  *
+  * @param target    Target stream
+  * @tparam Err      Stream output element type
+  */
+abstract class ErrorStreamingTarget[Err](target: Pipe[IO, Byte, Err])
   extends OutputStreamingTargetBase(target) {
 
   override def getStream(systemProcess: java.lang.Process): IO[InputStream] =
