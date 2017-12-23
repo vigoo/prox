@@ -65,3 +65,8 @@ credentials ++=
       "oss.sonatype.org",
       username,
       password)).toSeq
+
+enablePlugins(GhpagesPlugin)
+enablePlugins(SiteScaladocPlugin)
+
+git.remoteRepo := "git@github.com:vigoo/prox.git"
