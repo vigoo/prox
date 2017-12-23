@@ -10,6 +10,8 @@ It works by first defining a one or more processes then starting them, getting a
 
 ## Usage
 
+[API reference](https://vigoo.github.io/prox/latest/api/io/github/vigoo/prox/index.html)
+
 ### Getting started
 
 Add the following dependency:
