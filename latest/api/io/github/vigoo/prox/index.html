@@ -132,8 +132,8 @@
         <span class="name">prox</span>
       </span>
       
-      <p class="shortcomment cmt">Provides classes to work with system processes in a type safe way.</p><div class="fullcomment"><div class="comment cmt"><p>Provides classes to work with system processes in a type safe way.</p><h4> Overview </h4><p>A system process to be started is represented by the <a href="Process.html" class="extype" name="io.github.vigoo.prox.Process">io.github.vigoo.prox.Process</a> case class,
-taking a command and optionaly a list of arguments and a working directory:</p><pre><span class="kw">import</span> io.github.vigoo.prox._
+      <p class="shortcomment cmt">Provides classes to work with system processes in a type safe way.</p><div class="fullcomment"><div class="comment cmt"><p>Provides classes to work with system processes in a type safe way.</p><h4> Overview </h4><p>A system process to be started is represented by the <a href="Process.html" class="extype" name="io.github.vigoo.prox.Process">Process</a> case class,
+taking a command and optionally a list of arguments and a working directory:</p><pre><span class="kw">import</span> io.github.vigoo.prox._
 <span class="kw">import</span> io.github.vigoo.prox.syntax._
 
 <span class="kw">val</span> process = Process(<span class="lit">"echo"</span>, <span class="std">List</span>(<span class="lit">"Hello world"</span>))</pre><p>To start the process, we can use the <a href="syntax$$ProcessOps.html#start[RP](implicitstart:io.github.vigoo.prox.Start.Aux[PN,RP,_],implicitexecutionContext:scala.concurrent.ExecutionContext):cats.effect.IO[RP]" class="extmbr" name="io.github.vigoo.prox.syntax.ProcessOps#start">syntax.ProcessOps.start</a> extension method,
@@ -351,8 +351,8 @@ simple process, but its <a href="syntax$$ProcessOps.html#start[RP](implicitstart
       </h4>
 
       
-          <div id="comment" class="fullcommenttop"><div class="comment cmt"><p>Provides classes to work with system processes in a type safe way.</p><h4> Overview </h4><p>A system process to be started is represented by the <a href="Process.html" class="extype" name="io.github.vigoo.prox.Process">io.github.vigoo.prox.Process</a> case class,
-taking a command and optionaly a list of arguments and a working directory:</p><pre><span class="kw">import</span> io.github.vigoo.prox._
+          <div id="comment" class="fullcommenttop"><div class="comment cmt"><p>Provides classes to work with system processes in a type safe way.</p><h4> Overview </h4><p>A system process to be started is represented by the <a href="Process.html" class="extype" name="io.github.vigoo.prox.Process">Process</a> case class,
+taking a command and optionally a list of arguments and a working directory:</p><pre><span class="kw">import</span> io.github.vigoo.prox._
 <span class="kw">import</span> io.github.vigoo.prox.syntax._
 
 <span class="kw">val</span> process = Process(<span class="lit">"echo"</span>, <span class="std">List</span>(<span class="lit">"Hello world"</span>))</pre><p>To start the process, we can use the <a href="syntax$$ProcessOps.html#start[RP](implicitstart:io.github.vigoo.prox.Start.Aux[PN,RP,_],implicitexecutionContext:scala.concurrent.ExecutionContext):cats.effect.IO[RP]" class="extmbr" name="io.github.vigoo.prox.syntax.ProcessOps#start">syntax.ProcessOps.start</a> extension method,
