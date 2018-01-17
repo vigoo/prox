@@ -14,7 +14,8 @@ libraryDependencies ++= Seq(
   "org.specs2" %% "specs2-core" % "4.0.0" % "test"
 )
 
-coverageEnabled := true
+coverageEnabled in(Test, compile) := true
+coverageEnabled in(Compile, compile) := false
 
 scalacOptions ++= Seq("-Ypartial-unification", "-deprecation")
 scalacOptions in Test ++= Seq("-Yrangepos")
