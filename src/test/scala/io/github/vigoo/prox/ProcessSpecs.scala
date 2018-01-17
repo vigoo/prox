@@ -36,6 +36,7 @@ class ProcessSpecs extends Specification { def is = s2"""
     be checked if it is alive                                       $isAlive
     be terminated                                                   $terminateSignal
     be killed                                                       $killSignal
+    be executed with custom environment variables                   $customEnvVariables
 
   Stream output targets can be
     folded automatically for monoids                                $outFoldMonoid
@@ -276,6 +277,15 @@ class ProcessSpecs extends Specification { def is = s2"""
     } yield (result.exitCode)
 
     program.unsafeRunSync() must beEqualTo(137)
+  }
+
+  def customEnvVariables = {
+    val program = for {
+      running <- ((Process("sh", List("-c", "echo \"Hello $TEST1! I am $TEST2!\"")) `with` ("TEST1" -> "world") `with` ("TEST2" -> "prox")) > text.utf8Decode[IO]).start
+      result <- running.waitForExit()
+    } yield result.fullOutput
+
+    program.unsafeRunSync() must beEqualTo("Hello world! I am prox!\n")
   }
 
   def outFoldMonoid = {

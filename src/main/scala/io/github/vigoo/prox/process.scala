@@ -125,7 +125,8 @@ class Process[Out, Err, OutResult, ErrResult, IRS <: RedirectionState, ORS <: Re
  val workingDirectory: Option[Path],
  val inputSource: ProcessInputSource,
  val outputTarget: ProcessOutputTarget[Out, OutResult],
- val errorTarget: ProcessErrorTarget[Err, ErrResult])
+ val errorTarget: ProcessErrorTarget[Err, ErrResult],
+ val environmentVariables: Map[String, String])
   extends ProcessNode[Out, Err, IRS, ORS, ERS] {
 
   /** Defines a process with an overwritten working directory
@@ -145,7 +146,28 @@ class Process[Out, Err, OutResult, ErrResult, IRS <: RedirectionState, ORS <: Re
       workingDirectory = Some(workingDirectory),
       inputSource = inputSource,
       outputTarget = outputTarget,
-      errorTarget = errorTarget)
+      errorTarget = errorTarget,
+      environmentVariables = environmentVariables)
+  }
+
+  /** Adds a custom environment variable to the defined process
+    *
+    * Allows the following syntax:
+    * {{{
+    *   val process = Process("sh", List("-c", "echo $X")) `with` ("X" -> "something")
+    * }}}
+    * @param nameValuePair The environment variable's name-value pair
+    * @return Returns a process with the custom environment variable added
+    */
+  def `with`(nameValuePair: (String, String)): Process[Out, Err, OutResult, ErrResult, IRS, ORS, ERS] = {
+    new Process[Out, Err, OutResult, ErrResult, IRS, ORS, ERS](
+      command = command,
+      arguments = arguments,
+      workingDirectory = workingDirectory,
+      inputSource = inputSource,
+      outputTarget = outputTarget,
+      errorTarget = errorTarget,
+      environmentVariables = environmentVariables + nameValuePair)
   }
 }
 
@@ -162,7 +184,7 @@ object Process {
   def apply(command: String,
             arguments: List[String] = List.empty,
             workingDirectory: Option[Path] = None): Process[Byte, Byte, Unit, Unit, NotRedirected, NotRedirected, NotRedirected] =
-    new Process[Byte, Byte, Unit, Unit, NotRedirected, NotRedirected, NotRedirected](command, arguments, workingDirectory, StdIn, StdOut, StdError)
+    new Process[Byte, Byte, Unit, Unit, NotRedirected, NotRedirected, NotRedirected](command, arguments, workingDirectory, StdIn, StdOut, StdError, Map.empty)
 }
 
 

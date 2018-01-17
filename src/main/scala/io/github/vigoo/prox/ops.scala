@@ -72,7 +72,14 @@ object Start {
             case None => builder
           }
 
-        val builder = withWorkingDirectory(new ProcessBuilder((process.command :: process.arguments).asJava))
+        def withEnvironmentVariables(builder: ProcessBuilder): ProcessBuilder = {
+          process.environmentVariables.foreach { case (name, value) =>
+            builder.environment().put(name, value)
+          }
+          builder
+        }
+
+        val builder = withEnvironmentVariables(withWorkingDirectory(new ProcessBuilder((process.command :: process.arguments).asJava)))
         builder.redirectInput(process.inputSource.toRedirect)
         builder.redirectOutput(process.outputTarget.toRedirect)
         builder.redirectError(process.errorTarget.toRedirect)
@@ -171,7 +178,8 @@ object RedirectInput {
           process.workingDirectory,
           implicitly[CanBeProcessInputSource[From]].apply(from),
           process.outputTarget,
-          process.errorTarget
+          process.errorTarget,
+          process.environmentVariables
         )
     }
 
@@ -231,7 +239,8 @@ object RedirectOutput {
           process.workingDirectory,
           process.inputSource,
           target(to),
-          process.errorTarget
+          process.errorTarget,
+          process.environmentVariables
         )
     }
 
@@ -299,7 +308,8 @@ object RedirectError {
           process.workingDirectory,
           process.inputSource,
           process.outputTarget,
-          target(to)
+          target(to),
+          process.environmentVariables
         )
     }
 
