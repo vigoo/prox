@@ -25,6 +25,7 @@ libraryDependencies += "io.github.vigoo" %% "prox" % "0.1-SNAPSHOT"
 Let's start by defining a single process with the `Process` constructor, taking a command and optionally a list of arguments and a working directory:
 
 ```scala
+import cats.implicits._
 import io.github.vigoo.prox._
 import io.github.vigoo.prox.syntax._
 
