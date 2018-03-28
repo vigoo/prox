@@ -24,37 +24,16 @@ scalacOptions in Test ++= Seq("-Yrangepos")
 
 publishMavenStyle := true
 
-pomIncludeRepository := { _ => false }
+licenses := Seq("APL2" -> url("http://www.apache.org/licenses/LICENSE-2.0.txt"))
 
-isSnapshot := version.value endsWith "SNAPSHOT"
+publishTo := sonatypePublishTo.value
 
-publishTo := {
-  val nexus = "https://oss.sonatype.org/"
-  if (isSnapshot.value)
-    Some("snapshots" at nexus + "content/repositories/snapshots")
-  else
-    Some("releases"  at nexus + "service/local/staging/deploy/maven2")
-}
+import xerial.sbt.Sonatype._
+sonatypeProjectHosting := Some(GitHubHosting("vigoo", "prox", "daniel.vigovszky@gmail.com"))
 
-pomExtra := (
-  <url>https://github.com/vigoo/prox</url>
-    <licenses>
-      <license>
-        <name>Apache 2</name>
-        <url>http://www.apache.org/licenses/LICENSE-2.0.txt</url>
-      </license>
-    </licenses>
-    <scm>
-      <url>git@github.com:vigoo/prox.git</url>
-      <connection>scm:git:git@github.com:vigoo/prox.git</connection>
-    </scm>
-    <developers>
-      <developer>
-        <id>vigoo</id>
-        <name>Daniel Vigovszky</name>
-        <url>https://github.com/vigoo</url>
-      </developer>
-    </developers>)
+developers := List(
+  Developer(id="vigoo", name="Daniel Vigovszky", email="daniel.vigovszky@gmail.com", url=url("https://vigoo.github.io"))
+)
 
 credentials ++=
   (for {
