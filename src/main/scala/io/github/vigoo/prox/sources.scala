@@ -77,5 +77,5 @@ class InputStreamingSource(source: Stream[IO, Byte]) extends ProcessInputSource 
   }
 
   override def run(stream: Stream[IO, Byte])(implicit executionContext: ExecutionContext): IO[IO[Unit]] =
-    async.start(stream.run)
+    async.start(stream.compile.drain)
 }

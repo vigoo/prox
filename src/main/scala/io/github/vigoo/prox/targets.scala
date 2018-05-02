@@ -77,7 +77,7 @@ trait LowPriorityCanBeProcessOutputTarget {
   implicit def pipeAsTarget[Out]: CanBeProcessOutputTarget.Aux[Pipe[IO, Byte, Out], Out, Vector[Out]] =
     CanBeProcessOutputTarget.create((pipe: Pipe[IO, Byte, Out]) => new OutputStreamingTarget(pipe) with ProcessOutputTarget[Out, Vector[Out]] {
       override def run(stream: Stream[IO, Out])(implicit executionContext: ExecutionContext): IO[IO[Vector[Out]]] =
-        async.start(stream.runLog)
+        async.start(stream.compile.toVector)
     })
 }
 
@@ -113,34 +113,34 @@ object CanBeProcessOutputTarget extends LowPriorityCanBeProcessOutputTarget {
     create((pipe: Pipe[IO, Byte, Unit]) => new OutputStreamingTarget(pipe) with ProcessOutputTarget[Unit, Unit] {
 
       override def run(stream: Stream[IO, Unit])(implicit executionContext: ExecutionContext): IO[IO[Unit]] =
-        async.start(stream.run)
+        async.start(stream.compile.drain)
     })
 
   implicit def monoidPipeAsTarget[Out](implicit monoid: Monoid[Out]): Aux[Pipe[IO, Byte, Out], Out, Out] =
     create((pipe: Pipe[IO, Byte, Out]) => new OutputStreamingTarget(pipe) with ProcessOutputTarget[Out, Out] {
       override def run(stream: Stream[IO, Out])(implicit executionContext: ExecutionContext): IO[IO[Out]] = {
-        async.start(stream.runFoldMonoid)
+        async.start(stream.compile.foldMonoid)
       }
     })
 
   implicit def ignorePipeAsOutputTarget[Out]: Aux[Ignore[Out], Out, Unit] =
     create((ignore: Ignore[Out]) => new OutputStreamingTarget(ignore.pipe) with ProcessOutputTarget[Out, Unit] {
       override def run(stream: Stream[IO, Out])(implicit executionContext: ExecutionContext): IO[IO[Unit]] = {
-        async.start(stream.run)
+        async.start(stream.compile.drain)
       }
     })
 
   implicit def logPipeAsOutputTarget[Out]: Aux[Log[Out], Out, Vector[Out]] =
     create((log: Log[Out]) => new OutputStreamingTarget(log.pipe) with ProcessOutputTarget[Out, Vector[Out]] {
       override def run(stream: Stream[IO, Out])(implicit executionContext: ExecutionContext): IO[IO[Vector[Out]]] = {
-        async.start(stream.runLog)
+        async.start(stream.compile.toVector)
       }
     })
 
   implicit def foldPipeAsOutputTarget[Out, Res]: Aux[Fold[Out, Res], Out, Res] =
     create((fold: Fold[Out, Res]) => new OutputStreamingTarget(fold.pipe) with ProcessOutputTarget[Out, Res] {
       override def run(stream: Stream[IO, Out])(implicit executionContext: ExecutionContext): IO[IO[Res]] = {
-        async.start(stream.runFold(fold.init)(fold.f))
+        async.start(stream.compile.fold(fold.init)(fold.f))
       }
     })
 }
@@ -159,7 +159,7 @@ trait LowPriorityCanBeProcessErrorTarget {
   implicit def pipeAsErrorTarget[Err]: CanBeProcessErrorTarget.Aux[Pipe[IO, Byte, Err], Err, Vector[Err]] =
     CanBeProcessErrorTarget.create((pipe: Pipe[IO, Byte, Err]) => new ErrorStreamingTarget(pipe) with ProcessErrorTarget[Err, Vector[Err]] {
       override def run(stream: Stream[IO, Err])(implicit executionContext: ExecutionContext): IO[IO[Vector[Err]]] = {
-        async.start(stream.runLog)
+        async.start(stream.compile.toVector)
       }
     })
 }
@@ -195,28 +195,28 @@ object CanBeProcessErrorTarget extends LowPriorityCanBeProcessErrorTarget {
   implicit def monoidPipeAsErrorTarget[Err](implicit monoid: Monoid[Err]): Aux[Pipe[IO, Byte, Err], Err, Err] =
     create((pipe: Pipe[IO, Byte, Err]) => new ErrorStreamingTarget(pipe) with ProcessErrorTarget[Err, Err] {
       override def run(stream: Stream[IO, Err])(implicit executionContext: ExecutionContext): IO[IO[Err]] = {
-        async.start(stream.runFoldMonoid)
+        async.start(stream.compile.foldMonoid)
       }
     })
 
   implicit def logPipeAsErrorTarget[Err]: Aux[Log[Err], Err, Vector[Err]] =
     create((log: Log[Err]) => new ErrorStreamingTarget(log.pipe) with ProcessErrorTarget[Err, Vector[Err]] {
       override def run(stream: Stream[IO, Err])(implicit executionContext: ExecutionContext): IO[IO[Vector[Err]]] = {
-        async.start(stream.runLog)
+        async.start(stream.compile.toVector)
       }
     })
 
   implicit def ignorePipeAsErrorTarget[Err]: Aux[Ignore[Err], Err, Unit] =
     create((ignore: Ignore[Err]) => new ErrorStreamingTarget(ignore.pipe) with ProcessErrorTarget[Err, Unit] {
       override def run(stream: Stream[IO, Err])(implicit executionContext: ExecutionContext): IO[IO[Unit]] = {
-        async.start(stream.run)
+        async.start(stream.compile.drain)
       }
     })
 
   implicit def foldPipeAsErrorTarget[Err, Res]: Aux[Fold[Err, Res], Err, Res] =
     create((fold: Fold[Err, Res]) => new ErrorStreamingTarget(fold.pipe) with ProcessErrorTarget[Err, Res] {
       override def run(stream: Stream[IO, Err])(implicit executionContext: ExecutionContext): IO[IO[Res]] = {
-        async.start(stream.runFold(fold.init)(fold.f))
+        async.start(stream.compile.fold(fold.init)(fold.f))
       }
     })
 }

@@ -85,7 +85,7 @@ class ProcessSpecs extends Specification { def is = s2"""
     val program = for {
       running <- (Process("echo", List("Hello world!")) > tempFile.toPath).start
       _ <- running.waitForExit()
-      contents <- io.file.readAll[IO](tempFile.toPath, 1024).through(text.utf8Decode).runFoldMonoid
+      contents <- io.file.readAll[IO](tempFile.toPath, 1024).through(text.utf8Decode).compile.foldMonoid
     } yield contents
 
     program.unsafeRunSync() must beEqualTo("Hello world!\n")
