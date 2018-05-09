@@ -3,6 +3,7 @@
 [![codecov](https://codecov.io/gh/vigoo/prox/branch/master/graph/badge.svg)](https://codecov.io/gh/vigoo/prox)
 [![Apache 2 License License](http://img.shields.io/badge/license-APACHE2-blue.svg)](http://www.apache.org/licenses/LICENSE-2.0)
 [![Latest version](https://index.scala-lang.org/vigoo/prox/prox/latest.svg)](https://index.scala-lang.org/vigoo/prox/prox)
+![Maven central](https://img.shields.io/maven-central/v/io.github.vigoo/prox_2.12.svg?style=flat-square)
 
 **prox** is a small library that helps you starting system processes and redirecting their input/output/error streams,
 either to files, [fs2](https://github.com/functional-streams-for-scala/fs2) streams or each other.
@@ -18,7 +19,7 @@ It works by first defining a one or more processes then starting them, getting a
 Add the following dependency:
 
 ```scala
-libraryDependencies += "io.github.vigoo" %% "prox" % "0.1"
+libraryDependencies += "io.github.vigoo" %% "prox" % "0.1.1"
 ```
 
 Let's start by defining a single process with the `Process` constructor, taking a command and optionally a list of arguments and a working directory:
