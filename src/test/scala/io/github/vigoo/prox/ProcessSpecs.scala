@@ -2,8 +2,9 @@ package io.github.vigoo.prox
 
 import java.io.File
 import java.nio.file.{Files, Paths}
+import java.util.concurrent.Executors
 
-import cats.effect.IO
+import cats.effect.{ContextShift, IO}
 import cats.implicits._
 import fs2._
 import org.specs2.Specification
@@ -11,6 +12,8 @@ import org.specs2.Specification
 import scala.concurrent.ExecutionContext.Implicits.global
 import shapeless.test.illTyped
 import syntax._
+
+import scala.concurrent.ExecutionContext
 
 // scalastyle:off public.methods.have.type
 // scalastyle:off public.member.have.type
@@ -60,10 +63,13 @@ class ProcessSpecs extends Specification { def is = s2"""
     piping to a process with redirected input                       $pipingToRedirectedInputIsIllegal
   """
 
+  implicit val contextShift: ContextShift[IO] = IO.contextShift(ExecutionContext.global)
+  val blockingExecutionContext = ExecutionContext.fromExecutor(Executors.newCachedThreadPool())
+
   def simpleProcessGetExitCode = {
     val program = for {
-      trueRunning <- Process("true").start
-      falseRunning <- Process("false").start
+      trueRunning <- Process("true").start(blockingExecutionContext)
+      falseRunning <- Process("false").start(blockingExecutionContext)
       trueResult <- trueRunning.waitForExit()
       falseResult <- falseRunning.waitForExit()
     } yield (trueResult.exitCode, falseResult.exitCode)
@@ -73,7 +79,7 @@ class ProcessSpecs extends Specification { def is = s2"""
   def workingDirectoryWorks = {
     val tempDirectory = Files.createTempDirectory("prox")
     val program = for {
-      pwdRunning <- ((Process("pwd") in tempDirectory) > text.utf8Decode[IO]).start
+      pwdRunning <- ((Process("pwd") in tempDirectory) > text.utf8Decode[IO]).start(blockingExecutionContext)
       pwdResult <- pwdRunning.waitForExit()
     } yield pwdResult.fullOutput.trim
 
@@ -83,9 +89,9 @@ class ProcessSpecs extends Specification { def is = s2"""
   def simpleProcessFileOutput = {
     val tempFile = File.createTempFile("test", "txt")
     val program = for {
-      running <- (Process("echo", List("Hello world!")) > tempFile.toPath).start
+      running <- (Process("echo", List("Hello world!")) > tempFile.toPath).start(blockingExecutionContext)
       _ <- running.waitForExit()
-      contents <- io.file.readAll[IO](tempFile.toPath, 1024).through(text.utf8Decode).compile.foldMonoid
+      contents <- io.file.readAll[IO](tempFile.toPath, ExecutionContext.global, 1024).through(text.utf8Decode).compile.foldMonoid
     } yield contents
 
     program.unsafeRunSync() must beEqualTo("Hello world!\n")
@@ -93,7 +99,7 @@ class ProcessSpecs extends Specification { def is = s2"""
 
   def simpleProcessStreamOutput = {
     val program = for {
-      running <- (Process("echo", List("Hello world!")) > text.utf8Decode[IO]).start
+      running <- (Process("echo", List("Hello world!")) > text.utf8Decode[IO]).start(blockingExecutionContext)
       result <- running.waitForExit()
     } yield result.fullOutput
 
@@ -105,7 +111,7 @@ class ProcessSpecs extends Specification { def is = s2"""
 
     val target: Sink[IO, Byte] = Sink(byte => IO { builder.append(byte.toChar) })
     val program = for {
-      running <- (Process("echo", List("Hello world!")) > target).start
+      running <- (Process("echo", List("Hello world!")) > target).start(blockingExecutionContext)
       _ <- running.waitForExit()
     } yield builder.toString()
 
@@ -114,7 +120,7 @@ class ProcessSpecs extends Specification { def is = s2"""
 
   def simpleProcessStreamError = {
     val program = for {
-      running <- (Process("perl", List("-e", """print STDERR "Hello"""")) redirectErrorTo text.utf8Decode[IO]).start
+      running <- (Process("perl", List("-e", """print STDERR "Hello"""")) redirectErrorTo text.utf8Decode[IO]).start(blockingExecutionContext)
       result <- running.waitForExit()
     } yield result.fullError
 
@@ -126,7 +132,7 @@ class ProcessSpecs extends Specification { def is = s2"""
 
     val target: Sink[IO, Byte] = Sink(byte => IO { builder.append(byte.toChar) })
     val program = for {
-      running <- (Process("perl", List("-e", """print STDERR "Hello"""")) redirectErrorTo target).start
+      running <- (Process("perl", List("-e", """print STDERR "Hello"""")) redirectErrorTo target).start(blockingExecutionContext)
       _ <- running.waitForExit()
     } yield builder.toString
 
@@ -136,7 +142,7 @@ class ProcessSpecs extends Specification { def is = s2"""
   def simpleProcessStreamInput = {
     val source = Stream("This is a test string").through(text.utf8Encode)
     val program = for {
-      running <- (Process("wc", List("-w")) < source > text.utf8Decode[IO]).start
+      running <- (Process("wc", List("-w")) < source > text.utf8Decode[IO]).start(blockingExecutionContext)
       result <- running.waitForExit()
     } yield result.fullOutput.trim
 
@@ -148,7 +154,7 @@ class ProcessSpecs extends Specification { def is = s2"""
     Files.write(tempFile, "This is a test string".getBytes("UTF-8"))
     val pipedProcess = Process("cat") | Process("wc", List("-w"))
     val program = for {
-      runningProcesses <- (pipedProcess < tempFile > text.utf8Decode[IO]).start
+      runningProcesses <- (pipedProcess < tempFile > text.utf8Decode[IO]).start(blockingExecutionContext)
       (runningCat, runningWc) = runningProcesses
       _ <- runningCat.waitForExit()
       wcResult <- runningWc.waitForExit()
@@ -161,7 +167,7 @@ class ProcessSpecs extends Specification { def is = s2"""
     val source: Stream[IO, Byte] = Stream("This is a test string").through(text.utf8Encode)
     val pipedProcess = Process("cat") | Process("wc", List("-w"))
     val program = for {
-      runningProcesses <- (pipedProcess < source > text.utf8Decode[IO]).start
+      runningProcesses <- (pipedProcess < source > text.utf8Decode[IO]).start(blockingExecutionContext)
       (runningCat, runningWc) = runningProcesses
       _ <- runningCat.waitForExit()
       wcResult <- runningWc.waitForExit()
@@ -172,7 +178,7 @@ class ProcessSpecs extends Specification { def is = s2"""
 
   def pipedProcessStreamError = {
     val program = for {
-      rps <- ((Process("true") | Process("perl", List("-e", """print STDERR "Hello""""))) redirectErrorTo text.utf8Decode[IO]).start
+      rps <- ((Process("true") | Process("perl", List("-e", """print STDERR "Hello""""))) redirectErrorTo text.utf8Decode[IO]).start(blockingExecutionContext)
       (_, running) = rps
       result <- running.waitForExit()
     } yield result.fullError
@@ -182,7 +188,7 @@ class ProcessSpecs extends Specification { def is = s2"""
 
   def simpleProcessPiping = {
     val program = for {
-      rps <- (Process("echo", List("This is a test string")) | (Process("wc", List("-w")) > text.utf8Decode[IO])).start
+      rps <- (Process("echo", List("This is a test string")) | (Process("wc", List("-w")) > text.utf8Decode[IO])).start(blockingExecutionContext)
       (runningEcho, runningWc) = rps
       _ <- runningEcho.waitForExit()
       wcResult <- runningWc.waitForExit()
@@ -202,7 +208,7 @@ class ProcessSpecs extends Specification { def is = s2"""
         .through(text.utf8Encode)
 
     val program = for {
-      rps <- (Process("echo", List("This is a test string")).via(customPipe).to(Process("wc", List("-w")) > text.utf8Decode[IO])).start
+      rps <- (Process("echo", List("This is a test string")).via(customPipe).to(Process("wc", List("-w")) > text.utf8Decode[IO])).start(blockingExecutionContext)
       (runningEcho, runningWc) = rps
       _ <- runningEcho.waitForExit()
       wcResult <- runningWc.waitForExit()
@@ -213,7 +219,7 @@ class ProcessSpecs extends Specification { def is = s2"""
 
   def simpleProcessPipingHList = {
     val program = for {
-      rpHL <- (Process("echo", List("This is a test string")) | (Process("wc", List("-w")) > text.utf8Decode[IO])).startHL
+      rpHL <- (Process("echo", List("This is a test string")) | (Process("wc", List("-w")) > text.utf8Decode[IO])).startHL()
       runningEcho = rpHL.head
       runningWc = rpHL.tail.head
       _ <- runningEcho.waitForExit()
@@ -225,7 +231,7 @@ class ProcessSpecs extends Specification { def is = s2"""
 
   def multiProcessPiping = {
     val program = for {
-      rps <- (Process("echo", List("cat\ncat\ndog\napple")) | Process("sort") | (Process("uniq", List("-c")) > text.utf8Decode[IO])).start
+      rps <- (Process("echo", List("cat\ncat\ndog\napple")) | Process("sort") | (Process("uniq", List("-c")) > text.utf8Decode[IO])).start(blockingExecutionContext)
       (runningEcho, runningSort, runningUniq) = rps
       _ <- runningEcho.waitForExit()
       _ <- runningSort.waitForExit()
@@ -236,9 +242,9 @@ class ProcessSpecs extends Specification { def is = s2"""
   }
 
   def multiProcessPipingWithErrorRedir = {
-    val errorTarget = Log(text.utf8Decode[IO].andThen(text.lines[IO]))
+    val errorTarget = ToVector(text.utf8Decode[IO].andThen(text.lines[IO]))
     val program = for {
-      rps <- ((Process("perl", List("-e", """print STDERR "Hello\nworld"""")) redirectErrorTo errorTarget) | (Process("sort") redirectErrorTo errorTarget) | (Process("uniq", List("-c")) redirectErrorTo errorTarget)).start
+      rps <- ((Process("perl", List("-e", """print STDERR "Hello\nworld"""")) redirectErrorTo errorTarget) | (Process("sort") redirectErrorTo errorTarget) | (Process("uniq", List("-c")) redirectErrorTo errorTarget)).start(blockingExecutionContext)
       (runningPerl, runningSort, runningUniq) = rps
       perlResult <- runningPerl.waitForExit()
       sortResult <- runningSort.waitForExit()
@@ -250,7 +256,7 @@ class ProcessSpecs extends Specification { def is = s2"""
 
   def isAlive = {
     val program = for {
-      running <- Process("sleep", List("10")).start
+      running <- Process("sleep", List("10")).start(blockingExecutionContext)
       isAliveBefore <- running.isAlive
       _ <- running.terminate()
       isAliveAfter <- running.isAlive
@@ -261,7 +267,7 @@ class ProcessSpecs extends Specification { def is = s2"""
 
   def terminateSignal = {
     val program = for {
-      running <- Process("perl", List("-e", """$SIG{TERM} = sub { exit 1 }; sleep 30; exit 0""")).start
+      running <- Process("perl", List("-e", """$SIG{TERM} = sub { exit 1 }; sleep 30; exit 0""")).start(blockingExecutionContext)
       _ <- IO { Thread.sleep(250); }
       result <- running.terminate()
     } yield (result.exitCode)
@@ -271,7 +277,7 @@ class ProcessSpecs extends Specification { def is = s2"""
 
   def killSignal = {
     val program = for {
-      running <- Process("perl", List("-e", """$SIG{TERM} = 'IGNORE'; sleep 30; exit 2""")).start
+      running <- Process("perl", List("-e", """$SIG{TERM} = 'IGNORE'; sleep 30; exit 2""")).start(blockingExecutionContext)
       _ <- IO { Thread.sleep(250); }
       result <- running.kill()
     } yield (result.exitCode)
@@ -281,7 +287,7 @@ class ProcessSpecs extends Specification { def is = s2"""
 
   def customEnvVariables = {
     val program = for {
-      running <- ((Process("sh", List("-c", "echo \"Hello $TEST1! I am $TEST2!\"")) `with` ("TEST1" -> "world") `with` ("TEST2" -> "prox")) > text.utf8Decode[IO]).start
+      running <- ((Process("sh", List("-c", "echo \"Hello $TEST1! I am $TEST2!\"")) `with` ("TEST1" -> "world") `with` ("TEST2" -> "prox")) > text.utf8Decode[IO]).start(blockingExecutionContext)
       result <- running.waitForExit()
     } yield result.fullOutput
 
@@ -290,7 +296,7 @@ class ProcessSpecs extends Specification { def is = s2"""
 
   def outFoldMonoid = {
     val program = for {
-      running <- (Process("echo", List("Hello\nworld!")) > text.utf8Decode[IO].andThen(text.lines[IO])).start
+      running <- (Process("echo", List("Hello\nworld!")) > text.utf8Decode[IO].andThen(text.lines[IO])).start(blockingExecutionContext)
       result <- running.waitForExit()
     } yield result.fullOutput
 
@@ -301,7 +307,7 @@ class ProcessSpecs extends Specification { def is = s2"""
 
   def outLogNonMonoid = {
     val program = for {
-      running <- (Process("echo", List("Hello\nworld!")) > text.utf8Decode[IO].andThen(text.lines[IO]).andThen(_.map(s => StringLength(s.length)))).start
+      running <- (Process("echo", List("Hello\nworld!")) > text.utf8Decode[IO].andThen(text.lines[IO]).andThen(_.map(s => StringLength(s.length)))).start(blockingExecutionContext)
       result <- running.waitForExit()
     } yield result.fullOutput
 
@@ -310,7 +316,7 @@ class ProcessSpecs extends Specification { def is = s2"""
 
   def outLogMonoid = {
     val program = for {
-      running <- (Process("echo", List("Hello\nworld!")) > Log(text.utf8Decode[IO].andThen(text.lines[IO]).andThen(_.map(_.length)))).start
+      running <- (Process("echo", List("Hello\nworld!")) > ToVector(text.utf8Decode[IO].andThen(text.lines[IO]).andThen(_.map(_.length)))).start(blockingExecutionContext)
       result <- running.waitForExit()
     } yield result.fullOutput
 
@@ -319,7 +325,7 @@ class ProcessSpecs extends Specification { def is = s2"""
 
   def outIgnore = {
     val program = for {
-      running <- (Process("echo", List("Hello\nworld!")) > Ignore(text.utf8Decode[IO].andThen(text.lines[IO]))).start
+      running <- (Process("echo", List("Hello\nworld!")) > Drain(text.utf8Decode[IO].andThen(text.lines[IO]))).start(blockingExecutionContext)
       result <- running.waitForExit()
     } yield result.fullOutput
 
@@ -329,7 +335,7 @@ class ProcessSpecs extends Specification { def is = s2"""
   def outCustomFold = {
     val program = for {
       running <- (Process("echo", List("Hello\nworld!")) >
-        Fold(text.utf8Decode[IO].andThen(text.lines[IO]), Vector.empty, (l: Vector[Option[Char]], s: String) => l :+ s.headOption)).start
+        Fold(text.utf8Decode[IO].andThen(text.lines[IO]), Vector.empty, (l: Vector[Option[Char]], s: String) => l :+ s.headOption)).start(blockingExecutionContext)
       result <- running.waitForExit()
     } yield result.fullOutput
 
@@ -338,7 +344,7 @@ class ProcessSpecs extends Specification { def is = s2"""
 
   def errFoldMonoid = {
     val program = for {
-      running <- (Process("perl", List("-e", "print STDERR 'Hello\nworld!\n'")) redirectErrorTo text.utf8Decode[IO].andThen(text.lines[IO])).start
+      running <- (Process("perl", List("-e", "print STDERR 'Hello\nworld!\n'")) redirectErrorTo text.utf8Decode[IO].andThen(text.lines[IO])).start(blockingExecutionContext)
         result <- running.waitForExit()
     } yield result.fullError
 
@@ -347,7 +353,7 @@ class ProcessSpecs extends Specification { def is = s2"""
 
   def errLogNonMonoid = {
     val program = for {
-      running <- (Process("perl", List("-e", "print STDERR 'Hello\nworld!\n'")) redirectErrorTo text.utf8Decode[IO].andThen(text.lines[IO]).andThen(_.map(s => StringLength(s.length)))).start
+      running <- (Process("perl", List("-e", "print STDERR 'Hello\nworld!\n'")) redirectErrorTo text.utf8Decode[IO].andThen(text.lines[IO]).andThen(_.map(s => StringLength(s.length)))).start(blockingExecutionContext)
       result <- running.waitForExit()
     } yield result.fullError
 
@@ -356,7 +362,7 @@ class ProcessSpecs extends Specification { def is = s2"""
 
   def errLogMonoid = {
     val program = for {
-      running <- (Process("perl", List("-e", "print STDERR 'Hello\nworld!\n'")) redirectErrorTo Log(text.utf8Decode[IO].andThen(text.lines[IO]).andThen(_.map(_.length)))).start
+      running <- (Process("perl", List("-e", "print STDERR 'Hello\nworld!\n'")) redirectErrorTo ToVector(text.utf8Decode[IO].andThen(text.lines[IO]).andThen(_.map(_.length)))).start(blockingExecutionContext)
       result <- running.waitForExit()
     } yield result.fullError
 
@@ -365,7 +371,7 @@ class ProcessSpecs extends Specification { def is = s2"""
 
   def errIgnore = {
     val program = for {
-      running <- (Process("perl", List("-e", "print STDERR 'Hello\nworld!\n'")) redirectErrorTo Ignore(text.utf8Decode[IO].andThen(text.lines[IO]))).start
+      running <- (Process("perl", List("-e", "print STDERR 'Hello\nworld!\n'")) redirectErrorTo Drain(text.utf8Decode[IO].andThen(text.lines[IO]))).start(blockingExecutionContext)
       result <- running.waitForExit()
     } yield result.fullError
 
@@ -375,7 +381,7 @@ class ProcessSpecs extends Specification { def is = s2"""
   def errCustomFold = {
     val program = for {
       running <- (Process("perl", List("-e", "print STDERR 'Hello\nworld!\n'")) redirectErrorTo
-        Fold(text.utf8Decode[IO].andThen(text.lines[IO]), Vector.empty, (l: Vector[Option[Char]], s: String) => l :+ s.headOption)).start
+        Fold(text.utf8Decode[IO].andThen(text.lines[IO]), Vector.empty, (l: Vector[Option[Char]], s: String) => l :+ s.headOption)).start(blockingExecutionContext)
       result <- running.waitForExit()
     } yield result.fullError
 

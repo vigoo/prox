@@ -3,7 +3,7 @@ package io.github.vigoo.prox
 import java.lang.ProcessBuilder.Redirect
 import java.nio.file.Path
 
-import cats.effect.IO
+import cats.effect.{ContextShift, Fiber, IO}
 import fs2._
 
 import scala.concurrent.ExecutionContext
@@ -33,19 +33,20 @@ trait ProcessIO[O, R] {
 
   /** Sets up the redirection on the given system process
     *
-    * @param systemProcess    The process to connect to
-    * @param executionContext Execution context for the created stream
+    * @param systemProcess            The process to connect to
+    * @param blockingExecutionContext The execution context on which the blocking IO stream reads/writes will be executed
+    * @param contextShift             Context shifter
     * @return Returns the not yet started redirection stream
     */
-  def connect(systemProcess: java.lang.Process)(implicit executionContext: ExecutionContext): Stream[IO, O]
+  def connect(systemProcess: java.lang.Process, blockingExecutionContext: ExecutionContext)(implicit contextShift: ContextShift[IO]): Stream[IO, O]
 
   /** Runs the redirection stream
     *
     * @param stream           The stream to be executed
-    * @param executionContext Execution context to use
+    * @param contextShift     Context shifter
     * @return Returns the async result of running the stream
     */
-  def run(stream: Stream[IO, O])(implicit executionContext: ExecutionContext): IO[IO[R]]
+  def run(stream: Stream[IO, O])(implicit contextShift: ContextShift[IO]): IO[Fiber[IO, R]]
 }
 
 
@@ -251,9 +252,9 @@ trait RunningProcess[Out, OutResult, ErrResult] {
   */
 private[prox] class WrappedProcess[Out, OutResult, ErrResult](systemProcess: java.lang.Process,
                                                               val notStartedOutput: Option[Stream[IO, Out]],
-                                                              runningInput: IO[Unit],
-                                                              runningOutput: IO[OutResult],
-                                                              runningError: IO[ErrResult])
+                                                              runningInput: Fiber[IO, Unit],
+                                                              runningOutput: Fiber[IO, OutResult],
+                                                              runningError: Fiber[IO, ErrResult])
   extends RunningProcess[Out, OutResult, ErrResult] {
 
   override def isAlive: IO[Boolean] =
@@ -264,7 +265,9 @@ private[prox] class WrappedProcess[Out, OutResult, ErrResult](systemProcess: jav
   override def waitForExit(): IO[ProcessResult[OutResult, ErrResult]] = {
     for {
       exitCode <- IO(systemProcess.waitFor())
-    } yield ProcessResult(exitCode, runningOutput.unsafeRunSync(), runningError.unsafeRunSync())
+      output <- runningOutput.join
+      error <- runningError.join
+    } yield ProcessResult(exitCode, output, error)
   }
 
   override def kill(): IO[ProcessResult[OutResult, ErrResult]] = {

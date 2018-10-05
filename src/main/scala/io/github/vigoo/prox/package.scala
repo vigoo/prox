@@ -50,8 +50,8 @@ import io.github.vigoo.prox._
   *
   * Three special wrapper types can be used to modify how the streams are executed when the IO operation is composed:
   *
-  *  - [[Ignore]] to run the stream with [[fs2.Stream.InvariantOps.run]], having a result of [[Unit]]
-  *  - [[Log]] to run the stream with [[fs2.Stream.InvariantOps.runLog]], having a result of [[Vector]]
+  *  - [[Drain]] to run the stream with [[fs2.Stream.InvariantOps.run]], having a result of [[Unit]]
+  *  - [[ToVector]] to run the stream with [[fs2.Stream.InvariantOps.runLog]], having a result of [[Vector]]
   *  - [[Fold]] to run the stream with [[fs2.Stream.InvariantOps.runFold]], having a custom fold result
   *
   * If none of the above wrappers is used, the default is to use [[fs2.Stream.InvariantOps.run]] for [[fs2.Sink]],
