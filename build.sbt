@@ -1,14 +1,14 @@
 name := "prox"
 organization := "io.github.vigoo"
 
-version := "0.2.0"
+version := "0.2.1"
 
 scalaVersion := "2.12.7"
 
 libraryDependencies ++= Seq(
   "org.typelevel" %% "cats-effect" % "1.0.0",
-  "co.fs2" %% "fs2-core" % "1.0.0-RC2",
-  "co.fs2" %% "fs2-io" % "1.0.0-RC2",
+  "co.fs2" %% "fs2-core" % "1.0.0",
+  "co.fs2" %% "fs2-io" % "1.0.0",
   "com.chuusai" %% "shapeless" % "2.3.3",
 
   "org.specs2" %% "specs2-core" % "4.3.4" % "test"
