@@ -136,7 +136,7 @@
 taking a command and optionally a list of arguments and a working directory:</p><pre><span class="kw">import</span> io.github.vigoo.prox._
 <span class="kw">import</span> io.github.vigoo.prox.syntax._
 
-<span class="kw">val</span> process = Process(<span class="lit">"echo"</span>, <span class="std">List</span>(<span class="lit">"Hello world"</span>))</pre><p>To start the process, we can use the <a href="syntax$$ProcessOps.html#start[RP](implicitstart:io.github.vigoo.prox.Start.Aux[PN,RP,_],implicitexecutionContext:scala.concurrent.ExecutionContext):cats.effect.IO[RP]" class="extmbr" name="io.github.vigoo.prox.syntax.ProcessOps#start">syntax.ProcessOps.start</a> extension method,
+<span class="kw">val</span> process = Process(<span class="lit">"echo"</span>, <span class="std">List</span>(<span class="lit">"Hello world"</span>))</pre><p>To start the process, we can use the <a href="syntax$$ProcessOps.html#start[RP](blockingExecutionContext:scala.concurrent.ExecutionContext)(implicitstart:io.github.vigoo.prox.Start.Aux[PN,RP,_],implicitcontextShift:cats.effect.ContextShift[cats.effect.IO]):cats.effect.IO[RP]" class="extmbr" name="io.github.vigoo.prox.syntax.ProcessOps#start">syntax.ProcessOps.start</a> extension method,
 defined in <a href="syntax$$ProcessOps.html" class="extype" name="io.github.vigoo.prox.syntax.ProcessOps">syntax.ProcessOps</a>, which creates a cats IO operation returning
 a <a href="RunningProcess.html" class="extype" name="io.github.vigoo.prox.RunningProcess">RunningProcess</a> instance.</p><p>Use the returned value to wait for the process to exit or to send a termination signal to it:</p><pre><span class="kw">val</span> program =
 <span class="kw">for</span> {
@@ -151,12 +151,12 @@ type class defined for: <a href="CanBeProcessInputSource.html" class="extype" na
 and <a href="CanBeProcessErrorTarget.html" class="extype" name="io.github.vigoo.prox.CanBeProcessErrorTarget">CanBeProcessErrorTarget</a>.</p><p>The three extension methods are <a href="syntax$$ProcessNodeInputRedirect.html#&lt;[From,PNRedirected&lt;:io.github.vigoo.prox.ProcessNode[_,_,io.github.vigoo.prox.Redirected,_,_]](from:From)(implicitsource:io.github.vigoo.prox.CanBeProcessInputSource[From],implicitredirectInput:io.github.vigoo.prox.RedirectInput.Aux[PN,PNRedirected]):PNRedirected" class="extmbr" name="io.github.vigoo.prox.syntax.ProcessNodeInputRedirect#&lt;">syntax.ProcessNodeInputRedirect.&lt;</a>,
 <a href="syntax$$ProcessNodeOutputRedirect.html#&gt;[To,NewOut,NewOutResult,Result&lt;:io.github.vigoo.prox.ProcessNode[_,_,_,io.github.vigoo.prox.Redirected,_]](to:To)(implicittarget:io.github.vigoo.prox.CanBeProcessOutputTarget.Aux[To,NewOut,NewOutResult],implicitredirectOutput:io.github.vigoo.prox.RedirectOutput.Aux[PN,To,NewOut,NewOutResult,Result]):Result" class="extmbr" name="io.github.vigoo.prox.syntax.ProcessNodeOutputRedirect#&gt;">syntax.ProcessNodeOutputRedirect.&gt;</a> and <a href="syntax$$ProcessNodeErrorRedirect.html#redirectErrorTo[To,NewErr,NewErrResult,Result&lt;:io.github.vigoo.prox.ProcessNode[_,_,_,_,io.github.vigoo.prox.Redirected]](to:To)(implicittarget:io.github.vigoo.prox.CanBeProcessErrorTarget.Aux[To,NewErr,NewErrResult],implicitredirectError:io.github.vigoo.prox.RedirectError.Aux[PN,To,NewErr,NewErrResult,Result]):Result" class="extmbr" name="io.github.vigoo.prox.syntax.ProcessNodeErrorRedirect#redirectErrorTo">syntax.ProcessNodeErrorRedirect.redirectErrorTo</a></p><p>The type system guarantees that each redirection can only happen once for a process.</p><h4> Streams </h4><p>The library provides type classes to redirect to/from fs2 streams: <a href="InputStreamingSource.html" class="extype" name="io.github.vigoo.prox.InputStreamingSource">InputStreamingSource</a> for
 feeding a stream as a process' input, and <a href="OutputStreamingTarget.html" class="extype" name="io.github.vigoo.prox.OutputStreamingTarget">OutputStreamingTarget</a> and <a href="ErrorStreamingTarget.html" class="extype" name="io.github.vigoo.prox.ErrorStreamingTarget">ErrorStreamingTarget</a>
-to feed a process' output and error to fs2 pipes.</p><p>Three special wrapper types can be used to modify how the streams are executed when the IO operation is composed:</p><ul><li><a href="" class="extype" name="io.github.vigoo.prox.Ignore">Ignore</a> to run the stream with <span class="extype" name="fs2.Stream.InvariantOps.run">fs2.Stream.InvariantOps.run</span>, having a result of <span class="extype" name="Unit">Unit</span></li><li><a href="Log.html" class="extype" name="io.github.vigoo.prox.Log">Log</a> to run the stream with <span class="extype" name="fs2.Stream.InvariantOps.runLog">fs2.Stream.InvariantOps.runLog</span>, having a result of <span class="extype" name="Vector">Vector</span></li><li><a href="Fold.html" class="extype" name="io.github.vigoo.prox.Fold">Fold</a> to run the stream with <span class="extype" name="fs2.Stream.InvariantOps.runFold">fs2.Stream.InvariantOps.runFold</span>, having a custom fold result</li></ul><p>If none of the above wrappers is used, the default is to use <span class="extype" name="fs2.Stream.InvariantOps.run">fs2.Stream.InvariantOps.run</span> for <span class="extype" name="fs2.Sink">fs2.Sink</span>,
+to feed a process' output and error to fs2 pipes.</p><p>Three special wrapper types can be used to modify how the streams are executed when the IO operation is composed:</p><ul><li><a href="Drain.html" class="extype" name="io.github.vigoo.prox.Drain">Drain</a> to run the stream with <span class="extype" name="fs2.Stream.InvariantOps.run">fs2.Stream.InvariantOps.run</span>, having a result of <span class="extype" name="Unit">Unit</span></li><li><a href="" class="extype" name="io.github.vigoo.prox.ToVector">ToVector</a> to run the stream with <span class="extype" name="fs2.Stream.InvariantOps.runLog">fs2.Stream.InvariantOps.runLog</span>, having a result of <span class="extype" name="Vector">Vector</span></li><li><a href="Fold.html" class="extype" name="io.github.vigoo.prox.Fold">Fold</a> to run the stream with <span class="extype" name="fs2.Stream.InvariantOps.runFold">fs2.Stream.InvariantOps.runFold</span>, having a custom fold result</li></ul><p>If none of the above wrappers is used, the default is to use <span class="extype" name="fs2.Stream.InvariantOps.run">fs2.Stream.InvariantOps.run</span> for <span class="extype" name="fs2.Sink">fs2.Sink</span>,
 <span class="extype" name="fs2.Stream.InvariantOps.runFoldMonoid">fs2.Stream.InvariantOps.runFoldMonoid</span> if the pipe's output is a <span class="extype" name="cats.Monoid">cats.Monoid</span> and <span class="extype" name="fs2.Stream.InvariantOps.runLog">fs2.Stream.InvariantOps.runLog</span>
 otherwise.</p><h4> Piping </h4><p>The <a href="syntax$$ProcessNodeOutputRedirect.html" class="extype" name="io.github.vigoo.prox.syntax.ProcessNodeOutputRedirect">syntax.ProcessNodeOutputRedirect</a> class defined two extension methods for piping one
 process to another: <a href="syntax$$ProcessNodeOutputRedirect.html#|[PN2&lt;:io.github.vigoo.prox.ProcessNode[_,_,io.github.vigoo.prox.NotRedirected,_,_],RP&lt;:io.github.vigoo.prox.ProcessNode[_,_,_,_,_]](to:PN2)(implicitpiping:io.github.vigoo.prox.Piping.Aux[PN,PN2,RP]):RP" class="extmbr" name="io.github.vigoo.prox.syntax.ProcessNodeOutputRedirect#|">syntax.ProcessNodeOutputRedirect.|</a> for direct piping and
 <a href="syntax$$ProcessNodeOutputRedirect.html#via(via:fs2.Pipe[cats.effect.IO,Byte,Byte]):io.github.vigoo.prox.PipeBuilder[PN]" class="extmbr" name="io.github.vigoo.prox.syntax.ProcessNodeOutputRedirect#via">syntax.ProcessNodeOutputRedirect.via</a> for piping through a custom fs2 <span class="extype" name="fs2.Pipe">fs2.Pipe</span>.</p><p>The result of the piping operators is a <a href="PipedProcess.html" class="extype" name="io.github.vigoo.prox.PipedProcess">PipedProcess</a>, which can be used exactly as a
-simple process, but its <a href="syntax$$ProcessOps.html#start[RP](implicitstart:io.github.vigoo.prox.Start.Aux[PN,RP,_],implicitexecutionContext:scala.concurrent.ExecutionContext):cats.effect.IO[RP]" class="extmbr" name="io.github.vigoo.prox.syntax.ProcessOps#start">syntax.ProcessOps.start</a> method returns a tuple of
+simple process, but its <a href="syntax$$ProcessOps.html#start[RP](blockingExecutionContext:scala.concurrent.ExecutionContext)(implicitstart:io.github.vigoo.prox.Start.Aux[PN,RP,_],implicitcontextShift:cats.effect.ContextShift[cats.effect.IO]):cats.effect.IO[RP]" class="extmbr" name="io.github.vigoo.prox.syntax.ProcessOps#start">syntax.ProcessOps.start</a> method returns a tuple of
 <a href="RunningProcess.html" class="extype" name="io.github.vigoo.prox.RunningProcess">RunningProcess</a> instances.
 </p></div><dl class="attributes block"> <dt>Definition Classes</dt><dd><a href="../index.html" class="extype" name="io.github.vigoo">vigoo</a></dd></dl></div>
     </li><li name="io.github.vigoo.prox.path" visbl="pub" class="indented5 " data-isabs="false" fullComment="yes" group="Ungrouped">
@@ -189,6 +189,10 @@ simple process, but its <a href="syntax$$ProcessOps.html#start[RP](implicitstart
                         <a href="CanBeProcessOutputTarget.html" title="Type class for creating output redirection handlers">CanBeProcessOutputTarget</a>
                       </li><li class="current-entities indented4">
                         <span class="separator"></span>
+                        <a class="class" href="Drain.html" title="Wraps a pipe to modify how the stream is executed"></a>
+                        <a href="Drain.html" title="Wraps a pipe to modify how the stream is executed">Drain</a>
+                      </li><li class="current-entities indented4">
+                        <span class="separator"></span>
                         <a class="class" href="ErrorStreamingTarget.html" title="Error target implementation using a stream pipe as the target"></a>
                         <a href="ErrorStreamingTarget.html" title="Error target implementation using a stream pipe as the target">ErrorStreamingTarget</a>
                       </li><li class="current-entities indented4">
@@ -205,16 +209,8 @@ simple process, but its <a href="syntax$$ProcessOps.html#start[RP](implicitstart
                         <a href="Fold.html" title="Wraps the pipe to modify how the stream is executed">Fold</a>
                       </li><li class="current-entities indented4">
                         <span class="separator"></span>
-                        <a class="class" href="" title="Wraps a pipe to modify how the stream is executed"></a>
-                        <a href="" title="Wraps a pipe to modify how the stream is executed">Ignore</a>
-                      </li><li class="current-entities indented4">
-                        <span class="separator"></span>
                         <a class="class" href="InputStreamingSource.html" title="Input source implementation of using a byte stream as input"></a>
                         <a href="InputStreamingSource.html" title="Input source implementation of using a byte stream as input">InputStreamingSource</a>
-                      </li><li class="current-entities indented4">
-                        <span class="separator"></span>
-                        <a class="class" href="Log.html" title="Wraps a pipe to modify how the stream is executed"></a>
-                        <a href="Log.html" title="Wraps a pipe to modify how the stream is executed">Log</a>
                       </li><li class="current-entities indented4">
                         <span class="separator"></span>
                         <a class="trait" href="LowPriorityCanBeProcessErrorTarget.html" title=""></a>
@@ -321,6 +317,10 @@ simple process, but its <a href="syntax$$ProcessOps.html#start[RP](implicitstart
                         <a href="StdOut$.html" title="Default implementation of ProcessOutputTarget representing no redirection">StdOut</a>
                       </li><li class="current-entities indented4">
                         <span class="separator"></span>
+                        <a class="class" href="" title="Wraps a pipe to modify how the stream is executed"></a>
+                        <a href="" title="Wraps a pipe to modify how the stream is executed">ToVector</a>
+                      </li><li class="current-entities indented4">
+                        <span class="separator"></span>
                         <a class="object" href="syntax$.html" title="Implicit classes for working with simple and piped processes"></a>
                         <a href="syntax$.html" title="Implicit classes for working with simple and piped processes">syntax</a>
                       </li>
@@ -332,8 +332,8 @@ simple process, but its <a href="syntax$$ProcessOps.html#start[RP](implicitstart
       <div id="definition">
         <div class="big-circle class">c</div>
         <p id="owner"><a href="../../../index.html" class="extype" name="io">io</a>.<a href="../../index.html" class="extype" name="io.github">github</a>.<a href="../index.html" class="extype" name="io.github.vigoo">vigoo</a>.<a href="index.html" class="extype" name="io.github.vigoo.prox">prox</a></p>
-        <h1>Ignore<span class="permalink">
-      <a href="../../../../io/github/vigoo/prox/Ignore.html" title="Permalink">
+        <h1>ToVector<span class="permalink">
+      <a href="../../../../io/github/vigoo/prox/ToVector.html" title="Permalink">
         <i class="material-icons"></i>
       </a>
     </span></h1>
@@ -346,13 +346,14 @@ simple process, but its <a href="syntax$$ProcessOps.html#start[RP](implicitstart
         <span class="kind">case class</span>
       </span>
       <span class="symbol">
-        <span class="name">Ignore</span><span class="tparams">[<span name="O">O</span>]</span><span class="params">(<span name="pipe">pipe: <span class="extype" name="fs2.Pipe">Pipe</span>[<span class="extype" name="cats.effect.IO">IO</span>, <span class="extype" name="scala.Byte">Byte</span>, <span class="extype" name="io.github.vigoo.prox.Ignore.O">O</span>]</span>)</span><span class="result"> extends <span class="extype" name="scala.Product">Product</span> with <span class="extype" name="scala.Serializable">Serializable</span></span>
+        <span class="name">ToVector</span><span class="tparams">[<span name="O">O</span>]</span><span class="params">(<span name="pipe">pipe: <span class="extype" name="fs2.Pipe">Pipe</span>[<span class="extype" name="cats.effect.IO">IO</span>, <span class="extype" name="scala.Byte">Byte</span>, <span class="extype" name="io.github.vigoo.prox.ToVector.O">O</span>]</span>)</span><span class="result"> extends <span class="extype" name="scala.Product">Product</span> with <span class="extype" name="scala.Serializable">Serializable</span></span>
       </span>
       </h4>
 
       
-          <div id="comment" class="fullcommenttop"><div class="comment cmt"><p>Wraps a pipe to modify how the stream is executed</p><p>If a pipe used as an output or error target is wrapped by <a href="" class="extype" name="io.github.vigoo.prox.Ignore">Ignore</a>, the stream will be executed
-by <span class="extype" name="fs2.Stream.InvariantOps.run">fs2.Stream.InvariantOps.run</span> and the result type will be <span class="extype" name="Unit">Unit</span>.
+          <div id="comment" class="fullcommenttop"><div class="comment cmt"><p>Wraps a pipe to modify how the stream is executed</p><p>If a pipe used as an output or error target is wrapped by <a href="" class="extype" name="io.github.vigoo.prox.ToVector">ToVector</a>, the stream will be executed
+by <span class="extype" name="fs2.Stream.CompileOps.toVector">fs2.Stream.CompileOps.toVector</span> and the result type will be a <span class="extype" name="Vector">Vector</span> of its element
+type.
 </p></div><dl class="paramcmts block"><dt class="tparam">O</dt><dd class="cmt"><p>Stream element type</p></dd><dt class="param">pipe</dt><dd class="cmt"><p>The pipe to wrap</p></dd></dl><div class="toggleContainer block">
           <span class="toggle">
             Linear Supertypes
@@ -383,7 +384,7 @@ by <span class="extype" name="fs2.Stream.InvariantOps.run">fs2.Stream.InvariantO
                   <span class="filtertype">Inherited<br />
                   </span>
                   <ol id="linearization">
-                    <li class="in" name="io.github.vigoo.prox.Ignore"><span>Ignore</span></li><li class="in" name="scala.Serializable"><span>Serializable</span></li><li class="in" name="java.io.Serializable"><span>Serializable</span></li><li class="in" name="scala.Product"><span>Product</span></li><li class="in" name="scala.Equals"><span>Equals</span></li><li class="in" name="scala.AnyRef"><span>AnyRef</span></li><li class="in" name="scala.Any"><span>Any</span></li>
+                    <li class="in" name="io.github.vigoo.prox.ToVector"><span>ToVector</span></li><li class="in" name="scala.Serializable"><span>Serializable</span></li><li class="in" name="java.io.Serializable"><span>Serializable</span></li><li class="in" name="scala.Product"><span>Product</span></li><li class="in" name="scala.Equals"><span>Equals</span></li><li class="in" name="scala.AnyRef"><span>AnyRef</span></li><li class="in" name="scala.Any"><span>Any</span></li>
                   </ol>
                 </div><div class="ancestors">
               <span class="filtertype"></span>
@@ -403,10 +404,10 @@ by <span class="extype" name="fs2.Stream.InvariantOps.run">fs2.Stream.InvariantO
         <div id="allMembers">
         <div id="constructors" class="members">
               <h3>Instance Constructors</h3>
-              <ol><li name="io.github.vigoo.prox.Ignore#&lt;init&gt;" visbl="pub" class="indented0 " data-isabs="false" fullComment="yes" group="Ungrouped">
-      <a id="&lt;init&gt;(pipe:fs2.Pipe[cats.effect.IO,Byte,O]):io.github.vigoo.prox.Ignore[O]"></a><a id="&lt;init&gt;:Ignore[O]"></a>
+              <ol><li name="io.github.vigoo.prox.ToVector#&lt;init&gt;" visbl="pub" class="indented0 " data-isabs="false" fullComment="yes" group="Ungrouped">
+      <a id="&lt;init&gt;(pipe:fs2.Pipe[cats.effect.IO,Byte,O]):io.github.vigoo.prox.ToVector[O]"></a><a id="&lt;init&gt;:ToVector[O]"></a>
       <span class="permalink">
-      <a href="../../../../io/github/vigoo/prox/Ignore.html#&lt;init&gt;(pipe:fs2.Pipe[cats.effect.IO,Byte,O]):io.github.vigoo.prox.Ignore[O]" title="Permalink">
+      <a href="../../../../io/github/vigoo/prox/ToVector.html#&lt;init&gt;(pipe:fs2.Pipe[cats.effect.IO,Byte,O]):io.github.vigoo.prox.ToVector[O]" title="Permalink">
         <i class="material-icons"></i>
       </a>
     </span>
@@ -415,7 +416,7 @@ by <span class="extype" name="fs2.Stream.InvariantOps.run">fs2.Stream.InvariantO
         <span class="kind">new</span>
       </span>
       <span class="symbol">
-        <span class="name">Ignore</span><span class="params">(<span name="pipe">pipe: <span class="extype" name="fs2.Pipe">Pipe</span>[<span class="extype" name="cats.effect.IO">IO</span>, <span class="extype" name="scala.Byte">Byte</span>, <span class="extype" name="io.github.vigoo.prox.Ignore.O">O</span>]</span>)</span>
+        <span class="name">ToVector</span><span class="params">(<span name="pipe">pipe: <span class="extype" name="fs2.Pipe">Pipe</span>[<span class="extype" name="cats.effect.IO">IO</span>, <span class="extype" name="scala.Byte">Byte</span>, <span class="extype" name="io.github.vigoo.prox.ToVector.O">O</span>]</span>)</span>
       </span>
       
       <p class="shortcomment cmt"></p><div class="fullcomment"><div class="comment cmt"></div><dl class="paramcmts block"><dt class="param">pipe</dt><dd class="cmt"><p>The pipe to wrap</p></dd></dl></div>
@@ -432,7 +433,7 @@ by <span class="extype" name="fs2.Stream.InvariantOps.run">fs2.Stream.InvariantO
                 <li name="scala.AnyRef#!=" visbl="pub" class="indented0 " data-isabs="false" fullComment="yes" group="Ungrouped">
       <a id="!=(x$1:Any):Boolean"></a><a id="!=(Any):Boolean"></a>
       <span class="permalink">
-      <a href="../../../../io/github/vigoo/prox/Ignore.html#!=(x$1:Any):Boolean" title="Permalink">
+      <a href="../../../../io/github/vigoo/prox/ToVector.html#!=(x$1:Any):Boolean" title="Permalink">
         <i class="material-icons"></i>
       </a>
     </span>
@@ -448,7 +449,7 @@ by <span class="extype" name="fs2.Stream.InvariantOps.run">fs2.Stream.InvariantO
     </li><li name="scala.AnyRef###" visbl="pub" class="indented0 " data-isabs="false" fullComment="yes" group="Ungrouped">
       <a id="##():Int"></a>
       <span class="permalink">
-      <a href="../../../../io/github/vigoo/prox/Ignore.html###():Int" title="Permalink">
+      <a href="../../../../io/github/vigoo/prox/ToVector.html###():Int" title="Permalink">
         <i class="material-icons"></i>
       </a>
     </span>
@@ -464,7 +465,7 @@ by <span class="extype" name="fs2.Stream.InvariantOps.run">fs2.Stream.InvariantO
     </li><li name="scala.AnyRef#==" visbl="pub" class="indented0 " data-isabs="false" fullComment="yes" group="Ungrouped">
       <a id="==(x$1:Any):Boolean"></a><a id="==(Any):Boolean"></a>
       <span class="permalink">
-      <a href="../../../../io/github/vigoo/prox/Ignore.html#==(x$1:Any):Boolean" title="Permalink">
+      <a href="../../../../io/github/vigoo/prox/ToVector.html#==(x$1:Any):Boolean" title="Permalink">
         <i class="material-icons"></i>
       </a>
     </span>
@@ -480,7 +481,7 @@ by <span class="extype" name="fs2.Stream.InvariantOps.run">fs2.Stream.InvariantO
     </li><li name="scala.Any#asInstanceOf" visbl="pub" class="indented0 " data-isabs="false" fullComment="yes" group="Ungrouped">
       <a id="asInstanceOf[T0]:T0"></a>
       <span class="permalink">
-      <a href="../../../../io/github/vigoo/prox/Ignore.html#asInstanceOf[T0]:T0" title="Permalink">
+      <a href="../../../../io/github/vigoo/prox/ToVector.html#asInstanceOf[T0]:T0" title="Permalink">
         <i class="material-icons"></i>
       </a>
     </span>
@@ -496,7 +497,7 @@ by <span class="extype" name="fs2.Stream.InvariantOps.run">fs2.Stream.InvariantO
     </li><li name="scala.AnyRef#clone" visbl="prt" class="indented0 " data-isabs="false" fullComment="yes" group="Ungrouped">
       <a id="clone():Object"></a><a id="clone():AnyRef"></a>
       <span class="permalink">
-      <a href="../../../../io/github/vigoo/prox/Ignore.html#clone():Object" title="Permalink">
+      <a href="../../../../io/github/vigoo/prox/ToVector.html#clone():Object" title="Permalink">
         <i class="material-icons"></i>
       </a>
     </span>
@@ -520,7 +521,7 @@ by <span class="extype" name="fs2.Stream.InvariantOps.run">fs2.Stream.InvariantO
     </li><li name="scala.AnyRef#eq" visbl="pub" class="indented0 " data-isabs="false" fullComment="yes" group="Ungrouped">
       <a id="eq(x$1:AnyRef):Boolean"></a><a id="eq(AnyRef):Boolean"></a>
       <span class="permalink">
-      <a href="../../../../io/github/vigoo/prox/Ignore.html#eq(x$1:AnyRef):Boolean" title="Permalink">
+      <a href="../../../../io/github/vigoo/prox/ToVector.html#eq(x$1:AnyRef):Boolean" title="Permalink">
         <i class="material-icons"></i>
       </a>
     </span>
@@ -536,7 +537,7 @@ by <span class="extype" name="fs2.Stream.InvariantOps.run">fs2.Stream.InvariantO
     </li><li name="scala.AnyRef#finalize" visbl="prt" class="indented0 " data-isabs="false" fullComment="yes" group="Ungrouped">
       <a id="finalize():Unit"></a>
       <span class="permalink">
-      <a href="../../../../io/github/vigoo/prox/Ignore.html#finalize():Unit" title="Permalink">
+      <a href="../../../../io/github/vigoo/prox/ToVector.html#finalize():Unit" title="Permalink">
         <i class="material-icons"></i>
       </a>
     </span>
@@ -558,7 +559,7 @@ by <span class="extype" name="fs2.Stream.InvariantOps.run">fs2.Stream.InvariantO
     </li><li name="scala.AnyRef#getClass" visbl="pub" class="indented0 " data-isabs="false" fullComment="yes" group="Ungrouped">
       <a id="getClass():Class[_]"></a>
       <span class="permalink">
-      <a href="../../../../io/github/vigoo/prox/Ignore.html#getClass():Class[_]" title="Permalink">
+      <a href="../../../../io/github/vigoo/prox/ToVector.html#getClass():Class[_]" title="Permalink">
         <i class="material-icons"></i>
       </a>
     </span>
@@ -577,7 +578,7 @@ by <span class="extype" name="fs2.Stream.InvariantOps.run">fs2.Stream.InvariantO
     </li><li name="scala.Any#isInstanceOf" visbl="pub" class="indented0 " data-isabs="false" fullComment="yes" group="Ungrouped">
       <a id="isInstanceOf[T0]:Boolean"></a>
       <span class="permalink">
-      <a href="../../../../io/github/vigoo/prox/Ignore.html#isInstanceOf[T0]:Boolean" title="Permalink">
+      <a href="../../../../io/github/vigoo/prox/ToVector.html#isInstanceOf[T0]:Boolean" title="Permalink">
         <i class="material-icons"></i>
       </a>
     </span>
@@ -593,7 +594,7 @@ by <span class="extype" name="fs2.Stream.InvariantOps.run">fs2.Stream.InvariantO
     </li><li name="scala.AnyRef#ne" visbl="pub" class="indented0 " data-isabs="false" fullComment="yes" group="Ungrouped">
       <a id="ne(x$1:AnyRef):Boolean"></a><a id="ne(AnyRef):Boolean"></a>
       <span class="permalink">
-      <a href="../../../../io/github/vigoo/prox/Ignore.html#ne(x$1:AnyRef):Boolean" title="Permalink">
+      <a href="../../../../io/github/vigoo/prox/ToVector.html#ne(x$1:AnyRef):Boolean" title="Permalink">
         <i class="material-icons"></i>
       </a>
     </span>
@@ -609,7 +610,7 @@ by <span class="extype" name="fs2.Stream.InvariantOps.run">fs2.Stream.InvariantO
     </li><li name="scala.AnyRef#notify" visbl="pub" class="indented0 " data-isabs="false" fullComment="yes" group="Ungrouped">
       <a id="notify():Unit"></a>
       <span class="permalink">
-      <a href="../../../../io/github/vigoo/prox/Ignore.html#notify():Unit" title="Permalink">
+      <a href="../../../../io/github/vigoo/prox/ToVector.html#notify():Unit" title="Permalink">
         <i class="material-icons"></i>
       </a>
     </span>
@@ -628,7 +629,7 @@ by <span class="extype" name="fs2.Stream.InvariantOps.run">fs2.Stream.InvariantO
     </li><li name="scala.AnyRef#notifyAll" visbl="pub" class="indented0 " data-isabs="false" fullComment="yes" group="Ungrouped">
       <a id="notifyAll():Unit"></a>
       <span class="permalink">
-      <a href="../../../../io/github/vigoo/prox/Ignore.html#notifyAll():Unit" title="Permalink">
+      <a href="../../../../io/github/vigoo/prox/ToVector.html#notifyAll():Unit" title="Permalink">
         <i class="material-icons"></i>
       </a>
     </span>
@@ -644,10 +645,10 @@ by <span class="extype" name="fs2.Stream.InvariantOps.run">fs2.Stream.InvariantO
                 <span class="name">@native</span><span class="args">()</span>
               
         </dd></dl></div>
-    </li><li name="io.github.vigoo.prox.Ignore#pipe" visbl="pub" class="indented0 " data-isabs="false" fullComment="no" group="Ungrouped">
+    </li><li name="io.github.vigoo.prox.ToVector#pipe" visbl="pub" class="indented0 " data-isabs="false" fullComment="no" group="Ungrouped">
       <a id="pipe:fs2.Pipe[cats.effect.IO,Byte,O]"></a><a id="pipe:Pipe[IO,Byte,O]"></a>
       <span class="permalink">
-      <a href="../../../../io/github/vigoo/prox/Ignore.html#pipe:fs2.Pipe[cats.effect.IO,Byte,O]" title="Permalink">
+      <a href="../../../../io/github/vigoo/prox/ToVector.html#pipe:fs2.Pipe[cats.effect.IO,Byte,O]" title="Permalink">
         <i class="material-icons"></i>
       </a>
     </span>
@@ -656,14 +657,14 @@ by <span class="extype" name="fs2.Stream.InvariantOps.run">fs2.Stream.InvariantO
         <span class="kind">val</span>
       </span>
       <span class="symbol">
-        <span class="name">pipe</span><span class="result">: <span class="extype" name="fs2.Pipe">Pipe</span>[<span class="extype" name="cats.effect.IO">IO</span>, <span class="extype" name="scala.Byte">Byte</span>, <span class="extype" name="io.github.vigoo.prox.Ignore.O">O</span>]</span>
+        <span class="name">pipe</span><span class="result">: <span class="extype" name="fs2.Pipe">Pipe</span>[<span class="extype" name="cats.effect.IO">IO</span>, <span class="extype" name="scala.Byte">Byte</span>, <span class="extype" name="io.github.vigoo.prox.ToVector.O">O</span>]</span>
       </span>
       
       
     </li><li name="scala.AnyRef#synchronized" visbl="pub" class="indented0 " data-isabs="false" fullComment="yes" group="Ungrouped">
       <a id="synchronized[T0](x$1:=&gt;T0):T0"></a><a id="synchronized[T0](⇒T0):T0"></a>
       <span class="permalink">
-      <a href="../../../../io/github/vigoo/prox/Ignore.html#synchronized[T0](x$1:=&gt;T0):T0" title="Permalink">
+      <a href="../../../../io/github/vigoo/prox/ToVector.html#synchronized[T0](x$1:=&gt;T0):T0" title="Permalink">
         <i class="material-icons"></i>
       </a>
     </span>
@@ -679,7 +680,7 @@ by <span class="extype" name="fs2.Stream.InvariantOps.run">fs2.Stream.InvariantO
     </li><li name="scala.AnyRef#wait" visbl="pub" class="indented0 " data-isabs="false" fullComment="yes" group="Ungrouped">
       <a id="wait():Unit"></a>
       <span class="permalink">
-      <a href="../../../../io/github/vigoo/prox/Ignore.html#wait():Unit" title="Permalink">
+      <a href="../../../../io/github/vigoo/prox/ToVector.html#wait():Unit" title="Permalink">
         <i class="material-icons"></i>
       </a>
     </span>
@@ -701,7 +702,7 @@ by <span class="extype" name="fs2.Stream.InvariantOps.run">fs2.Stream.InvariantO
     </li><li name="scala.AnyRef#wait" visbl="pub" class="indented0 " data-isabs="false" fullComment="yes" group="Ungrouped">
       <a id="wait(x$1:Long,x$2:Int):Unit"></a><a id="wait(Long,Int):Unit"></a>
       <span class="permalink">
-      <a href="../../../../io/github/vigoo/prox/Ignore.html#wait(x$1:Long,x$2:Int):Unit" title="Permalink">
+      <a href="../../../../io/github/vigoo/prox/ToVector.html#wait(x$1:Long,x$2:Int):Unit" title="Permalink">
         <i class="material-icons"></i>
       </a>
     </span>
@@ -723,7 +724,7 @@ by <span class="extype" name="fs2.Stream.InvariantOps.run">fs2.Stream.InvariantO
     </li><li name="scala.AnyRef#wait" visbl="pub" class="indented0 " data-isabs="false" fullComment="yes" group="Ungrouped">
       <a id="wait(x$1:Long):Unit"></a><a id="wait(Long):Unit"></a>
       <span class="permalink">
-      <a href="../../../../io/github/vigoo/prox/Ignore.html#wait(x$1:Long):Unit" title="Permalink">
+      <a href="../../../../io/github/vigoo/prox/ToVector.html#wait(x$1:Long):Unit" title="Permalink">
         <i class="material-icons"></i>
       </a>
     </span>

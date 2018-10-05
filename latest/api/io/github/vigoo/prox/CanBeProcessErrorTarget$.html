@@ -136,7 +136,7 @@
 taking a command and optionally a list of arguments and a working directory:</p><pre><span class="kw">import</span> io.github.vigoo.prox._
 <span class="kw">import</span> io.github.vigoo.prox.syntax._
 
-<span class="kw">val</span> process = Process(<span class="lit">"echo"</span>, <span class="std">List</span>(<span class="lit">"Hello world"</span>))</pre><p>To start the process, we can use the <a href="syntax$$ProcessOps.html#start[RP](implicitstart:io.github.vigoo.prox.Start.Aux[PN,RP,_],implicitexecutionContext:scala.concurrent.ExecutionContext):cats.effect.IO[RP]" class="extmbr" name="io.github.vigoo.prox.syntax.ProcessOps#start">syntax.ProcessOps.start</a> extension method,
+<span class="kw">val</span> process = Process(<span class="lit">"echo"</span>, <span class="std">List</span>(<span class="lit">"Hello world"</span>))</pre><p>To start the process, we can use the <a href="syntax$$ProcessOps.html#start[RP](blockingExecutionContext:scala.concurrent.ExecutionContext)(implicitstart:io.github.vigoo.prox.Start.Aux[PN,RP,_],implicitcontextShift:cats.effect.ContextShift[cats.effect.IO]):cats.effect.IO[RP]" class="extmbr" name="io.github.vigoo.prox.syntax.ProcessOps#start">syntax.ProcessOps.start</a> extension method,
 defined in <a href="syntax$$ProcessOps.html" class="extype" name="io.github.vigoo.prox.syntax.ProcessOps">syntax.ProcessOps</a>, which creates a cats IO operation returning
 a <a href="RunningProcess.html" class="extype" name="io.github.vigoo.prox.RunningProcess">RunningProcess</a> instance.</p><p>Use the returned value to wait for the process to exit or to send a termination signal to it:</p><pre><span class="kw">val</span> program =
 <span class="kw">for</span> {
@@ -151,12 +151,12 @@ type class defined for: <a href="CanBeProcessInputSource.html" class="extype" na
 and <a href="CanBeProcessErrorTarget.html" class="extype" name="io.github.vigoo.prox.CanBeProcessErrorTarget">CanBeProcessErrorTarget</a>.</p><p>The three extension methods are <a href="syntax$$ProcessNodeInputRedirect.html#&lt;[From,PNRedirected&lt;:io.github.vigoo.prox.ProcessNode[_,_,io.github.vigoo.prox.Redirected,_,_]](from:From)(implicitsource:io.github.vigoo.prox.CanBeProcessInputSource[From],implicitredirectInput:io.github.vigoo.prox.RedirectInput.Aux[PN,PNRedirected]):PNRedirected" class="extmbr" name="io.github.vigoo.prox.syntax.ProcessNodeInputRedirect#&lt;">syntax.ProcessNodeInputRedirect.&lt;</a>,
 <a href="syntax$$ProcessNodeOutputRedirect.html#&gt;[To,NewOut,NewOutResult,Result&lt;:io.github.vigoo.prox.ProcessNode[_,_,_,io.github.vigoo.prox.Redirected,_]](to:To)(implicittarget:io.github.vigoo.prox.CanBeProcessOutputTarget.Aux[To,NewOut,NewOutResult],implicitredirectOutput:io.github.vigoo.prox.RedirectOutput.Aux[PN,To,NewOut,NewOutResult,Result]):Result" class="extmbr" name="io.github.vigoo.prox.syntax.ProcessNodeOutputRedirect#&gt;">syntax.ProcessNodeOutputRedirect.&gt;</a> and <a href="syntax$$ProcessNodeErrorRedirect.html#redirectErrorTo[To,NewErr,NewErrResult,Result&lt;:io.github.vigoo.prox.ProcessNode[_,_,_,_,io.github.vigoo.prox.Redirected]](to:To)(implicittarget:io.github.vigoo.prox.CanBeProcessErrorTarget.Aux[To,NewErr,NewErrResult],implicitredirectError:io.github.vigoo.prox.RedirectError.Aux[PN,To,NewErr,NewErrResult,Result]):Result" class="extmbr" name="io.github.vigoo.prox.syntax.ProcessNodeErrorRedirect#redirectErrorTo">syntax.ProcessNodeErrorRedirect.redirectErrorTo</a></p><p>The type system guarantees that each redirection can only happen once for a process.</p><h4> Streams </h4><p>The library provides type classes to redirect to/from fs2 streams: <a href="InputStreamingSource.html" class="extype" name="io.github.vigoo.prox.InputStreamingSource">InputStreamingSource</a> for
 feeding a stream as a process' input, and <a href="OutputStreamingTarget.html" class="extype" name="io.github.vigoo.prox.OutputStreamingTarget">OutputStreamingTarget</a> and <a href="ErrorStreamingTarget.html" class="extype" name="io.github.vigoo.prox.ErrorStreamingTarget">ErrorStreamingTarget</a>
-to feed a process' output and error to fs2 pipes.</p><p>Three special wrapper types can be used to modify how the streams are executed when the IO operation is composed:</p><ul><li><a href="Ignore.html" class="extype" name="io.github.vigoo.prox.Ignore">Ignore</a> to run the stream with <span class="extype" name="fs2.Stream.InvariantOps.run">fs2.Stream.InvariantOps.run</span>, having a result of <span class="extype" name="Unit">Unit</span></li><li><a href="Log.html" class="extype" name="io.github.vigoo.prox.Log">Log</a> to run the stream with <span class="extype" name="fs2.Stream.InvariantOps.runLog">fs2.Stream.InvariantOps.runLog</span>, having a result of <span class="extype" name="Vector">Vector</span></li><li><a href="Fold.html" class="extype" name="io.github.vigoo.prox.Fold">Fold</a> to run the stream with <span class="extype" name="fs2.Stream.InvariantOps.runFold">fs2.Stream.InvariantOps.runFold</span>, having a custom fold result</li></ul><p>If none of the above wrappers is used, the default is to use <span class="extype" name="fs2.Stream.InvariantOps.run">fs2.Stream.InvariantOps.run</span> for <span class="extype" name="fs2.Sink">fs2.Sink</span>,
+to feed a process' output and error to fs2 pipes.</p><p>Three special wrapper types can be used to modify how the streams are executed when the IO operation is composed:</p><ul><li><a href="Drain.html" class="extype" name="io.github.vigoo.prox.Drain">Drain</a> to run the stream with <span class="extype" name="fs2.Stream.InvariantOps.run">fs2.Stream.InvariantOps.run</span>, having a result of <span class="extype" name="Unit">Unit</span></li><li><a href="ToVector.html" class="extype" name="io.github.vigoo.prox.ToVector">ToVector</a> to run the stream with <span class="extype" name="fs2.Stream.InvariantOps.runLog">fs2.Stream.InvariantOps.runLog</span>, having a result of <span class="extype" name="Vector">Vector</span></li><li><a href="Fold.html" class="extype" name="io.github.vigoo.prox.Fold">Fold</a> to run the stream with <span class="extype" name="fs2.Stream.InvariantOps.runFold">fs2.Stream.InvariantOps.runFold</span>, having a custom fold result</li></ul><p>If none of the above wrappers is used, the default is to use <span class="extype" name="fs2.Stream.InvariantOps.run">fs2.Stream.InvariantOps.run</span> for <span class="extype" name="fs2.Sink">fs2.Sink</span>,
 <span class="extype" name="fs2.Stream.InvariantOps.runFoldMonoid">fs2.Stream.InvariantOps.runFoldMonoid</span> if the pipe's output is a <span class="extype" name="cats.Monoid">cats.Monoid</span> and <span class="extype" name="fs2.Stream.InvariantOps.runLog">fs2.Stream.InvariantOps.runLog</span>
 otherwise.</p><h4> Piping </h4><p>The <a href="syntax$$ProcessNodeOutputRedirect.html" class="extype" name="io.github.vigoo.prox.syntax.ProcessNodeOutputRedirect">syntax.ProcessNodeOutputRedirect</a> class defined two extension methods for piping one
 process to another: <a href="syntax$$ProcessNodeOutputRedirect.html#|[PN2&lt;:io.github.vigoo.prox.ProcessNode[_,_,io.github.vigoo.prox.NotRedirected,_,_],RP&lt;:io.github.vigoo.prox.ProcessNode[_,_,_,_,_]](to:PN2)(implicitpiping:io.github.vigoo.prox.Piping.Aux[PN,PN2,RP]):RP" class="extmbr" name="io.github.vigoo.prox.syntax.ProcessNodeOutputRedirect#|">syntax.ProcessNodeOutputRedirect.|</a> for direct piping and
 <a href="syntax$$ProcessNodeOutputRedirect.html#via(via:fs2.Pipe[cats.effect.IO,Byte,Byte]):io.github.vigoo.prox.PipeBuilder[PN]" class="extmbr" name="io.github.vigoo.prox.syntax.ProcessNodeOutputRedirect#via">syntax.ProcessNodeOutputRedirect.via</a> for piping through a custom fs2 <span class="extype" name="fs2.Pipe">fs2.Pipe</span>.</p><p>The result of the piping operators is a <a href="PipedProcess.html" class="extype" name="io.github.vigoo.prox.PipedProcess">PipedProcess</a>, which can be used exactly as a
-simple process, but its <a href="syntax$$ProcessOps.html#start[RP](implicitstart:io.github.vigoo.prox.Start.Aux[PN,RP,_],implicitexecutionContext:scala.concurrent.ExecutionContext):cats.effect.IO[RP]" class="extmbr" name="io.github.vigoo.prox.syntax.ProcessOps#start">syntax.ProcessOps.start</a> method returns a tuple of
+simple process, but its <a href="syntax$$ProcessOps.html#start[RP](blockingExecutionContext:scala.concurrent.ExecutionContext)(implicitstart:io.github.vigoo.prox.Start.Aux[PN,RP,_],implicitcontextShift:cats.effect.ContextShift[cats.effect.IO]):cats.effect.IO[RP]" class="extmbr" name="io.github.vigoo.prox.syntax.ProcessOps#start">syntax.ProcessOps.start</a> method returns a tuple of
 <a href="RunningProcess.html" class="extype" name="io.github.vigoo.prox.RunningProcess">RunningProcess</a> instances.
 </p></div><dl class="attributes block"> <dt>Definition Classes</dt><dd><a href="../index.html" class="extype" name="io.github.vigoo">vigoo</a></dd></dl></div>
     </li><li name="io.github.vigoo.prox.path" visbl="pub" class="indented5 " data-isabs="false" fullComment="yes" group="Ungrouped">
@@ -189,6 +189,10 @@ simple process, but its <a href="syntax$$ProcessOps.html#start[RP](implicitstart
                         <a href="CanBeProcessOutputTarget.html" title="Type class for creating output redirection handlers">CanBeProcessOutputTarget</a>
                       </li><li class="current-entities indented4">
                         <span class="separator"></span>
+                        <a class="class" href="Drain.html" title="Wraps a pipe to modify how the stream is executed"></a>
+                        <a href="Drain.html" title="Wraps a pipe to modify how the stream is executed">Drain</a>
+                      </li><li class="current-entities indented4">
+                        <span class="separator"></span>
                         <a class="class" href="ErrorStreamingTarget.html" title="Error target implementation using a stream pipe as the target"></a>
                         <a href="ErrorStreamingTarget.html" title="Error target implementation using a stream pipe as the target">ErrorStreamingTarget</a>
                       </li><li class="current-entities indented4">
@@ -205,16 +209,8 @@ simple process, but its <a href="syntax$$ProcessOps.html#start[RP](implicitstart
                         <a href="Fold.html" title="Wraps the pipe to modify how the stream is executed">Fold</a>
                       </li><li class="current-entities indented4">
                         <span class="separator"></span>
-                        <a class="class" href="Ignore.html" title="Wraps a pipe to modify how the stream is executed"></a>
-                        <a href="Ignore.html" title="Wraps a pipe to modify how the stream is executed">Ignore</a>
-                      </li><li class="current-entities indented4">
-                        <span class="separator"></span>
                         <a class="class" href="InputStreamingSource.html" title="Input source implementation of using a byte stream as input"></a>
                         <a href="InputStreamingSource.html" title="Input source implementation of using a byte stream as input">InputStreamingSource</a>
-                      </li><li class="current-entities indented4">
-                        <span class="separator"></span>
-                        <a class="class" href="Log.html" title="Wraps a pipe to modify how the stream is executed"></a>
-                        <a href="Log.html" title="Wraps a pipe to modify how the stream is executed">Log</a>
                       </li><li class="current-entities indented4">
                         <span class="separator"></span>
                         <a class="trait" href="LowPriorityCanBeProcessErrorTarget.html" title=""></a>
@@ -321,6 +317,10 @@ simple process, but its <a href="syntax$$ProcessOps.html#start[RP](implicitstart
                         <a href="StdOut$.html" title="Default implementation of ProcessOutputTarget representing no redirection">StdOut</a>
                       </li><li class="current-entities indented4">
                         <span class="separator"></span>
+                        <a class="class" href="ToVector.html" title="Wraps a pipe to modify how the stream is executed"></a>
+                        <a href="ToVector.html" title="Wraps a pipe to modify how the stream is executed">ToVector</a>
+                      </li><li class="current-entities indented4">
+                        <span class="separator"></span>
                         <a class="object" href="syntax$.html" title="Implicit classes for working with simple and piped processes"></a>
                         <a href="syntax$.html" title="Implicit classes for working with simple and piped processes">syntax</a>
                       </li>
@@ -353,7 +353,7 @@ simple process, but its <a href="syntax$$ProcessOps.html#start[RP](implicitstart
       </h4>
 
       
-          <div id="comment" class="fullcommenttop"><div class="comment cmt"><p>Instances of the <a href="CanBeProcessErrorTarget.html" class="extype" name="io.github.vigoo.prox.CanBeProcessErrorTarget">CanBeProcessErrorTarget</a> type class</p><p>There are instances for the following types:</p><ul><li><span class="extype" name="java.nio.file.Path">java.nio.file.Path</span> to redirect the error channel to a file</li><li><span class="extype" name="fs2.Sink">fs2.Sink</span> to redirect the error channel to a sink. The result type is <span class="extype" name="Unit">Unit</span>.</li><li><span class="extype" name="fs2.Pipe">fs2.Pipe</span> if the pipe's output element type is a <span class="extype" name="cats.Monoid">cats.Monoid</span>. The result type is its element type.</li><li><span class="extype" name="fs2.Pipe">fs2.Pipe</span> if the pipe's output element type is not a <span class="extype" name="cats.Monoid">cats.Monoid</span>. The result type is a <span class="extype" name="Vector">Vector</span> of its element type.</li><li><a href="Ignore.html" class="extype" name="io.github.vigoo.prox.Ignore">Ignore</a></li><li><a href="Log.html" class="extype" name="io.github.vigoo.prox.Log">Log</a></li><li><a href="Fold.html" class="extype" name="io.github.vigoo.prox.Fold">Fold</a>
+          <div id="comment" class="fullcommenttop"><div class="comment cmt"><p>Instances of the <a href="CanBeProcessErrorTarget.html" class="extype" name="io.github.vigoo.prox.CanBeProcessErrorTarget">CanBeProcessErrorTarget</a> type class</p><p>There are instances for the following types:</p><ul><li><span class="extype" name="java.nio.file.Path">java.nio.file.Path</span> to redirect the error channel to a file</li><li><span class="extype" name="fs2.Sink">fs2.Sink</span> to redirect the error channel to a sink. The result type is <span class="extype" name="Unit">Unit</span>.</li><li><span class="extype" name="fs2.Pipe">fs2.Pipe</span> if the pipe's output element type is a <span class="extype" name="cats.Monoid">cats.Monoid</span>. The result type is its element type.</li><li><span class="extype" name="fs2.Pipe">fs2.Pipe</span> if the pipe's output element type is not a <span class="extype" name="cats.Monoid">cats.Monoid</span>. The result type is a <span class="extype" name="Vector">Vector</span> of its element type.</li><li><a href="Drain.html" class="extype" name="io.github.vigoo.prox.Drain">Drain</a></li><li><a href="ToVector.html" class="extype" name="io.github.vigoo.prox.ToVector">ToVector</a></li><li><a href="Fold.html" class="extype" name="io.github.vigoo.prox.Fold">Fold</a>
 </li></ul></div><div class="toggleContainer block">
           <span class="toggle">
             Linear Supertypes
@@ -643,9 +643,9 @@ simple process, but its <a href="syntax$$ProcessOps.html#start[RP](implicitstart
               
         </dd></dl></div>
     </li><li name="io.github.vigoo.prox.CanBeProcessErrorTarget#ignorePipeAsErrorTarget" visbl="pub" class="indented0 " data-isabs="false" fullComment="no" group="Ungrouped">
-      <a id="ignorePipeAsErrorTarget[Err]:io.github.vigoo.prox.CanBeProcessErrorTarget.Aux[io.github.vigoo.prox.Ignore[Err],Err,Unit]"></a><a id="ignorePipeAsErrorTarget[Err]:Aux[Ignore[Err],Err,Unit]"></a>
+      <a id="ignorePipeAsErrorTarget[Err]:io.github.vigoo.prox.CanBeProcessErrorTarget.Aux[io.github.vigoo.prox.Drain[Err],Err,Unit]"></a><a id="ignorePipeAsErrorTarget[Err]:Aux[Drain[Err],Err,Unit]"></a>
       <span class="permalink">
-      <a href="../../../../io/github/vigoo/prox/CanBeProcessErrorTarget$.html#ignorePipeAsErrorTarget[Err]:io.github.vigoo.prox.CanBeProcessErrorTarget.Aux[io.github.vigoo.prox.Ignore[Err],Err,Unit]" title="Permalink">
+      <a href="../../../../io/github/vigoo/prox/CanBeProcessErrorTarget$.html#ignorePipeAsErrorTarget[Err]:io.github.vigoo.prox.CanBeProcessErrorTarget.Aux[io.github.vigoo.prox.Drain[Err],Err,Unit]" title="Permalink">
         <i class="material-icons"></i>
       </a>
     </span>
@@ -654,7 +654,7 @@ simple process, but its <a href="syntax$$ProcessOps.html#start[RP](implicitstart
         <span class="kind">def</span>
       </span>
       <span class="symbol">
-        <span class="name">ignorePipeAsErrorTarget</span><span class="tparams">[<span name="Err">Err</span>]</span><span class="result">: <a href="#Aux[To,Err0,ErrResult0]=io.github.vigoo.prox.CanBeProcessErrorTarget[To]{typeErr=Err0;typeErrResult=ErrResult0}" class="extmbr" name="io.github.vigoo.prox.CanBeProcessErrorTarget.Aux">Aux</a>[<a href="Ignore.html" class="extype" name="io.github.vigoo.prox.Ignore">Ignore</a>[<span class="extype" name="io.github.vigoo.prox.CanBeProcessErrorTarget.ignorePipeAsErrorTarget.Err">Err</span>], <span class="extype" name="io.github.vigoo.prox.CanBeProcessErrorTarget.ignorePipeAsErrorTarget.Err">Err</span>, <span class="extype" name="scala.Unit">Unit</span>]</span>
+        <span class="name">ignorePipeAsErrorTarget</span><span class="tparams">[<span name="Err">Err</span>]</span><span class="result">: <a href="#Aux[To,Err0,ErrResult0]=io.github.vigoo.prox.CanBeProcessErrorTarget[To]{typeErr=Err0;typeErrResult=ErrResult0}" class="extmbr" name="io.github.vigoo.prox.CanBeProcessErrorTarget.Aux">Aux</a>[<a href="Drain.html" class="extype" name="io.github.vigoo.prox.Drain">Drain</a>[<span class="extype" name="io.github.vigoo.prox.CanBeProcessErrorTarget.ignorePipeAsErrorTarget.Err">Err</span>], <span class="extype" name="io.github.vigoo.prox.CanBeProcessErrorTarget.ignorePipeAsErrorTarget.Err">Err</span>, <span class="extype" name="scala.Unit">Unit</span>]</span>
       </span>
       
       
@@ -675,9 +675,9 @@ simple process, but its <a href="syntax$$ProcessOps.html#start[RP](implicitstart
       
       <div class="fullcomment"><dl class="attributes block"> <dt>Definition Classes</dt><dd>Any</dd></dl></div>
     </li><li name="io.github.vigoo.prox.CanBeProcessErrorTarget#logPipeAsErrorTarget" visbl="pub" class="indented0 " data-isabs="false" fullComment="no" group="Ungrouped">
-      <a id="logPipeAsErrorTarget[Err]:io.github.vigoo.prox.CanBeProcessErrorTarget.Aux[io.github.vigoo.prox.Log[Err],Err,Vector[Err]]"></a><a id="logPipeAsErrorTarget[Err]:Aux[Log[Err],Err,Vector[Err]]"></a>
+      <a id="logPipeAsErrorTarget[Err]:io.github.vigoo.prox.CanBeProcessErrorTarget.Aux[io.github.vigoo.prox.ToVector[Err],Err,Vector[Err]]"></a><a id="logPipeAsErrorTarget[Err]:Aux[ToVector[Err],Err,Vector[Err]]"></a>
       <span class="permalink">
-      <a href="../../../../io/github/vigoo/prox/CanBeProcessErrorTarget$.html#logPipeAsErrorTarget[Err]:io.github.vigoo.prox.CanBeProcessErrorTarget.Aux[io.github.vigoo.prox.Log[Err],Err,Vector[Err]]" title="Permalink">
+      <a href="../../../../io/github/vigoo/prox/CanBeProcessErrorTarget$.html#logPipeAsErrorTarget[Err]:io.github.vigoo.prox.CanBeProcessErrorTarget.Aux[io.github.vigoo.prox.ToVector[Err],Err,Vector[Err]]" title="Permalink">
         <i class="material-icons"></i>
       </a>
     </span>
@@ -686,7 +686,7 @@ simple process, but its <a href="syntax$$ProcessOps.html#start[RP](implicitstart
         <span class="kind">def</span>
       </span>
       <span class="symbol">
-        <span class="name">logPipeAsErrorTarget</span><span class="tparams">[<span name="Err">Err</span>]</span><span class="result">: <a href="#Aux[To,Err0,ErrResult0]=io.github.vigoo.prox.CanBeProcessErrorTarget[To]{typeErr=Err0;typeErrResult=ErrResult0}" class="extmbr" name="io.github.vigoo.prox.CanBeProcessErrorTarget.Aux">Aux</a>[<a href="Log.html" class="extype" name="io.github.vigoo.prox.Log">Log</a>[<span class="extype" name="io.github.vigoo.prox.CanBeProcessErrorTarget.logPipeAsErrorTarget.Err">Err</span>], <span class="extype" name="io.github.vigoo.prox.CanBeProcessErrorTarget.logPipeAsErrorTarget.Err">Err</span>, <span class="extype" name="scala.Vector">Vector</span>[<span class="extype" name="io.github.vigoo.prox.CanBeProcessErrorTarget.logPipeAsErrorTarget.Err">Err</span>]]</span>
+        <span class="name">logPipeAsErrorTarget</span><span class="tparams">[<span name="Err">Err</span>]</span><span class="result">: <a href="#Aux[To,Err0,ErrResult0]=io.github.vigoo.prox.CanBeProcessErrorTarget[To]{typeErr=Err0;typeErrResult=ErrResult0}" class="extmbr" name="io.github.vigoo.prox.CanBeProcessErrorTarget.Aux">Aux</a>[<a href="ToVector.html" class="extype" name="io.github.vigoo.prox.ToVector">ToVector</a>[<span class="extype" name="io.github.vigoo.prox.CanBeProcessErrorTarget.logPipeAsErrorTarget.Err">Err</span>], <span class="extype" name="io.github.vigoo.prox.CanBeProcessErrorTarget.logPipeAsErrorTarget.Err">Err</span>, <span class="extype" name="scala.Vector">Vector</span>[<span class="extype" name="io.github.vigoo.prox.CanBeProcessErrorTarget.logPipeAsErrorTarget.Err">Err</span>]]</span>
       </span>
       
       
