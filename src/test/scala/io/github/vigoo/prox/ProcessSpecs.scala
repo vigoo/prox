@@ -219,7 +219,7 @@ class ProcessSpecs extends Specification { def is = s2"""
 
   def simpleProcessPipingHList = {
     val program = for {
-      rpHL <- (Process("echo", List("This is a test string")) | (Process("wc", List("-w")) > text.utf8Decode[IO])).startHL()
+      rpHL <- (Process("echo", List("This is a test string")) | (Process("wc", List("-w")) > text.utf8Decode[IO])).startHL(blockingExecutionContext)
       runningEcho = rpHL.head
       runningWc = rpHL.tail.head
       _ <- runningEcho.waitForExit()
