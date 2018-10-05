@@ -19,7 +19,7 @@ It works by first defining a one or more processes then starting them, getting a
 Add the following dependency:
 
 ```scala
-libraryDependencies += "io.github.vigoo" %% "prox" % "0.1.1"
+libraryDependencies += "io.github.vigoo" %% "prox" % "0.2.0"
 ```
 
 Let's start by defining a single process with the `Process` constructor, taking a command and optionally a list of arguments and a working directory:
@@ -35,9 +35,10 @@ val process = Process("echo", List("Hello world"))
 This is just a definition of a process, no real effect happened yet. We can *start* this process by using the `start` method on it, which creates an *effectful operation* in the IO monad, defined by [cats-effect](https://github.com/typelevel/cats-effect):
 
 ```scala
-import scala.concurrent.ExecutionContext.Implicits.global
+implicit val contextShift: ContextShift[IO] = IO.contextShift(ExecutionContext.global)
+val blockingExecutionContext = ExecutionContext.fromExecutor(Executors.newCachedThreadPool())
 
-val runningProcess: IO[RunningProcess] = process.start
+val runningProcess: IO[RunningProcess] = process.start(blockingExecutionContext)
 ```
 
 This, when executed, will start the above defined process and return an instance of `RunningProcess`, which allows things like waiting for the process to be terminated, or kill it. 
@@ -47,7 +48,7 @@ Let's see a full example of running the above process and printing it's exit cod
 ```scala
 val program = 
     for {
-      echo <- Process("echo", List("Hello world")).start
+      echo <- Process("echo", List("Hello world")).start(blockingExecutionContext)
       result <- echo.waitForExit()
     } yield result.exitCode
     
@@ -106,24 +107,24 @@ Calling `start` on a process which has its streams connected to [fs2](https://gi
 
 The default type classes implement the following behavior depending on the target:
 
-- If the target is a `Sink`, the stream is started by `run` and the result type is `Unit`
-- If the pipe's output is `Out` and there is a `Monoid` instance for `Out`, the stream is started by `runFoldMonoid` and the result type is `Out`
-- Otherwise if the pipe's output is `Out`, the stream is started by `runLog` and the result type is `Vector[Out]`  
+- If the target is a `Sink`, the stream is started by `drain` and the result type is `Unit`
+- If the pipe's output is `Out` and there is a `Monoid` instance for `Out`, the stream is started by `fold` and the result type is `Out`
+- Otherwise if the pipe's output is `Out`, the stream is started by `toVector` and the result type is `Vector[Out]`  
 
 For example to send a string through `cat` and capture the output:
 
 ```scala
 val source = Stream("Hello world").through(text.utf8Encode)
 val program: IO[String] = for {
-  runningProcess <- (Process("cat") < source > text.utf8Decode[IO]).start
+  runningProcess <- (Process("cat") < source > text.utf8Decode[IO]).start(blockingExecutionContext)
   result <- runningProcess.waitForExit()
 } yield result.fullOutput
 ```
 
 There are three wrappers for pipes to customize this behavior without implementing an own instance of `CanBeOutputTarget[T]`:
 
-- `Ignore(pipe)` results in running the stream with `run`, having a result of `Unit`
-- `Log(pipe)` results in running the stream with `runLog` even if `Out` is a `Monoid`, having a result of `Vector[Out]`
+- `Drain(pipe)` results in running the stream with `drain`, having a result of `Unit`
+- `ToVector(pipe)` results in running the stream with `toVector` even if `Out` is a `Monoid`, having a result of `Vector[Out]`
 - `Fold(pipe, init: Res, f: (Res, Out) => Res)` results in running the stream with `runFold(init)(f)`, having a result of `Res`  
 
 ### Piping
@@ -148,10 +149,10 @@ instances for the involved processes:
 
 ```scala
 for {
-  runningProcs1 <- (echoProcess | wordCountProcess).start
+  runningProcs1 <- (echoProcess | wordCountProcess).start(blockingExecutionContext)
   (echo, wordCount) = runningProcs1
   
-  runningProcs2 <- multipleProcesses.start
+  runningProcs2 <- multipleProcesses.start(blockingExecutionContext)
   (cat, grep, sort, uniq) = runningProcs2
   
   _ <- wordCount.waitForExit()
@@ -166,3 +167,17 @@ The pipe between the two process can be customized with the followin syntax:
 val customPipe: Pipe[IO, Byte, Byte] = ???
 val process = echoProcess.via(customPipe).to(wordCountProcess)
 ```
+
+### Controlling the execution context
+There are two parameters controlling the execution of the processes. 
+
+- The implicit `ContextShift[IO]` is used for all the async operations necessary for running the involved streams in parallel. See [cats-effect's concurrency basics](https://typelevel.org/cats-effect/concurrency/basics.html) for more information.
+- A specific blocking `ExecutionContext` has to be provided in the process `start` method. This will be used to run the blocking IO of reading and writing the process streams. See [fs2-s migration guide to 1.0](https://github.com/functional-streams-for-scala/fs2/blob/series/1.0/docs/migration-guide-1.0.md#fs2io-changes) for more information. 
+
+## Migration
+
+### from 0.1.x to 0.2
+
+- The `start` method on processes now requires a `blockingExecutionContext` argument
+- `Ignore` has been renamed to `Drain`
+- `Log` has been renamed to `ToVector`

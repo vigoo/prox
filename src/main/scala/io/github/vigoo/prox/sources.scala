@@ -4,7 +4,7 @@ import java.lang
 import java.lang.ProcessBuilder.Redirect
 import java.nio.file.Path
 
-import cats.effect.IO
+import cats.effect.{Concurrent, ContextShift, Fiber, IO}
 import fs2._
 
 import scala.concurrent.ExecutionContext
@@ -46,11 +46,11 @@ object CanBeProcessInputSource {
 object StdIn extends ProcessInputSource {
   override def toRedirect: Redirect = Redirect.INHERIT
 
-  override def connect(systemProcess: lang.Process)(implicit executionContext: ExecutionContext): Stream[IO, Byte] =
+  override def connect(systemProcess: lang.Process, blockingExecutionContext: ExecutionContext)(implicit contextShift: ContextShift[IO]): Stream[IO, Byte] =
     Stream.empty
 
-  override def run(stream: Stream[IO, Byte])(implicit executionContext: ExecutionContext): IO[IO[Unit]] =
-    IO(IO(()))
+  override def run(stream: Stream[IO, Byte])(implicit contextShift: ContextShift[IO]): IO[Fiber[IO, Unit]] =
+    Concurrent[IO].start(IO.unit)
 }
 
 /** Input source implementation of using a file as input
@@ -59,11 +59,11 @@ object StdIn extends ProcessInputSource {
   */
 class FileSource(path: Path) extends ProcessInputSource {
   override def toRedirect: Redirect = Redirect.from(path.toFile)
-  override def connect(systemProcess: lang.Process)(implicit executionContext: ExecutionContext): Stream[IO, Byte] =
+  override def connect(systemProcess: lang.Process, blockingExecutionContext: ExecutionContext)(implicit contextShift: ContextShift[IO]): Stream[IO, Byte] =
     Stream.empty
 
-  override def run(stream: Stream[IO, Byte])(implicit executionContext: ExecutionContext): IO[IO[Unit]] =
-    IO(IO(()))
+  override def run(stream: Stream[IO, Byte])(implicit contextShift: ContextShift[IO]): IO[Fiber[IO, Unit]] =
+    Concurrent[IO].start(IO.unit)
 }
 
 /** Input source implementation of using a byte stream as input
@@ -72,10 +72,15 @@ class FileSource(path: Path) extends ProcessInputSource {
   */
 class InputStreamingSource(source: Stream[IO, Byte]) extends ProcessInputSource {
   override def toRedirect: Redirect = Redirect.PIPE
-  override def connect(systemProcess: lang.Process)(implicit executionContext: ExecutionContext): Stream[IO, Byte] = {
-    source.observe(io.writeOutputStreamAsync[IO](IO { systemProcess.getOutputStream }, closeAfterUse = true))
+
+  override def connect(systemProcess: lang.Process, blockingExecutionContext: ExecutionContext)(implicit contextShift: ContextShift[IO]): Stream[IO, Byte] = {
+    source.observe(
+      io.writeOutputStream[IO](
+        IO { systemProcess.getOutputStream },
+        closeAfterUse = true,
+        blockingExecutionContext = blockingExecutionContext))
   }
 
-  override def run(stream: Stream[IO, Byte])(implicit executionContext: ExecutionContext): IO[IO[Unit]] =
-    async.start(stream.compile.drain)
+  override def run(stream: Stream[IO, Byte])(implicit contextShift: ContextShift[IO]): IO[Fiber[IO, Unit]] =
+    Concurrent[IO].start(stream.compile.drain)
 }

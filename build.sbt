@@ -1,17 +1,17 @@
 name := "prox"
 organization := "io.github.vigoo"
 
-version := "0.1.1"
+version := "0.2.0"
 
-scalaVersion := "2.12.4"
+scalaVersion := "2.12.7"
 
 libraryDependencies ++= Seq(
-  "org.typelevel" %% "cats-effect" % "0.5",
-  "co.fs2" %% "fs2-core" % "0.10.4",
-  "co.fs2" %% "fs2-io" % "0.10.4",
-  "com.chuusai" %% "shapeless" % "2.3.2",
+  "org.typelevel" %% "cats-effect" % "1.0.0",
+  "co.fs2" %% "fs2-core" % "1.0.0-RC2",
+  "co.fs2" %% "fs2-io" % "1.0.0-RC2",
+  "com.chuusai" %% "shapeless" % "2.3.3",
 
-  "org.specs2" %% "specs2-core" % "4.0.0" % "test"
+  "org.specs2" %% "specs2-core" % "4.3.4" % "test"
 )
 
 coverageEnabled in(Test, compile) := true
