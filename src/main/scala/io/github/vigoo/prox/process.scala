@@ -1,10 +1,12 @@
 package io.github.vigoo.prox
 
+import akka.stream.scaladsl._
 import java.lang.ProcessBuilder.Redirect
 import java.nio.file.Path
 
+import akka.stream.Materializer
+import akka.util.ByteString
 import cats.effect.{ContextShift, Fiber, IO}
-import fs2._
 
 import scala.concurrent.ExecutionContext
 import scala.language.{higherKinds, implicitConversions}
@@ -38,7 +40,8 @@ trait ProcessIO[O, R] {
     * @param contextShift             Context shifter
     * @return Returns the not yet started redirection stream
     */
-  def connect(systemProcess: java.lang.Process, blockingExecutionContext: ExecutionContext)(implicit contextShift: ContextShift[IO]): Stream[IO, O]
+  def connect(systemProcess: java.lang.Process)
+             (implicit contextShift: ContextShift[IO]): IO[Source[O, Any]]
 
   /** Runs the redirection stream
     *
@@ -46,7 +49,10 @@ trait ProcessIO[O, R] {
     * @param contextShift     Context shifter
     * @return Returns the async result of running the stream
     */
-  def run(stream: Stream[IO, O])(implicit contextShift: ContextShift[IO]): IO[Fiber[IO, R]]
+  def run(stream: Source[O, Any])
+         (implicit contextShift: ContextShift[IO],
+          materializer: Materializer,
+          executionContext: ExecutionContext): IO[Fiber[IO, R]]
 }
 
 
@@ -55,7 +61,7 @@ trait ProcessIO[O, R] {
   * @param outStream Output stream of the first process, to be used as the input stream of the second one
   * @tparam Out Element type of the piping stream
   */
-case class PipeConstruction[Out](outStream: Stream[IO, Out])
+case class PipeConstruction[Out](outStream: Source[Out, Any])
 
 
 /** Phantom type representing the redirection state of a process */
@@ -184,8 +190,8 @@ object Process {
     */
   def apply(command: String,
             arguments: List[String] = List.empty,
-            workingDirectory: Option[Path] = None): Process[Byte, Byte, Unit, Unit, NotRedirected, NotRedirected, NotRedirected] =
-    new Process[Byte, Byte, Unit, Unit, NotRedirected, NotRedirected, NotRedirected](command, arguments, workingDirectory, StdIn, StdOut, StdError, Map.empty)
+            workingDirectory: Option[Path] = None): Process[ByteString, ByteString, Unit, Unit, NotRedirected, NotRedirected, NotRedirected] =
+    new Process[ByteString, ByteString, Unit, Unit, NotRedirected, NotRedirected, NotRedirected](command, arguments, workingDirectory, StdIn, StdOut, StdError, Map.empty)
 }
 
 
@@ -233,7 +239,7 @@ trait RunningProcess[Out, OutResult, ErrResult] {
     *
     * @return Returns the output stream for the piping
     */
-  private[prox] def notStartedOutput: Option[Stream[IO, Out]]
+  private[prox] def notStartedOutput: Option[Source[Out, Any]]
 }
 
 
@@ -251,7 +257,7 @@ trait RunningProcess[Out, OutResult, ErrResult] {
   * @tparam ErrResult Result type of running the redirected error stream. [[Unit]] if there is no such result.
   */
 private[prox] class WrappedProcess[Out, OutResult, ErrResult](systemProcess: java.lang.Process,
-                                                              val notStartedOutput: Option[Stream[IO, Out]],
+                                                              val notStartedOutput: Option[Source[Out, Any]],
                                                               runningInput: Fiber[IO, Unit],
                                                               runningOutput: Fiber[IO, OutResult],
                                                               runningError: Fiber[IO, ErrResult])

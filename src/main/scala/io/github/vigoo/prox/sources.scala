@@ -4,14 +4,19 @@ import java.lang
 import java.lang.ProcessBuilder.Redirect
 import java.nio.file.Path
 
+import akka.Done
+import akka.stream.Materializer
+import akka.stream.scaladsl.StreamConverters._
+import akka.stream.scaladsl._
+import akka.util.ByteString
 import cats.effect.{Concurrent, ContextShift, Fiber, IO}
-import fs2._
 
 import scala.concurrent.ExecutionContext
 import scala.language.higherKinds
+import scala.util.{Failure, Success}
 
 /** Base trait for input redirection handlers */
-trait ProcessInputSource extends ProcessIO[Byte, Unit]
+trait ProcessInputSource extends ProcessIO[ByteString, Unit]
 
 /** Type class for creating input redirection handlers
   *
@@ -29,27 +34,27 @@ trait CanBeProcessInputSource[From] {
   * There are instances for the following types:
   *
   * - [[java.nio.file.Path]] to use a file as input
-  * - [[fs2.Stream]] to use a byte stream as input
+  * - [[Source]] to use a byte stream as input
   */
 object CanBeProcessInputSource {
   implicit val pathAsSource: CanBeProcessInputSource[Path] =
     (path: Path) => new FileSource(path)
 
-  implicit def streamAsSource: CanBeProcessInputSource[Stream[IO, Byte]] =
-    (source: Stream[IO, Byte]) => new InputStreamingSource(source)
-
-  implicit def pureStreamAsSource: CanBeProcessInputSource[Stream[Pure, Byte]] =
-    (source: Stream[Pure, Byte]) => new InputStreamingSource(source)
+  implicit def streamAsSource: CanBeProcessInputSource[Source[ByteString, Any]] =
+    (source: Source[ByteString, Any]) => new InputStreamingSource(source)
 }
 
 /** Default input source representing no redirection */
 object StdIn extends ProcessInputSource {
   override def toRedirect: Redirect = Redirect.INHERIT
 
-  override def connect(systemProcess: lang.Process, blockingExecutionContext: ExecutionContext)(implicit contextShift: ContextShift[IO]): Stream[IO, Byte] =
-    Stream.empty
+  override def connect(systemProcess: lang.Process)(implicit contextShift: ContextShift[IO]): IO[Source[ByteString, Any]] =
+    IO.pure(Source.empty)
 
-  override def run(stream: Stream[IO, Byte])(implicit contextShift: ContextShift[IO]): IO[Fiber[IO, Unit]] =
+  override def run(stream: Source[ByteString, Any])
+                  (implicit contextShift: ContextShift[IO],
+                   materializer: Materializer,
+                   executionContext: ExecutionContext): IO[Fiber[IO, Unit]] =
     Concurrent[IO].start(IO.unit)
 }
 
@@ -59,10 +64,13 @@ object StdIn extends ProcessInputSource {
   */
 class FileSource(path: Path) extends ProcessInputSource {
   override def toRedirect: Redirect = Redirect.from(path.toFile)
-  override def connect(systemProcess: lang.Process, blockingExecutionContext: ExecutionContext)(implicit contextShift: ContextShift[IO]): Stream[IO, Byte] =
-    Stream.empty
+  override def connect(systemProcess: lang.Process)(implicit contextShift: ContextShift[IO]): IO[Source[ByteString, Any]] =
+    IO.pure(Source.empty)
 
-  override def run(stream: Stream[IO, Byte])(implicit contextShift: ContextShift[IO]): IO[Fiber[IO, Unit]] =
+  override def run(stream: Source[ByteString, Any])
+                  (implicit contextShift: ContextShift[IO],
+                   materializer: Materializer,
+                   executionContext: ExecutionContext): IO[Fiber[IO, Unit]] =
     Concurrent[IO].start(IO.unit)
 }
 
@@ -70,17 +78,21 @@ class FileSource(path: Path) extends ProcessInputSource {
   *
   * @param source The input byte stream
   */
-class InputStreamingSource(source: Stream[IO, Byte]) extends ProcessInputSource {
+class InputStreamingSource(source: Source[ByteString, Any]) extends ProcessInputSource {
   override def toRedirect: Redirect = Redirect.PIPE
 
-  override def connect(systemProcess: lang.Process, blockingExecutionContext: ExecutionContext)(implicit contextShift: ContextShift[IO]): Stream[IO, Byte] = {
-    source.observe(
-      io.writeOutputStream[IO](
-        IO { systemProcess.getOutputStream },
-        closeAfterUse = true,
-        blockingExecutionContext = blockingExecutionContext))
-  }
+  override def connect(systemProcess: lang.Process)(implicit contextShift: ContextShift[IO]): IO[Source[ByteString, Any]] =
+    IO.pure(source.alsoTo(fromOutputStream(() => systemProcess.getOutputStream, autoFlush = true)))
 
-  override def run(stream: Stream[IO, Byte])(implicit contextShift: ContextShift[IO]): IO[Fiber[IO, Unit]] =
-    Concurrent[IO].start(stream.compile.drain)
+  override def run(stream: Source[ByteString, Any])
+                  (implicit contextShift: ContextShift[IO],
+                   materializer: Materializer,
+                   executionContext: ExecutionContext): IO[Fiber[IO, Unit]] = {
+    Concurrent[IO].start(IO.async { finish =>
+      stream.runWith(Sink.ignore).onComplete {
+        case Success(Done) => finish(Right(()))
+        case Failure(reason) => finish(Left(reason))
+      }
+    })
+  }
 }

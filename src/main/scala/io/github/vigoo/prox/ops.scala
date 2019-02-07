@@ -1,8 +1,11 @@
 package io.github.vigoo.prox
 
+import akka.Done
+import akka.stream.Materializer
+import akka.stream.scaladsl._
+import akka.util.ByteString
 import cats.effect.{Concurrent, ContextShift, IO}
 import cats.kernel.Monoid
-import fs2._
 import shapeless._
 import shapeless.ops.hlist.{IsHCons, Last, Prepend, Tupler}
 
@@ -30,11 +33,13 @@ trait Start[PN <: ProcessNode[_, _, _, _, _]] {
     *
     * @param process                  The process to be started
     * @param dontStartOutput          Do no start the output redirection stream
-    * @param blockingExecutionContext Execution context for the blocking stream IO
     * @param contextShift             Context shifter to be used for the streams
     * @return Returns the [[RunningProcess]] instances of the started system processes
     */
-  def apply(process: PN, dontStartOutput: Boolean = false, blockingExecutionContext: ExecutionContext)(implicit contextShift: ContextShift[IO]): IO[RunningProcesses]
+  def apply(process: PN, dontStartOutput: Boolean = false)
+           (implicit contextShift: ContextShift[IO],
+            materializer: Materializer,
+            executionContext: ExecutionContext): IO[RunningProcesses]
 
   /** Start the given process
     *
@@ -45,11 +50,13 @@ trait Start[PN <: ProcessNode[_, _, _, _, _]] {
     *
     * @param process                  The process to be started
     * @param dontStartOutput          Do no start the output redirection stream
-    * @param blockingExecutionContext Execution context for the blocking stream IO
     * @param contextShift             Context shifter to be used for the streams
     * @return Returns the [[RunningProcess]] instances of the started system processes as a [[shapeless.HList]]
     */
-  def toHList(process: PN, dontStartOutput: Boolean = false, blockingExecutionContext: ExecutionContext)(implicit contextShift: ContextShift[IO]): IO[RunningProcessList]
+  def toHList(process: PN, dontStartOutput: Boolean = false)
+             (implicit contextShift: ContextShift[IO],
+              materializer: Materializer,
+              executionContext: ExecutionContext): IO[RunningProcessList]
 }
 
 object Start {
@@ -66,8 +73,10 @@ object Start {
     new Start[Process[Out, Err, OutResult, ErrResult, IRS, ORS, ERS]] {
       override type RunningProcesses = RunningProcess[Out, OutResult, ErrResult]
       override type RunningProcessList = RunningProcess[Out, OutResult, ErrResult] :: HNil
-      override def apply(process: Process[Out, Err, OutResult, ErrResult, IRS, ORS, ERS], dontStartOutput: Boolean, blockingExecutionContext: ExecutionContext)
-                        (implicit contextShift: ContextShift[IO]): IO[RunningProcess[Out, OutResult, ErrResult]] = {
+      override def apply(process: Process[Out, Err, OutResult, ErrResult, IRS, ORS, ERS], dontStartOutput: Boolean)
+                        (implicit contextShift: ContextShift[IO],
+                         materializer: Materializer,
+                         executionContext: ExecutionContext): IO[RunningProcess[Out, OutResult, ErrResult]] = {
         def withWorkingDirectory(builder: ProcessBuilder): ProcessBuilder =
           process.workingDirectory match {
             case Some(directory) => builder.directory(directory.toFile)
@@ -87,9 +96,9 @@ object Start {
         builder.redirectError(process.errorTarget.toRedirect)
         for {
           proc <- IO(builder.start)
-          inputStream = process.inputSource.connect(proc, blockingExecutionContext)
-          outputStream = process.outputTarget.connect(proc, blockingExecutionContext)
-          errorStream = process.errorTarget.connect(proc, blockingExecutionContext)
+          inputStream <- process.inputSource.connect(proc)
+          outputStream <- process.outputTarget.connect(proc)
+          errorStream <- process.errorTarget.connect(proc)
           runningInput <- process.inputSource.run(inputStream)
           runningOutput <- if (dontStartOutput) { Concurrent[IO].start(IO(outResultMonoid.empty)) } else { process.outputTarget.run(outputStream) }
           runningError <- process.errorTarget.run(errorStream)
@@ -101,8 +110,11 @@ object Start {
             runningError)
       }
 
-      override def toHList(process: Process[Out, Err, OutResult, ErrResult, IRS, ORS, ERS], dontStartOutput: Boolean, blockingExecutionContext: ExecutionContext)(implicit contextShift: ContextShift[IO]): IO[RunningProcessList] =
-        apply(process, dontStartOutput, blockingExecutionContext).map(runningProcess => runningProcess :: HNil)
+      override def toHList(process: Process[Out, Err, OutResult, ErrResult, IRS, ORS, ERS], dontStartOutput: Boolean)
+                          (implicit contextShift: ContextShift[IO],
+                           materializer: Materializer,
+                           executionContext: ExecutionContext): IO[RunningProcessList] =
+        apply(process, dontStartOutput).map(runningProcess => runningProcess :: HNil)
     }
 
   implicit def startPipedProcess[
@@ -117,26 +129,30 @@ object Start {
      start1: Start.Aux[PN1, RP1, RPL1],
      start2: Start.Aux[PN2, RP2, RPL2],
      last1: Last.Aux[RPL1, RP1Last],
-     rp1LastType: RP1Last <:< RunningProcess[Byte, _, _],
+     rp1LastType: RP1Last <:< RunningProcess[ByteString, _, _],
      hcons2: IsHCons.Aux[RPL2, RP2Head, RP2Tail],
      prepend: Prepend.Aux[RPL1, RPL2, RPL],
      tupler: Tupler.Aux[RPL, RPT]):
-    Aux[PipedProcess[Out, Err, Byte, PN1, PN2, IRS, ORS, ERS], RPT, RPL] =
-    new Start[PipedProcess[Out, Err, Byte, PN1, PN2, IRS, ORS, ERS]] {
+    Aux[PipedProcess[Out, Err, ByteString, PN1, PN2, IRS, ORS, ERS], RPT, RPL] =
+    new Start[PipedProcess[Out, Err, ByteString, PN1, PN2, IRS, ORS, ERS]] {
       override type RunningProcesses = RPT
       override type RunningProcessList = RPL
 
-      override def apply(pipe: PipedProcess[Out, Err, Byte, PN1, PN2, IRS, ORS, ERS], dontStartOutput: Boolean, blockingExecutionContext: ExecutionContext)
-                        (implicit contextShift: ContextShift[IO]): IO[RPT] = {
-        toHList(pipe, dontStartOutput, blockingExecutionContext).map(_.tupled)
+      override def apply(pipe: PipedProcess[Out, Err, ByteString, PN1, PN2, IRS, ORS, ERS], dontStartOutput: Boolean)
+                        (implicit contextShift: ContextShift[IO],
+                         materializer: Materializer,
+                         executionContext: ExecutionContext): IO[RPT] = {
+        toHList(pipe, dontStartOutput).map(_.tupled)
       }
 
-      override def toHList(pipe: PipedProcess[Out, Err, Byte, PN1, PN2, IRS, ORS, ERS], dontStartOutput: Boolean, blockingExecutionContext: ExecutionContext)
-                          (implicit contextShift: ContextShift[IO]): IO[RPL] = {
-        start1.toHList(pipe.from, dontStartOutput = true, blockingExecutionContext).flatMap { runningSourceProcesses =>
-          val runningFrom = runningSourceProcesses.last.asInstanceOf[RunningProcess[Byte, _, _]]
+      override def toHList(pipe: PipedProcess[Out, Err, ByteString, PN1, PN2, IRS, ORS, ERS], dontStartOutput: Boolean)
+                          (implicit contextShift: ContextShift[IO],
+                           materializer: Materializer,
+                           executionContext: ExecutionContext): IO[RPL] = {
+        start1.toHList(pipe.from, dontStartOutput = true).flatMap { runningSourceProcesses =>
+          val runningFrom = runningSourceProcesses.last.asInstanceOf[RunningProcess[ByteString, _, _]]
           val to = pipe.createTo(PipeConstruction(runningFrom.notStartedOutput.get))
-          start2.toHList(to, dontStartOutput, blockingExecutionContext).flatMap { runningTargetProcesses =>
+          start2.toHList(to, dontStartOutput).flatMap { runningTargetProcesses =>
             IO(runningSourceProcesses ::: runningTargetProcesses)
           }
         }
@@ -350,10 +366,10 @@ trait Piping[PN1 <: ProcessNode[_, _, _, NotRedirected, _], PN2 <: ProcessNode[_
     *
     * @param from The process to use as a source
     * @param to   The process to feed the source process' output to
-    * @param via  The [[fs2.Pipe]] between the two processes
+    * @param via  The [[Flow]] between the two processes
     * @return Returns the piped process
     */
-  def apply(from: PN1, to: PN2, via: Pipe[IO, Byte, Byte]): ResultProcess
+  def apply(from: PN1, to: PN2, via: Flow[ByteString, ByteString, Any]): ResultProcess
 }
 
 
@@ -369,21 +385,21 @@ object Piping {
     PN1Redirected <: ProcessNode[_, _, _, Redirected, _],
     PN2Redirected <: ProcessNode[_, _, Redirected, _, _]]
     (implicit
-     pn1SubTyping: PN1 <:< ProcessNode[Byte, _, PN1IRS, NotRedirected, PN1ERS],
+     pn1SubTyping: PN1 <:< ProcessNode[ByteString, _, PN1IRS, NotRedirected, PN1ERS],
      pn2SubTyping: PN2 <:< ProcessNode[PN2Out, PN2Err, NotRedirected, PN2ORS, PN2ERS],
-     redirectPN1Output: RedirectOutput.Aux[PN1, Drain[Byte], Byte, Unit, PN1Redirected],
+     redirectPN1Output: RedirectOutput.Aux[PN1, Drain[ByteString], ByteString, Unit, PN1Redirected],
      redirectPN2Input: RedirectInput.Aux[PN2, PN2Redirected]):
     Aux[PN1,
         PN2,
-        PipedProcess[PN2Out, PN2Err, Byte, PN1Redirected, PN2Redirected, PN1IRS, PN2ORS, PN2ERS]] =
+        PipedProcess[PN2Out, PN2Err, ByteString, PN1Redirected, PN2Redirected, PN1IRS, PN2ORS, PN2ERS]] =
     new Piping[PN1, PN2] {
       override type ResultProcess =
-        PipedProcess[PN2Out, PN2Err, Byte,
+        PipedProcess[PN2Out, PN2Err, ByteString,
                      PN1Redirected,
                      PN2Redirected,
                      PN1IRS, PN2ORS, PN2ERS]
 
-      override def apply(from: PN1, to: PN2, via: Pipe[IO, Byte, Byte]): ResultProcess = {
+      override def apply(from: PN1, to: PN2, via: Flow[ByteString, ByteString, Any]): ResultProcess = {
         val channel = Drain(via)
         new PipedProcess(
           redirectPN1Output(from, channel),
@@ -400,7 +416,7 @@ object Piping {
   * @param via         The custom pipe
   * @tparam PN         Type of the first process
   */
-class PipeBuilder[PN <: ProcessNode[_, _, _, NotRedirected, _]](processNode: PN, via: Pipe[IO, Byte, Byte]) {
+class PipeBuilder[PN <: ProcessNode[_, _, _, NotRedirected, _]](processNode: PN, via: Flow[ByteString, ByteString, Any]) {
   /** Constructs the piping by providing the target process
     *
     * @param to     The target process
@@ -455,6 +471,11 @@ class PipeBuilder[PN <: ProcessNode[_, _, _, NotRedirected, _]](processNode: PN,
   * }}}
   */
 object syntax {
+  implicit val monoidDone: Monoid[Done] = new Monoid[Done] {
+    override def empty: Done = Done
+    override def combine(x: Done, y: Done): Done = Done
+  }
+
   implicit class ProcessNodeOutputRedirect[PN <: ProcessNode[_, _, _, NotRedirected, _]](processNode: PN) {
     /** Redirects the output channel of a process
       *
@@ -485,14 +506,14 @@ object syntax {
     def |[PN2 <: ProcessNode[_, _, NotRedirected, _, _], RP <: ProcessNode[_, _, _, _, _]]
       (to: PN2)
       (implicit piping: Piping.Aux[PN, PN2, RP]): RP =
-      piping(processNode, to, identity[Stream[IO, Byte]])
+      piping(processNode, to, Flow.apply)
 
     /** Creates a piped process by providing a custom pipe
       *
       * @param via The custom pipe between the two process
       * @return Returns a [[PipeBuilder]] instance which can be used to complete the piping specification
       */
-    def via(via: Pipe[IO, Byte, Byte]): PipeBuilder[PN] =
+    def via(via: Flow[ByteString, ByteString, Any]): PipeBuilder[PN] =
       new PipeBuilder(processNode, via)
   }
 
@@ -537,23 +558,29 @@ object syntax {
     /** Starts the process
       *
       * @param start                    Type class implementing the process starting
-      * @param blockingExecutionContext Execution context for the blocking stream IO
       * @param contextShift             Context shifter to be used for the streams
       * @tparam RP                      Type encoding the [[RunningProcess]] instances
       * @return Returns the [[RunningProcess]] instances for the system processes which has been started
       */
-    def start[RP](blockingExecutionContext: ExecutionContext)(implicit start: Start.Aux[PN, RP, _], contextShift: ContextShift[IO]): IO[RP] =
-      start(processNode, dontStartOutput = false, blockingExecutionContext)
+    def start[RP]()
+                 (implicit start: Start.Aux[PN, RP, _],
+                  contextShift: ContextShift[IO],
+                  materializer: Materializer,
+                  executionContext: ExecutionContext): IO[RP] =
+      start(processNode, dontStartOutput = false)
 
     /** Starts the process
       *
       * @param start                    Type class implementing the process starting
-      * @param blockingExecutionContext Execution context for the blocking stream IO
       * @param contextShift             Context shifter to be used for the streams
       * @tparam RPL                     Type encoding the [[RunningProcess]] instances in a [[shapeless.HList]]
       * @return Returns the HList of [[RunningProcess]] instances for the system processes which has been started
       */
-    def startHL[RPL <: HList](blockingExecutionContext: ExecutionContext)(implicit start: Start.Aux[PN, _, RPL], contextShift: ContextShift[IO]): IO[RPL] =
-      start.toHList(processNode, dontStartOutput = false, blockingExecutionContext)
+    def startHL[RPL <: HList]()
+                             (implicit start: Start.Aux[PN, _, RPL],
+                              contextShift: ContextShift[IO],
+                              materializer: Materializer,
+                              executionContext: ExecutionContext): IO[RPL] =
+      start.toHList(processNode, dontStartOutput = false)
   }
 }
