@@ -109,7 +109,7 @@ class ProcessSpecs extends Specification { def is = s2"""
   def simpleProcessSinkOutput = {
     val builder = StringBuilder.newBuilder
 
-    val target: Sink[IO, Byte] = Sink(byte => IO { builder.append(byte.toChar) })
+    val target: Pipe[IO, Byte, Unit] = _.evalMap(byte => IO { builder.append(byte.toChar) }.void)
     val program = for {
       running <- (Process("echo", List("Hello world!")) > target).start(blockingExecutionContext)
       _ <- running.waitForExit()
@@ -130,7 +130,7 @@ class ProcessSpecs extends Specification { def is = s2"""
   def simpleProcessSinkError = {
     val builder = StringBuilder.newBuilder
 
-    val target: Sink[IO, Byte] = Sink(byte => IO { builder.append(byte.toChar) })
+    val target: Pipe[IO, Byte, Unit] = _.evalMap(byte => IO { builder.append(byte.toChar) }.void)
     val program = for {
       running <- (Process("perl", List("-e", """print STDERR "Hello"""")) redirectErrorTo target).start(blockingExecutionContext)
       _ <- running.waitForExit()
