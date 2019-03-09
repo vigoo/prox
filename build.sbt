@@ -11,7 +11,7 @@ libraryDependencies ++= Seq(
   "co.fs2" %% "fs2-io" % "1.0.4",
   "com.chuusai" %% "shapeless" % "2.3.3",
 
-  "org.specs2" %% "specs2-core" % "4.4.1" % "test"
+  "org.specs2" %% "specs2-core" % "4.5.0" % "test"
 )
 
 coverageEnabled in(Test, compile) := true
