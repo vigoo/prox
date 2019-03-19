@@ -41,7 +41,7 @@ trait ProcessIO[O, R] {
     * @return Returns the not yet started redirection stream
     */
   def connect(systemProcess: java.lang.Process)
-             (implicit contextShift: ContextShift[IO]): IO[Source[O, Any]]
+             (implicit contextShift: ContextShift[IO]): Source[O, Any]
 
   /** Runs the redirection stream
     *

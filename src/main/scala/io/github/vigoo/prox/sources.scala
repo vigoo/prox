@@ -48,8 +48,8 @@ object CanBeProcessInputSource {
 object StdIn extends ProcessInputSource {
   override def toRedirect: Redirect = Redirect.INHERIT
 
-  override def connect(systemProcess: lang.Process)(implicit contextShift: ContextShift[IO]): IO[Source[ByteString, Any]] =
-    IO.pure(Source.empty)
+  override def connect(systemProcess: lang.Process)(implicit contextShift: ContextShift[IO]): Source[ByteString, Any] =
+    Source.empty
 
   override def run(stream: Source[ByteString, Any])
                   (implicit contextShift: ContextShift[IO],
@@ -64,8 +64,8 @@ object StdIn extends ProcessInputSource {
   */
 class FileSource(path: Path) extends ProcessInputSource {
   override def toRedirect: Redirect = Redirect.from(path.toFile)
-  override def connect(systemProcess: lang.Process)(implicit contextShift: ContextShift[IO]): IO[Source[ByteString, Any]] =
-    IO.pure(Source.empty)
+  override def connect(systemProcess: lang.Process)(implicit contextShift: ContextShift[IO]): Source[ByteString, Any] =
+    Source.empty
 
   override def run(stream: Source[ByteString, Any])
                   (implicit contextShift: ContextShift[IO],
@@ -81,8 +81,8 @@ class FileSource(path: Path) extends ProcessInputSource {
 class InputStreamingSource(source: Source[ByteString, Any]) extends ProcessInputSource {
   override def toRedirect: Redirect = Redirect.PIPE
 
-  override def connect(systemProcess: lang.Process)(implicit contextShift: ContextShift[IO]): IO[Source[ByteString, Any]] =
-    IO.pure(source.alsoTo(fromOutputStream(() => systemProcess.getOutputStream, autoFlush = true)))
+  override def connect(systemProcess: lang.Process)(implicit contextShift: ContextShift[IO]): Source[ByteString, Any] =
+    source.alsoTo(fromOutputStream(() => systemProcess.getOutputStream, autoFlush = true))
 
   override def run(stream: Source[ByteString, Any])
                   (implicit contextShift: ContextShift[IO],

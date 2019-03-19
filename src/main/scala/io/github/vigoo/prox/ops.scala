@@ -96,9 +96,9 @@ object Start {
         builder.redirectError(process.errorTarget.toRedirect)
         for {
           proc <- IO(builder.start)
-          inputStream <- process.inputSource.connect(proc)
-          outputStream <- process.outputTarget.connect(proc)
-          errorStream <- process.errorTarget.connect(proc)
+          inputStream = process.inputSource.connect(proc)
+          outputStream = process.outputTarget.connect(proc)
+          errorStream = process.errorTarget.connect(proc)
           runningInput <- process.inputSource.run(inputStream)
           runningOutput <- if (dontStartOutput) { Concurrent[IO].start(IO(outResultMonoid.empty)) } else { process.outputTarget.run(outputStream) }
           runningError <- process.errorTarget.run(errorStream)

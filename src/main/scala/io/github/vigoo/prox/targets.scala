@@ -334,8 +334,8 @@ object CanBeProcessErrorTarget extends LowPriorityCanBeProcessErrorTarget {
 object StdOut extends ProcessOutputTarget[ByteString, Unit] {
   override def toRedirect: Redirect = Redirect.INHERIT
 
-  override def connect(systemProcess: lang.Process)(implicit contextShift: ContextShift[IO]): IO[Source[ByteString, Any]] =
-    IO.pure(Source.empty)
+  override def connect(systemProcess: lang.Process)(implicit contextShift: ContextShift[IO]): Source[ByteString, Any] =
+    Source.empty
 
   override def run(stream: Source[ByteString, Any])
                   (implicit contextShift: ContextShift[IO],
@@ -348,8 +348,8 @@ object StdOut extends ProcessOutputTarget[ByteString, Unit] {
 object StdError extends ProcessErrorTarget[ByteString, Unit] {
   override def toRedirect: Redirect = Redirect.INHERIT
 
-  override def connect(systemProcess: lang.Process)(implicit contextShift: ContextShift[IO]): IO[Source[ByteString, Any]] =
-    IO.pure(Source.empty)
+  override def connect(systemProcess: lang.Process)(implicit contextShift: ContextShift[IO]): Source[ByteString, Any] =
+    Source.empty
 
   override def run(stream: Source[ByteString, Any])
                   (implicit contextShift: ContextShift[IO],
@@ -365,8 +365,8 @@ object StdError extends ProcessErrorTarget[ByteString, Unit] {
 class FileTarget(path: Path) extends ProcessOutputTarget[ByteString, Unit] with ProcessErrorTarget[ByteString, Unit] {
   override def toRedirect: Redirect = Redirect.to(path.toFile)
 
-  override def connect(systemProcess: lang.Process)(implicit contextShift: ContextShift[IO]): IO[Source[ByteString, Any]] =
-    IO.pure(Source.empty)
+  override def connect(systemProcess: lang.Process)(implicit contextShift: ContextShift[IO]): Source[ByteString, Any] =
+    Source.empty
 
   override def run(stream: Source[ByteString, Any])
                   (implicit contextShift: ContextShift[IO],
@@ -386,14 +386,11 @@ abstract class OutputStreamingTargetBase[Out](target: Flow[ByteString, Out, Any]
   def toRedirect: Redirect = Redirect.PIPE
 
   def connect(systemProcess: lang.Process)
-             (implicit contextShift: ContextShift[IO]): IO[Source[Out, Any]] = {
-    for {
-      inputStream <- getStream(systemProcess)
-      source = StreamConverters.fromInputStream(() => inputStream, chunkSize)
-    } yield source.via(target)
+             (implicit contextShift: ContextShift[IO]): Source[Out, Any] = {
+    StreamConverters.fromInputStream(() => getStream(systemProcess), chunkSize).via(target)
   }
 
-  def getStream(systemProcess: java.lang.Process): IO[InputStream]
+  def getStream(systemProcess: java.lang.Process): InputStream
 }
 
 /** Output target implementation using a stream pipe as the target
@@ -404,8 +401,8 @@ abstract class OutputStreamingTargetBase[Out](target: Flow[ByteString, Out, Any]
 abstract class OutputStreamingTarget[Out, Mat](target: Flow[ByteString, Out, Mat])
   extends OutputStreamingTargetBase(target) {
 
-  override def getStream(systemProcess: java.lang.Process): IO[InputStream] =
-    IO(systemProcess.getInputStream)
+  override def getStream(systemProcess: java.lang.Process): InputStream =
+    systemProcess.getInputStream
 }
 
 /** Error target implementation using a stream pipe as the target
@@ -416,6 +413,6 @@ abstract class OutputStreamingTarget[Out, Mat](target: Flow[ByteString, Out, Mat
 abstract class ErrorStreamingTarget[Err, Mat](target: Flow[ByteString, Err, Mat])
   extends OutputStreamingTargetBase(target) {
 
-  override def getStream(systemProcess: java.lang.Process): IO[InputStream] =
-    IO(systemProcess.getErrorStream)
+  override def getStream(systemProcess: java.lang.Process): InputStream =
+    systemProcess.getErrorStream
 }
