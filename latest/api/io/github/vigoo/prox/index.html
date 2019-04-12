@@ -205,6 +205,14 @@ simple process, but its <a href="syntax$$ProcessOps.html#start[RP](blockingExecu
                         <a href="FileTarget.html" title="Output/error target implementation for using a file as the target">FileTarget</a>
                       </li><li class="current-entities indented4">
                         <span class="separator"></span>
+                        <a class="class" href="FlushChunks.html" title="Wrapper for input streams that enables flushing the process pipe stream after each chunk of bytes."></a>
+                        <a href="FlushChunks.html" title="Wrapper for input streams that enables flushing the process pipe stream after each chunk of bytes.">FlushChunks</a>
+                      </li><li class="current-entities indented4">
+                        <span class="separator"></span>
+                        <a class="class" href="FlushControlledInputStreamingSource.html" title="Input source implementation that calls 'flush' after each chunk of bytes."></a>
+                        <a href="FlushControlledInputStreamingSource.html" title="Input source implementation that calls 'flush' after each chunk of bytes.">FlushControlledInputStreamingSource</a>
+                      </li><li class="current-entities indented4">
+                        <span class="separator"></span>
                         <a class="class" href="Fold.html" title="Wraps the pipe to modify how the stream is executed"></a>
                         <a href="Fold.html" title="Wraps the pipe to modify how the stream is executed">Fold</a>
                       </li><li class="current-entities indented4">
@@ -553,6 +561,41 @@ by <span class="extype" name="fs2.Stream.CompileOps.drain">fs2.Stream.CompileOps
       
       <p class="shortcomment cmt">Output/error target implementation for using a file as the target
 </p>
+    </li><li name="io.github.vigoo.prox.FlushChunks" visbl="pub" class="indented0 " data-isabs="false" fullComment="yes" group="Ungrouped">
+      <a id="FlushChunks[F[_]]extendsProductwithSerializable"></a><a id="FlushChunks[F[_]]:FlushChunks[F]"></a>
+      <span class="permalink">
+      <a href="../../../../io/github/vigoo/prox/index.html#FlushChunks[F[_]]extendsProductwithSerializable" title="Permalink">
+        <i class="material-icons"></i>
+      </a>
+    </span>
+      <span class="modifier_kind">
+        <span class="modifier">final </span>
+        <span class="kind">case class</span>
+      </span>
+      <span class="symbol">
+        <a title="Wrapper for input streams that enables flushing the process pipe stream after each chunk of bytes." href="FlushChunks.html"><span class="name">FlushChunks</span></a><span class="tparams">[<span name="F">F<span class="tparams">[<span name="_">_</span>]</span></span>]</span><span class="params">(<span name="stream">stream: <span class="extype" name="fs2.Stream">Stream</span>[<span class="extype" name="io.github.vigoo.prox.FlushChunks.F">F</span>, <span class="extype" name="scala.Byte">Byte</span>]</span>)</span><span class="result"> extends <span class="extype" name="scala.Product">Product</span> with <span class="extype" name="scala.Serializable">Serializable</span></span>
+      </span>
+      
+      <p class="shortcomment cmt">Wrapper for input streams that enables flushing the process pipe stream after each chunk of bytes.</p><div class="fullcomment"><div class="comment cmt"><p>Wrapper for input streams that enables flushing the process pipe stream after each chunk of bytes.</p><p>This is useful for interactive processes, as the pipe stream has a 8K buffer on it.
+</p></div><dl class="paramcmts block"><dt class="param">stream</dt><dd class="cmt"><p>The input stream for the process</p></dd></dl></div>
+    </li><li name="io.github.vigoo.prox.FlushControlledInputStreamingSource" visbl="pub" class="indented0 " data-isabs="false" fullComment="yes" group="Ungrouped">
+      <a id="FlushControlledInputStreamingSourceextendsProcessInputSource"></a><a id="FlushControlledInputStreamingSource:FlushControlledInputStreamingSource"></a>
+      <span class="permalink">
+      <a href="../../../../io/github/vigoo/prox/index.html#FlushControlledInputStreamingSourceextendsProcessInputSource" title="Permalink">
+        <i class="material-icons"></i>
+      </a>
+    </span>
+      <span class="modifier_kind">
+        <span class="modifier"></span>
+        <span class="kind">class</span>
+      </span>
+      <span class="symbol">
+        <a title="Input source implementation that calls 'flush' after each chunk of bytes." href="FlushControlledInputStreamingSource.html"><span class="name">FlushControlledInputStreamingSource</span></a><span class="result"> extends <a href="ProcessInputSource.html" class="extype" name="io.github.vigoo.prox.ProcessInputSource">ProcessInputSource</a></span>
+      </span>
+      
+      <p class="shortcomment cmt">Input source implementation that calls 'flush' after each chunk of bytes.</p><div class="fullcomment"><div class="comment cmt"><p>Input source implementation that calls 'flush' after each chunk of bytes. Useful for interactive
+communication with processes.
+</p></div></div>
     </li><li name="io.github.vigoo.prox.Fold" visbl="pub" class="indented0 " data-isabs="false" fullComment="yes" group="Ungrouped">
       <a id="Fold[O,R]extendsProductwithSerializable"></a><a id="Fold[O,R]:Fold[O,R]"></a>
       <span class="permalink">

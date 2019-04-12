@@ -205,6 +205,14 @@ simple process, but its <a href="syntax$$ProcessOps.html#start[RP](blockingExecu
                         <a href="FileTarget.html" title="Output/error target implementation for using a file as the target">FileTarget</a>
                       </li><li class="current-entities indented4">
                         <span class="separator"></span>
+                        <a class="class" href="FlushChunks.html" title="Wrapper for input streams that enables flushing the process pipe stream after each chunk of bytes."></a>
+                        <a href="FlushChunks.html" title="Wrapper for input streams that enables flushing the process pipe stream after each chunk of bytes.">FlushChunks</a>
+                      </li><li class="current-entities indented4">
+                        <span class="separator"></span>
+                        <a class="class" href="FlushControlledInputStreamingSource.html" title="Input source implementation that calls 'flush' after each chunk of bytes."></a>
+                        <a href="FlushControlledInputStreamingSource.html" title="Input source implementation that calls 'flush' after each chunk of bytes.">FlushControlledInputStreamingSource</a>
+                      </li><li class="current-entities indented4">
+                        <span class="separator"></span>
                         <a class="class" href="Fold.html" title="Wraps the pipe to modify how the stream is executed"></a>
                         <a href="Fold.html" title="Wraps the pipe to modify how the stream is executed">Fold</a>
                       </li><li class="current-entities indented4">
@@ -419,7 +427,7 @@ simple process, but its <a href="syntax$$ProcessOps.html#start[RP](blockingExecu
         <span class="kind">new</span>
       </span>
       <span class="symbol">
-        <span class="name">OutputStreamingTargetBase</span><span class="params">(<span name="target">target: <span class="extype" name="fs2.Pipe">Pipe</span>[<span class="extype" name="cats.effect.IO">IO</span>, <span class="extype" name="scala.Byte">Byte</span>, <span class="extype" name="io.github.vigoo.prox.OutputStreamingTargetBase.Out">Out</span>]</span>, <span name="chunkSize">chunkSize: <span class="extype" name="scala.Int">Int</span> = <span class="symbol">4096</span></span>)</span>
+        <span class="name">OutputStreamingTargetBase</span><span class="params">(<span name="target">target: <span class="extype" name="fs2.Pipe">Pipe</span>[<span class="extype" name="cats.effect.IO">IO</span>, <span class="extype" name="scala.Byte">Byte</span>, <span class="extype" name="io.github.vigoo.prox.OutputStreamingTargetBase.Out">Out</span>]</span>, <span name="chunkSize">chunkSize: <span class="extype" name="scala.Int">Int</span> = <span class="symbol">8192</span></span>)</span>
       </span>
       
       <p class="shortcomment cmt"></p><div class="fullcomment"><div class="comment cmt"></div><dl class="paramcmts block"><dt class="param">target</dt><dd class="cmt"><p>Target stream</p></dd><dt class="param">chunkSize</dt><dd class="cmt"><p>Chunk size</p></dd></dl></div>

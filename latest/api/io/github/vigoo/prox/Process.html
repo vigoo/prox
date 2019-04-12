@@ -205,6 +205,14 @@ simple process, but its <a href="syntax$$ProcessOps.html#start[RP](blockingExecu
                         <a href="FileTarget.html" title="Output/error target implementation for using a file as the target">FileTarget</a>
                       </li><li class="current-entities indented4">
                         <span class="separator"></span>
+                        <a class="class" href="FlushChunks.html" title="Wrapper for input streams that enables flushing the process pipe stream after each chunk of bytes."></a>
+                        <a href="FlushChunks.html" title="Wrapper for input streams that enables flushing the process pipe stream after each chunk of bytes.">FlushChunks</a>
+                      </li><li class="current-entities indented4">
+                        <span class="separator"></span>
+                        <a class="class" href="FlushControlledInputStreamingSource.html" title="Input source implementation that calls 'flush' after each chunk of bytes."></a>
+                        <a href="FlushControlledInputStreamingSource.html" title="Input source implementation that calls 'flush' after each chunk of bytes.">FlushControlledInputStreamingSource</a>
+                      </li><li class="current-entities indented4">
+                        <span class="separator"></span>
                         <a class="class" href="Fold.html" title="Wraps the pipe to modify how the stream is executed"></a>
                         <a href="Fold.html" title="Wraps the pipe to modify how the stream is executed">Fold</a>
                       </li><li class="current-entities indented4">
@@ -405,9 +413,9 @@ simple process, but its <a href="syntax$$ProcessOps.html#start[RP](blockingExecu
         <div id="constructors" class="members">
               <h3>Instance Constructors</h3>
               <ol><li name="io.github.vigoo.prox.Process#&lt;init&gt;" visbl="pub" class="indented0 " data-isabs="false" fullComment="yes" group="Ungrouped">
-      <a id="&lt;init&gt;(command:String,arguments:List[String],workingDirectory:Option[java.nio.file.Path],inputSource:io.github.vigoo.prox.ProcessInputSource,outputTarget:io.github.vigoo.prox.ProcessOutputTarget[Out,OutResult],errorTarget:io.github.vigoo.prox.ProcessErrorTarget[Err,ErrResult],environmentVariables:Map[String,String]):io.github.vigoo.prox.Process[Out,Err,OutResult,ErrResult,IRS,ORS,ERS]"></a><a id="&lt;init&gt;:Process[Out,Err,OutResult,ErrResult,IRS,ORS,ERS]"></a>
+      <a id="&lt;init&gt;(command:String,arguments:List[String],workingDirectory:Option[java.nio.file.Path],inputSource:io.github.vigoo.prox.ProcessInputSource,outputTarget:io.github.vigoo.prox.ProcessOutputTarget[Out,OutResult],errorTarget:io.github.vigoo.prox.ProcessErrorTarget[Err,ErrResult],environmentVariables:Map[String,String],removedEnvironmentVariables:Set[String]):io.github.vigoo.prox.Process[Out,Err,OutResult,ErrResult,IRS,ORS,ERS]"></a><a id="&lt;init&gt;:Process[Out,Err,OutResult,ErrResult,IRS,ORS,ERS]"></a>
       <span class="permalink">
-      <a href="../../../../io/github/vigoo/prox/Process.html#&lt;init&gt;(command:String,arguments:List[String],workingDirectory:Option[java.nio.file.Path],inputSource:io.github.vigoo.prox.ProcessInputSource,outputTarget:io.github.vigoo.prox.ProcessOutputTarget[Out,OutResult],errorTarget:io.github.vigoo.prox.ProcessErrorTarget[Err,ErrResult],environmentVariables:Map[String,String]):io.github.vigoo.prox.Process[Out,Err,OutResult,ErrResult,IRS,ORS,ERS]" title="Permalink">
+      <a href="../../../../io/github/vigoo/prox/Process.html#&lt;init&gt;(command:String,arguments:List[String],workingDirectory:Option[java.nio.file.Path],inputSource:io.github.vigoo.prox.ProcessInputSource,outputTarget:io.github.vigoo.prox.ProcessOutputTarget[Out,OutResult],errorTarget:io.github.vigoo.prox.ProcessErrorTarget[Err,ErrResult],environmentVariables:Map[String,String],removedEnvironmentVariables:Set[String]):io.github.vigoo.prox.Process[Out,Err,OutResult,ErrResult,IRS,ORS,ERS]" title="Permalink">
         <i class="material-icons"></i>
       </a>
     </span>
@@ -416,7 +424,7 @@ simple process, but its <a href="syntax$$ProcessOps.html#start[RP](blockingExecu
         <span class="kind">new</span>
       </span>
       <span class="symbol">
-        <span class="name">Process</span><span class="params">(<span name="command">command: <span class="extype" name="scala.Predef.String">String</span></span>, <span name="arguments">arguments: <span class="extype" name="scala.List">List</span>[<span class="extype" name="scala.Predef.String">String</span>]</span>, <span name="workingDirectory">workingDirectory: <span class="extype" name="scala.Option">Option</span>[<span class="extype" name="java.nio.file.Path">Path</span>]</span>, <span name="inputSource">inputSource: <a href="ProcessInputSource.html" class="extype" name="io.github.vigoo.prox.ProcessInputSource">ProcessInputSource</a></span>, <span name="outputTarget">outputTarget: <a href="ProcessOutputTarget.html" class="extype" name="io.github.vigoo.prox.ProcessOutputTarget">ProcessOutputTarget</a>[<span class="extype" name="io.github.vigoo.prox.Process.Out">Out</span>, <span class="extype" name="io.github.vigoo.prox.Process.OutResult">OutResult</span>]</span>, <span name="errorTarget">errorTarget: <a href="ProcessErrorTarget.html" class="extype" name="io.github.vigoo.prox.ProcessErrorTarget">ProcessErrorTarget</a>[<span class="extype" name="io.github.vigoo.prox.Process.Err">Err</span>, <span class="extype" name="io.github.vigoo.prox.Process.ErrResult">ErrResult</span>]</span>, <span name="environmentVariables">environmentVariables: <span class="extype" name="scala.Predef.Map">Map</span>[<span class="extype" name="scala.Predef.String">String</span>, <span class="extype" name="scala.Predef.String">String</span>]</span>)</span>
+        <span class="name">Process</span><span class="params">(<span name="command">command: <span class="extype" name="scala.Predef.String">String</span></span>, <span name="arguments">arguments: <span class="extype" name="scala.List">List</span>[<span class="extype" name="scala.Predef.String">String</span>]</span>, <span name="workingDirectory">workingDirectory: <span class="extype" name="scala.Option">Option</span>[<span class="extype" name="java.nio.file.Path">Path</span>]</span>, <span name="inputSource">inputSource: <a href="ProcessInputSource.html" class="extype" name="io.github.vigoo.prox.ProcessInputSource">ProcessInputSource</a></span>, <span name="outputTarget">outputTarget: <a href="ProcessOutputTarget.html" class="extype" name="io.github.vigoo.prox.ProcessOutputTarget">ProcessOutputTarget</a>[<span class="extype" name="io.github.vigoo.prox.Process.Out">Out</span>, <span class="extype" name="io.github.vigoo.prox.Process.OutResult">OutResult</span>]</span>, <span name="errorTarget">errorTarget: <a href="ProcessErrorTarget.html" class="extype" name="io.github.vigoo.prox.ProcessErrorTarget">ProcessErrorTarget</a>[<span class="extype" name="io.github.vigoo.prox.Process.Err">Err</span>, <span class="extype" name="io.github.vigoo.prox.Process.ErrResult">ErrResult</span>]</span>, <span name="environmentVariables">environmentVariables: <span class="extype" name="scala.Predef.Map">Map</span>[<span class="extype" name="scala.Predef.String">String</span>, <span class="extype" name="scala.Predef.String">String</span>]</span>, <span name="removedEnvironmentVariables">removedEnvironmentVariables: <span class="extype" name="scala.Predef.Set">Set</span>[<span class="extype" name="scala.Predef.String">String</span>]</span>)</span>
       </span>
       
       <p class="shortcomment cmt"></p><div class="fullcomment"><div class="comment cmt"></div><dl class="paramcmts block"><dt class="param">command</dt><dd class="cmt"><p>The command to start the process with</p></dd><dt class="param">arguments</dt><dd class="cmt"><p>List of arguments to be passed to the process</p></dd><dt class="param">workingDirectory</dt><dd class="cmt"><p>Working directory for the process</p></dd><dt class="param">inputSource</dt><dd class="cmt"><p>Redirection of the input channel</p></dd><dt class="param">outputTarget</dt><dd class="cmt"><p>Redirection of the output channel</p></dd><dt class="param">errorTarget</dt><dd class="cmt"><p>Redirection of the error channel</p></dd></dl></div>
@@ -792,6 +800,22 @@ simple process, but its <a href="syntax$$ProcessOps.html#start[RP](blockingExecu
       </span>
       
       
+    </li><li name="io.github.vigoo.prox.Process#removedEnvironmentVariables" visbl="pub" class="indented0 " data-isabs="false" fullComment="no" group="Ungrouped">
+      <a id="removedEnvironmentVariables:Set[String]"></a>
+      <span class="permalink">
+      <a href="../../../../io/github/vigoo/prox/Process.html#removedEnvironmentVariables:Set[String]" title="Permalink">
+        <i class="material-icons"></i>
+      </a>
+    </span>
+      <span class="modifier_kind">
+        <span class="modifier"></span>
+        <span class="kind">val</span>
+      </span>
+      <span class="symbol">
+        <span class="name">removedEnvironmentVariables</span><span class="result">: <span class="extype" name="scala.Predef.Set">Set</span>[<span class="extype" name="scala.Predef.String">String</span>]</span>
+      </span>
+      
+      
     </li><li name="scala.AnyRef#synchronized" visbl="pub" class="indented0 " data-isabs="false" fullComment="yes" group="Ungrouped">
       <a id="synchronized[T0](x$1:=&gt;T0):T0"></a><a id="synchronized[T0](⇒T0):T0"></a>
       <span class="permalink">
@@ -908,6 +932,22 @@ simple process, but its <a href="syntax$$ProcessOps.html#start[RP](blockingExecu
       </span>
       
       <p class="shortcomment cmt">Adds a custom environment variable to the defined process</p><div class="fullcomment"><div class="comment cmt"><p>Adds a custom environment variable to the defined process</p><p>Allows the following syntax:</p><pre><span class="kw">val</span> process = Process(<span class="lit">"sh"</span>, <span class="std">List</span>(<span class="lit">"-c"</span>, <span class="lit">"echo $X"</span>)) `<span class="kw">with</span>` (<span class="lit">"X"</span> -&gt; <span class="lit">"something"</span>)</pre></div><dl class="paramcmts block"><dt class="param">nameValuePair</dt><dd class="cmt"><p>The environment variable's name-value pair</p></dd><dt>returns</dt><dd class="cmt"><p>Returns a process with the custom environment variable added</p></dd></dl></div>
+    </li><li name="io.github.vigoo.prox.Process#without" visbl="pub" class="indented0 " data-isabs="false" fullComment="no" group="Ungrouped">
+      <a id="without(name:String):io.github.vigoo.prox.Process[Out,Err,OutResult,ErrResult,IRS,ORS,ERS]"></a><a id="without(String):Process[Out,Err,OutResult,ErrResult,IRS,ORS,ERS]"></a>
+      <span class="permalink">
+      <a href="../../../../io/github/vigoo/prox/Process.html#without(name:String):io.github.vigoo.prox.Process[Out,Err,OutResult,ErrResult,IRS,ORS,ERS]" title="Permalink">
+        <i class="material-icons"></i>
+      </a>
+    </span>
+      <span class="modifier_kind">
+        <span class="modifier"></span>
+        <span class="kind">def</span>
+      </span>
+      <span class="symbol">
+        <span class="name">without</span><span class="params">(<span name="name">name: <span class="extype" name="scala.Predef.String">String</span></span>)</span><span class="result">: <a href="" class="extype" name="io.github.vigoo.prox.Process">Process</a>[<span class="extype" name="io.github.vigoo.prox.Process.Out">Out</span>, <span class="extype" name="io.github.vigoo.prox.Process.Err">Err</span>, <span class="extype" name="io.github.vigoo.prox.Process.OutResult">OutResult</span>, <span class="extype" name="io.github.vigoo.prox.Process.ErrResult">ErrResult</span>, <span class="extype" name="io.github.vigoo.prox.Process.IRS">IRS</span>, <span class="extype" name="io.github.vigoo.prox.Process.ORS">ORS</span>, <span class="extype" name="io.github.vigoo.prox.Process.ERS">ERS</span>]</span>
+      </span>
+      
+      
     </li><li name="io.github.vigoo.prox.Process#workingDirectory" visbl="pub" class="indented0 " data-isabs="false" fullComment="no" group="Ungrouped">
       <a id="workingDirectory:Option[java.nio.file.Path]"></a><a id="workingDirectory:Option[Path]"></a>
       <span class="permalink">

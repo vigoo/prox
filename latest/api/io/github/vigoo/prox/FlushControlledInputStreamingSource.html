@@ -209,8 +209,8 @@ simple process, but its <a href="syntax$$ProcessOps.html#start[RP](blockingExecu
                         <a href="FlushChunks.html" title="Wrapper for input streams that enables flushing the process pipe stream after each chunk of bytes.">FlushChunks</a>
                       </li><li class="current-entities indented4">
                         <span class="separator"></span>
-                        <a class="class" href="FlushControlledInputStreamingSource.html" title="Input source implementation that calls 'flush' after each chunk of bytes."></a>
-                        <a href="FlushControlledInputStreamingSource.html" title="Input source implementation that calls 'flush' after each chunk of bytes.">FlushControlledInputStreamingSource</a>
+                        <a class="class" href="" title="Input source implementation that calls 'flush' after each chunk of bytes."></a>
+                        <a href="" title="Input source implementation that calls 'flush' after each chunk of bytes.">FlushControlledInputStreamingSource</a>
                       </li><li class="current-entities indented4">
                         <span class="separator"></span>
                         <a class="class" href="Fold.html" title="Wraps the pipe to modify how the stream is executed"></a>
@@ -308,7 +308,7 @@ simple process, but its <a href="syntax$$ProcessOps.html#start[RP](blockingExecu
                         <a class="trait" href="RunningProcess.html" title="Interface to a running process"></a>
                         <a href="RunningProcess.html" title="Interface to a running process">RunningProcess</a>
                       </li><li class="current-entities indented4">
-                        <a class="object" href="" title=""></a>
+                        <a class="object" href="Start$.html" title=""></a>
                         <a class="trait" href="Start.html" title="Type class for starting processes"></a>
                         <a href="Start.html" title="Type class for starting processes">Start</a>
                       </li><li class="current-entities indented4">
@@ -336,36 +336,36 @@ simple process, but its <a href="syntax$$ProcessOps.html#start[RP](blockingExecu
             </div>
           </div>
           <div id="content">
-            <body class="object value">
+            <body class="class type">
       <div id="definition">
-        <a href="Start.html" title="See companion trait"><div class="big-circle object-companion-trait">o</div></a>
+        <div class="big-circle class">c</div>
         <p id="owner"><a href="../../../index.html" class="extype" name="io">io</a>.<a href="../../index.html" class="extype" name="io.github">github</a>.<a href="../index.html" class="extype" name="io.github.vigoo">vigoo</a>.<a href="index.html" class="extype" name="io.github.vigoo.prox">prox</a></p>
-        <h1><a href="Start.html" title="See companion trait">Start</a><span class="permalink">
-      <a href="../../../../io/github/vigoo/prox/Start$.html" title="Permalink">
+        <h1>FlushControlledInputStreamingSource<span class="permalink">
+      <a href="../../../../io/github/vigoo/prox/FlushControlledInputStreamingSource.html" title="Permalink">
         <i class="material-icons"></i>
       </a>
     </span></h1>
-        <h3><span class="morelinks"><div>
-            Companion <a href="Start.html" title="See companion trait">trait Start</a>
-          </div></span></h3>
+        <h3><span class="morelinks"></span></h3>
       </div>
 
       <h4 id="signature" class="signature">
       <span class="modifier_kind">
         <span class="modifier"></span>
-        <span class="kind">object</span>
+        <span class="kind">class</span>
       </span>
       <span class="symbol">
-        <span class="name">Start</span>
+        <span class="name">FlushControlledInputStreamingSource</span><span class="result"> extends <a href="ProcessInputSource.html" class="extype" name="io.github.vigoo.prox.ProcessInputSource">ProcessInputSource</a></span>
       </span>
       </h4>
 
       
-          <div id="comment" class="fullcommenttop"><div class="toggleContainer block">
+          <div id="comment" class="fullcommenttop"><div class="comment cmt"><p>Input source implementation that calls 'flush' after each chunk of bytes. Useful for interactive
+communication with processes.
+</p></div><div class="toggleContainer block">
           <span class="toggle">
             Linear Supertypes
           </span>
-          <div class="superTypes hiddenContent"><span class="extype" name="scala.AnyRef">AnyRef</span>, <span class="extype" name="scala.Any">Any</span></div>
+          <div class="superTypes hiddenContent"><a href="ProcessInputSource.html" class="extype" name="io.github.vigoo.prox.ProcessInputSource">ProcessInputSource</a>, <a href="ProcessIO.html" class="extype" name="io.github.vigoo.prox.ProcessIO">ProcessIO</a>[<span class="extype" name="scala.Byte">Byte</span>, <span class="extype" name="scala.Unit">Unit</span>], <span class="extype" name="scala.AnyRef">AnyRef</span>, <span class="extype" name="scala.Any">Any</span></div>
         </div></div>
         
 
@@ -391,7 +391,7 @@ simple process, but its <a href="syntax$$ProcessOps.html#start[RP](blockingExecu
                   <span class="filtertype">Inherited<br />
                   </span>
                   <ol id="linearization">
-                    <li class="in" name="io.github.vigoo.prox.Start"><span>Start</span></li><li class="in" name="scala.AnyRef"><span>AnyRef</span></li><li class="in" name="scala.Any"><span>Any</span></li>
+                    <li class="in" name="io.github.vigoo.prox.FlushControlledInputStreamingSource"><span>FlushControlledInputStreamingSource</span></li><li class="in" name="io.github.vigoo.prox.ProcessInputSource"><span>ProcessInputSource</span></li><li class="in" name="io.github.vigoo.prox.ProcessIO"><span>ProcessIO</span></li><li class="in" name="scala.AnyRef"><span>AnyRef</span></li><li class="in" name="scala.Any"><span>Any</span></li>
                   </ol>
                 </div><div class="ancestors">
               <span class="filtertype"></span>
@@ -409,28 +409,28 @@ simple process, but its <a href="syntax$$ProcessOps.html#start[RP](blockingExecu
 
       <div id="template">
         <div id="allMembers">
-        
-
-        <div id="types" class="types members">
-              <h3>Type Members</h3>
-              <ol><li name="io.github.vigoo.prox.Start.Aux" visbl="pub" class="indented0 " data-isabs="false" fullComment="no" group="Ungrouped">
-      <a id="Aux[PN&lt;:io.github.vigoo.prox.ProcessNode[_,_,_,_,_],RP,RPL&lt;:shapeless.HList]=io.github.vigoo.prox.Start[PN]{typeRunningProcesses=RP;typeRunningProcessList=RPL}"></a><a id="Aux[PN&lt;:ProcessNode[_,_,_,_,_],RP,RPL&lt;:HList]:Aux[PN,RP,RPL]"></a>
+        <div id="constructors" class="members">
+              <h3>Instance Constructors</h3>
+              <ol><li name="io.github.vigoo.prox.FlushControlledInputStreamingSource#&lt;init&gt;" visbl="pub" class="indented0 " data-isabs="false" fullComment="yes" group="Ungrouped">
+      <a id="&lt;init&gt;(source:io.github.vigoo.prox.FlushChunks[cats.effect.IO]):io.github.vigoo.prox.FlushControlledInputStreamingSource"></a><a id="&lt;init&gt;:FlushControlledInputStreamingSource"></a>
       <span class="permalink">
-      <a href="../../../../io/github/vigoo/prox/Start$.html#Aux[PN&lt;:io.github.vigoo.prox.ProcessNode[_,_,_,_,_],RP,RPL&lt;:shapeless.HList]=io.github.vigoo.prox.Start[PN]{typeRunningProcesses=RP;typeRunningProcessList=RPL}" title="Permalink">
+      <a href="../../../../io/github/vigoo/prox/FlushControlledInputStreamingSource.html#&lt;init&gt;(source:io.github.vigoo.prox.FlushChunks[cats.effect.IO]):io.github.vigoo.prox.FlushControlledInputStreamingSource" title="Permalink">
         <i class="material-icons"></i>
       </a>
     </span>
       <span class="modifier_kind">
         <span class="modifier"></span>
-        <span class="kind">type</span>
+        <span class="kind">new</span>
       </span>
       <span class="symbol">
-        <span class="name">Aux</span><span class="tparams">[<span name="PN">PN &lt;: <a href="ProcessNode.html" class="extype" name="io.github.vigoo.prox.ProcessNode">ProcessNode</a>[_, _, _, _, _]</span>, <span name="RP">RP</span>, <span name="RPL">RPL &lt;: <span class="extype" name="shapeless.HList">HList</span></span>]</span><span class="result alias"> = <a href="Start.html" class="extype" name="io.github.vigoo.prox.Start">Start</a>[<span class="extype" name="io.github.vigoo.prox.Start.Aux.PN">PN</span>] { ... /* 2 definitions in type refinement */ }</span>
+        <span class="name">FlushControlledInputStreamingSource</span><span class="params">(<span name="source">source: <a href="FlushChunks.html" class="extype" name="io.github.vigoo.prox.FlushChunks">FlushChunks</a>[<span class="extype" name="cats.effect.IO">IO</span>]</span>)</span>
       </span>
       
-      
+      <p class="shortcomment cmt"></p><div class="fullcomment"><div class="comment cmt"></div><dl class="paramcmts block"><dt class="param">source</dt><dd class="cmt"><p>The input byte stream</p></dd></dl></div>
     </li></ol>
             </div>
+
+        
 
         
 
@@ -440,7 +440,7 @@ simple process, but its <a href="syntax$$ProcessOps.html#start[RP](blockingExecu
                 <li name="scala.AnyRef#!=" visbl="pub" class="indented0 " data-isabs="false" fullComment="yes" group="Ungrouped">
       <a id="!=(x$1:Any):Boolean"></a><a id="!=(Any):Boolean"></a>
       <span class="permalink">
-      <a href="../../../../io/github/vigoo/prox/Start$.html#!=(x$1:Any):Boolean" title="Permalink">
+      <a href="../../../../io/github/vigoo/prox/FlushControlledInputStreamingSource.html#!=(x$1:Any):Boolean" title="Permalink">
         <i class="material-icons"></i>
       </a>
     </span>
@@ -456,7 +456,7 @@ simple process, but its <a href="syntax$$ProcessOps.html#start[RP](blockingExecu
     </li><li name="scala.AnyRef###" visbl="pub" class="indented0 " data-isabs="false" fullComment="yes" group="Ungrouped">
       <a id="##():Int"></a>
       <span class="permalink">
-      <a href="../../../../io/github/vigoo/prox/Start$.html###():Int" title="Permalink">
+      <a href="../../../../io/github/vigoo/prox/FlushControlledInputStreamingSource.html###():Int" title="Permalink">
         <i class="material-icons"></i>
       </a>
     </span>
@@ -472,7 +472,7 @@ simple process, but its <a href="syntax$$ProcessOps.html#start[RP](blockingExecu
     </li><li name="scala.AnyRef#==" visbl="pub" class="indented0 " data-isabs="false" fullComment="yes" group="Ungrouped">
       <a id="==(x$1:Any):Boolean"></a><a id="==(Any):Boolean"></a>
       <span class="permalink">
-      <a href="../../../../io/github/vigoo/prox/Start$.html#==(x$1:Any):Boolean" title="Permalink">
+      <a href="../../../../io/github/vigoo/prox/FlushControlledInputStreamingSource.html#==(x$1:Any):Boolean" title="Permalink">
         <i class="material-icons"></i>
       </a>
     </span>
@@ -485,26 +485,10 @@ simple process, but its <a href="syntax$$ProcessOps.html#start[RP](blockingExecu
       </span>
       
       <div class="fullcomment"><dl class="attributes block"> <dt>Definition Classes</dt><dd>AnyRef → Any</dd></dl></div>
-    </li><li name="io.github.vigoo.prox.Start#apply" visbl="pub" class="indented0 " data-isabs="false" fullComment="no" group="Ungrouped">
-      <a id="apply[PN&lt;:io.github.vigoo.prox.ProcessNode[_,_,_,_,_],RP,RPL&lt;:shapeless.HList](implicitstart:io.github.vigoo.prox.Start.Aux[PN,RP,RPL]):io.github.vigoo.prox.Start.Aux[PN,RP,RPL]"></a><a id="apply[PN&lt;:ProcessNode[_,_,_,_,_],RP,RPL&lt;:HList](Aux[PN,RP,RPL]):Aux[PN,RP,RPL]"></a>
-      <span class="permalink">
-      <a href="../../../../io/github/vigoo/prox/Start$.html#apply[PN&lt;:io.github.vigoo.prox.ProcessNode[_,_,_,_,_],RP,RPL&lt;:shapeless.HList](implicitstart:io.github.vigoo.prox.Start.Aux[PN,RP,RPL]):io.github.vigoo.prox.Start.Aux[PN,RP,RPL]" title="Permalink">
-        <i class="material-icons"></i>
-      </a>
-    </span>
-      <span class="modifier_kind">
-        <span class="modifier"></span>
-        <span class="kind">def</span>
-      </span>
-      <span class="symbol">
-        <span class="name">apply</span><span class="tparams">[<span name="PN">PN &lt;: <a href="ProcessNode.html" class="extype" name="io.github.vigoo.prox.ProcessNode">ProcessNode</a>[_, _, _, _, _]</span>, <span name="RP">RP</span>, <span name="RPL">RPL &lt;: <span class="extype" name="shapeless.HList">HList</span></span>]</span><span class="params">(<span class="implicit">implicit </span><span name="start">start: <a href="#Aux[PN&lt;:io.github.vigoo.prox.ProcessNode[_,_,_,_,_],RP,RPL&lt;:shapeless.HList]=io.github.vigoo.prox.Start[PN]{typeRunningProcesses=RP;typeRunningProcessList=RPL}" class="extmbr" name="io.github.vigoo.prox.Start.Aux">Aux</a>[<span class="extype" name="io.github.vigoo.prox.Start.apply.PN">PN</span>, <span class="extype" name="io.github.vigoo.prox.Start.apply.RP">RP</span>, <span class="extype" name="io.github.vigoo.prox.Start.apply.RPL">RPL</span>]</span>)</span><span class="result">: <a href="#Aux[PN&lt;:io.github.vigoo.prox.ProcessNode[_,_,_,_,_],RP,RPL&lt;:shapeless.HList]=io.github.vigoo.prox.Start[PN]{typeRunningProcesses=RP;typeRunningProcessList=RPL}" class="extmbr" name="io.github.vigoo.prox.Start.Aux">Aux</a>[<span class="extype" name="io.github.vigoo.prox.Start.apply.PN">PN</span>, <span class="extype" name="io.github.vigoo.prox.Start.apply.RP">RP</span>, <span class="extype" name="io.github.vigoo.prox.Start.apply.RPL">RPL</span>]</span>
-      </span>
-      
-      
     </li><li name="scala.Any#asInstanceOf" visbl="pub" class="indented0 " data-isabs="false" fullComment="yes" group="Ungrouped">
       <a id="asInstanceOf[T0]:T0"></a>
       <span class="permalink">
-      <a href="../../../../io/github/vigoo/prox/Start$.html#asInstanceOf[T0]:T0" title="Permalink">
+      <a href="../../../../io/github/vigoo/prox/FlushControlledInputStreamingSource.html#asInstanceOf[T0]:T0" title="Permalink">
         <i class="material-icons"></i>
       </a>
     </span>
@@ -520,7 +504,7 @@ simple process, but its <a href="syntax$$ProcessOps.html#start[RP](blockingExecu
     </li><li name="scala.AnyRef#clone" visbl="prt" class="indented0 " data-isabs="false" fullComment="yes" group="Ungrouped">
       <a id="clone():Object"></a><a id="clone():AnyRef"></a>
       <span class="permalink">
-      <a href="../../../../io/github/vigoo/prox/Start$.html#clone():Object" title="Permalink">
+      <a href="../../../../io/github/vigoo/prox/FlushControlledInputStreamingSource.html#clone():Object" title="Permalink">
         <i class="material-icons"></i>
       </a>
     </span>
@@ -541,10 +525,28 @@ simple process, but its <a href="syntax$$ProcessOps.html#start[RP](blockingExecu
     </span>)</span>
               
         </dd></dl></div>
+    </li><li name="io.github.vigoo.prox.FlushControlledInputStreamingSource#connect" visbl="pub" class="indented0 " data-isabs="false" fullComment="yes" group="Ungrouped">
+      <a id="connect(systemProcess:Process,blockingExecutionContext:scala.concurrent.ExecutionContext)(implicitcontextShift:cats.effect.ContextShift[cats.effect.IO]):fs2.Stream[cats.effect.IO,Byte]"></a><a id="connect(java.lang.Process,ExecutionContext)(ContextShift[IO]):Stream[IO,Byte]"></a>
+      <span class="permalink">
+      <a href="../../../../io/github/vigoo/prox/FlushControlledInputStreamingSource.html#connect(systemProcess:Process,blockingExecutionContext:scala.concurrent.ExecutionContext)(implicitcontextShift:cats.effect.ContextShift[cats.effect.IO]):fs2.Stream[cats.effect.IO,Byte]" title="Permalink">
+        <i class="material-icons"></i>
+      </a>
+    </span>
+      <span class="modifier_kind">
+        <span class="modifier"></span>
+        <span class="kind">def</span>
+      </span>
+      <span class="symbol">
+        <span class="name">connect</span><span class="params">(<span name="systemProcess">systemProcess: <span class="extype" name="java.lang.Process">java.lang.Process</span></span>, <span name="blockingExecutionContext">blockingExecutionContext: <span class="extype" name="scala.concurrent.ExecutionContext">ExecutionContext</span></span>)</span><span class="params">(<span class="implicit">implicit </span><span name="contextShift">contextShift: <span class="extype" name="cats.effect.ContextShift">ContextShift</span>[<span class="extype" name="cats.effect.IO">IO</span>]</span>)</span><span class="result">: <span class="extype" name="fs2.Stream">Stream</span>[<span class="extype" name="cats.effect.IO">IO</span>, <span class="extype" name="scala.Byte">Byte</span>]</span>
+      </span>
+      
+      <p class="shortcomment cmt">Sets up the redirection on the given system process
+</p><div class="fullcomment"><div class="comment cmt"><p>Sets up the redirection on the given system process
+</p></div><dl class="paramcmts block"><dt class="param">systemProcess</dt><dd class="cmt"><p>The process to connect to</p></dd><dt class="param">blockingExecutionContext</dt><dd class="cmt"><p>The execution context on which the blocking IO stream reads/writes will be executed</p></dd><dt class="param">contextShift</dt><dd class="cmt"><p>Context shifter</p></dd><dt>returns</dt><dd class="cmt"><p>Returns the not yet started redirection stream</p></dd></dl><dl class="attributes block"> <dt>Definition Classes</dt><dd><a href="" class="extype" name="io.github.vigoo.prox.FlushControlledInputStreamingSource">FlushControlledInputStreamingSource</a> → <a href="ProcessIO.html" class="extype" name="io.github.vigoo.prox.ProcessIO">ProcessIO</a></dd></dl></div>
     </li><li name="scala.AnyRef#eq" visbl="pub" class="indented0 " data-isabs="false" fullComment="yes" group="Ungrouped">
       <a id="eq(x$1:AnyRef):Boolean"></a><a id="eq(AnyRef):Boolean"></a>
       <span class="permalink">
-      <a href="../../../../io/github/vigoo/prox/Start$.html#eq(x$1:AnyRef):Boolean" title="Permalink">
+      <a href="../../../../io/github/vigoo/prox/FlushControlledInputStreamingSource.html#eq(x$1:AnyRef):Boolean" title="Permalink">
         <i class="material-icons"></i>
       </a>
     </span>
@@ -560,7 +562,7 @@ simple process, but its <a href="syntax$$ProcessOps.html#start[RP](blockingExecu
     </li><li name="scala.AnyRef#equals" visbl="pub" class="indented0 " data-isabs="false" fullComment="yes" group="Ungrouped">
       <a id="equals(x$1:Any):Boolean"></a><a id="equals(Any):Boolean"></a>
       <span class="permalink">
-      <a href="../../../../io/github/vigoo/prox/Start$.html#equals(x$1:Any):Boolean" title="Permalink">
+      <a href="../../../../io/github/vigoo/prox/FlushControlledInputStreamingSource.html#equals(x$1:Any):Boolean" title="Permalink">
         <i class="material-icons"></i>
       </a>
     </span>
@@ -576,7 +578,7 @@ simple process, but its <a href="syntax$$ProcessOps.html#start[RP](blockingExecu
     </li><li name="scala.AnyRef#finalize" visbl="prt" class="indented0 " data-isabs="false" fullComment="yes" group="Ungrouped">
       <a id="finalize():Unit"></a>
       <span class="permalink">
-      <a href="../../../../io/github/vigoo/prox/Start$.html#finalize():Unit" title="Permalink">
+      <a href="../../../../io/github/vigoo/prox/FlushControlledInputStreamingSource.html#finalize():Unit" title="Permalink">
         <i class="material-icons"></i>
       </a>
     </span>
@@ -598,7 +600,7 @@ simple process, but its <a href="syntax$$ProcessOps.html#start[RP](blockingExecu
     </li><li name="scala.AnyRef#getClass" visbl="pub" class="indented0 " data-isabs="false" fullComment="yes" group="Ungrouped">
       <a id="getClass():Class[_]"></a>
       <span class="permalink">
-      <a href="../../../../io/github/vigoo/prox/Start$.html#getClass():Class[_]" title="Permalink">
+      <a href="../../../../io/github/vigoo/prox/FlushControlledInputStreamingSource.html#getClass():Class[_]" title="Permalink">
         <i class="material-icons"></i>
       </a>
     </span>
@@ -617,7 +619,7 @@ simple process, but its <a href="syntax$$ProcessOps.html#start[RP](blockingExecu
     </li><li name="scala.AnyRef#hashCode" visbl="pub" class="indented0 " data-isabs="false" fullComment="yes" group="Ungrouped">
       <a id="hashCode():Int"></a>
       <span class="permalink">
-      <a href="../../../../io/github/vigoo/prox/Start$.html#hashCode():Int" title="Permalink">
+      <a href="../../../../io/github/vigoo/prox/FlushControlledInputStreamingSource.html#hashCode():Int" title="Permalink">
         <i class="material-icons"></i>
       </a>
     </span>
@@ -636,7 +638,7 @@ simple process, but its <a href="syntax$$ProcessOps.html#start[RP](blockingExecu
     </li><li name="scala.Any#isInstanceOf" visbl="pub" class="indented0 " data-isabs="false" fullComment="yes" group="Ungrouped">
       <a id="isInstanceOf[T0]:Boolean"></a>
       <span class="permalink">
-      <a href="../../../../io/github/vigoo/prox/Start$.html#isInstanceOf[T0]:Boolean" title="Permalink">
+      <a href="../../../../io/github/vigoo/prox/FlushControlledInputStreamingSource.html#isInstanceOf[T0]:Boolean" title="Permalink">
         <i class="material-icons"></i>
       </a>
     </span>
@@ -652,7 +654,7 @@ simple process, but its <a href="syntax$$ProcessOps.html#start[RP](blockingExecu
     </li><li name="scala.AnyRef#ne" visbl="pub" class="indented0 " data-isabs="false" fullComment="yes" group="Ungrouped">
       <a id="ne(x$1:AnyRef):Boolean"></a><a id="ne(AnyRef):Boolean"></a>
       <span class="permalink">
-      <a href="../../../../io/github/vigoo/prox/Start$.html#ne(x$1:AnyRef):Boolean" title="Permalink">
+      <a href="../../../../io/github/vigoo/prox/FlushControlledInputStreamingSource.html#ne(x$1:AnyRef):Boolean" title="Permalink">
         <i class="material-icons"></i>
       </a>
     </span>
@@ -668,7 +670,7 @@ simple process, but its <a href="syntax$$ProcessOps.html#start[RP](blockingExecu
     </li><li name="scala.AnyRef#notify" visbl="pub" class="indented0 " data-isabs="false" fullComment="yes" group="Ungrouped">
       <a id="notify():Unit"></a>
       <span class="permalink">
-      <a href="../../../../io/github/vigoo/prox/Start$.html#notify():Unit" title="Permalink">
+      <a href="../../../../io/github/vigoo/prox/FlushControlledInputStreamingSource.html#notify():Unit" title="Permalink">
         <i class="material-icons"></i>
       </a>
     </span>
@@ -687,7 +689,7 @@ simple process, but its <a href="syntax$$ProcessOps.html#start[RP](blockingExecu
     </li><li name="scala.AnyRef#notifyAll" visbl="pub" class="indented0 " data-isabs="false" fullComment="yes" group="Ungrouped">
       <a id="notifyAll():Unit"></a>
       <span class="permalink">
-      <a href="../../../../io/github/vigoo/prox/Start$.html#notifyAll():Unit" title="Permalink">
+      <a href="../../../../io/github/vigoo/prox/FlushControlledInputStreamingSource.html#notifyAll():Unit" title="Permalink">
         <i class="material-icons"></i>
       </a>
     </span>
@@ -703,42 +705,28 @@ simple process, but its <a href="syntax$$ProcessOps.html#start[RP](blockingExecu
                 <span class="name">@native</span><span class="args">()</span>
               
         </dd></dl></div>
-    </li><li name="io.github.vigoo.prox.Start#startPipedProcess" visbl="pub" class="indented0 " data-isabs="false" fullComment="no" group="Ungrouped">
-      <a id="startPipedProcess[Out,Err,PN1&lt;:io.github.vigoo.prox.ProcessNode[_,_,_,_,_],PN2&lt;:io.github.vigoo.prox.ProcessNode[_,_,_,_,_],IRS&lt;:io.github.vigoo.prox.RedirectionState,ORS&lt;:io.github.vigoo.prox.RedirectionState,ERS&lt;:io.github.vigoo.prox.RedirectionState,RP1,RPL1&lt;:shapeless.HList,RP1Last&lt;:io.github.vigoo.prox.RunningProcess[_,_,_],RP2,RPL2&lt;:shapeless.HList,RP2Head&lt;:io.github.vigoo.prox.RunningProcess[_,_,_],RP2Tail&lt;:shapeless.HList,RPT,RPL&lt;:shapeless.HList](implicitstart1:io.github.vigoo.prox.Start.Aux[PN1,RP1,RPL1],implicitstart2:io.github.vigoo.prox.Start.Aux[PN2,RP2,RPL2],implicitlast1:shapeless.ops.hlist.Last.Aux[RPL1,RP1Last],implicitrp1LastType:RP1Last&lt;:&lt;io.github.vigoo.prox.RunningProcess[Byte,_,_],implicithcons2:shapeless.ops.hlist.IsHCons.Aux[RPL2,RP2Head,RP2Tail],implicitprepend:shapeless.ops.hlist.Prepend.Aux[RPL1,RPL2,RPL],implicittupler:shapeless.ops.hlist.Tupler.Aux[RPL,RPT]):io.github.vigoo.prox.Start.Aux[io.github.vigoo.prox.PipedProcess[Out,Err,Byte,PN1,PN2,IRS,ORS,ERS],RPT,RPL]"></a><a id="startPipedProcess[Out,Err,PN1&lt;:ProcessNode[_,_,_,_,_],PN2&lt;:ProcessNode[_,_,_,_,_],IRS&lt;:RedirectionState,ORS&lt;:RedirectionState,ERS&lt;:RedirectionState,RP1,RPL1&lt;:HList,RP1Last&lt;:RunningProcess[_,_,_],RP2,RPL2&lt;:HList,RP2Head&lt;:RunningProcess[_,_,_],RP2Tail&lt;:HList,RPT,RPL&lt;:HList](Aux[PN1,RP1,RPL1],Aux[PN2,RP2,RPL2],shapeless.ops.hlist.Last.Aux[RPL1,RP1Last],&lt;:&lt;[RP1Last,RunningProcess[Byte,_,_]],shapeless.ops.hlist.IsHCons.Aux[RPL2,RP2Head,RP2Tail],shapeless.ops.hlist.Prepend.Aux[RPL1,RPL2,RPL],shapeless.ops.hlist.Tupler.Aux[RPL,RPT]):Aux[PipedProcess[Out,Err,Byte,PN1,PN2,IRS,ORS,ERS],RPT,RPL]"></a>
+    </li><li name="io.github.vigoo.prox.FlushControlledInputStreamingSource#run" visbl="pub" class="indented0 " data-isabs="false" fullComment="yes" group="Ungrouped">
+      <a id="run(stream:fs2.Stream[cats.effect.IO,Byte])(implicitcontextShift:cats.effect.ContextShift[cats.effect.IO]):cats.effect.IO[cats.effect.Fiber[cats.effect.IO,Unit]]"></a><a id="run(Stream[IO,Byte])(ContextShift[IO]):IO[Fiber[IO,Unit]]"></a>
       <span class="permalink">
-      <a href="../../../../io/github/vigoo/prox/Start$.html#startPipedProcess[Out,Err,PN1&lt;:io.github.vigoo.prox.ProcessNode[_,_,_,_,_],PN2&lt;:io.github.vigoo.prox.ProcessNode[_,_,_,_,_],IRS&lt;:io.github.vigoo.prox.RedirectionState,ORS&lt;:io.github.vigoo.prox.RedirectionState,ERS&lt;:io.github.vigoo.prox.RedirectionState,RP1,RPL1&lt;:shapeless.HList,RP1Last&lt;:io.github.vigoo.prox.RunningProcess[_,_,_],RP2,RPL2&lt;:shapeless.HList,RP2Head&lt;:io.github.vigoo.prox.RunningProcess[_,_,_],RP2Tail&lt;:shapeless.HList,RPT,RPL&lt;:shapeless.HList](implicitstart1:io.github.vigoo.prox.Start.Aux[PN1,RP1,RPL1],implicitstart2:io.github.vigoo.prox.Start.Aux[PN2,RP2,RPL2],implicitlast1:shapeless.ops.hlist.Last.Aux[RPL1,RP1Last],implicitrp1LastType:RP1Last&lt;:&lt;io.github.vigoo.prox.RunningProcess[Byte,_,_],implicithcons2:shapeless.ops.hlist.IsHCons.Aux[RPL2,RP2Head,RP2Tail],implicitprepend:shapeless.ops.hlist.Prepend.Aux[RPL1,RPL2,RPL],implicittupler:shapeless.ops.hlist.Tupler.Aux[RPL,RPT]):io.github.vigoo.prox.Start.Aux[io.github.vigoo.prox.PipedProcess[Out,Err,Byte,PN1,PN2,IRS,ORS,ERS],RPT,RPL]" title="Permalink">
+      <a href="../../../../io/github/vigoo/prox/FlushControlledInputStreamingSource.html#run(stream:fs2.Stream[cats.effect.IO,Byte])(implicitcontextShift:cats.effect.ContextShift[cats.effect.IO]):cats.effect.IO[cats.effect.Fiber[cats.effect.IO,Unit]]" title="Permalink">
         <i class="material-icons"></i>
       </a>
     </span>
       <span class="modifier_kind">
-        <span class="modifier">implicit </span>
+        <span class="modifier"></span>
         <span class="kind">def</span>
       </span>
       <span class="symbol">
-        <span class="name">startPipedProcess</span><span class="tparams">[<span name="Out">Out</span>, <span name="Err">Err</span>, <span name="PN1">PN1 &lt;: <a href="ProcessNode.html" class="extype" name="io.github.vigoo.prox.ProcessNode">ProcessNode</a>[_, _, _, _, _]</span>, <span name="PN2">PN2 &lt;: <a href="ProcessNode.html" class="extype" name="io.github.vigoo.prox.ProcessNode">ProcessNode</a>[_, _, _, _, _]</span>, <span name="IRS">IRS &lt;: <a href="RedirectionState.html" class="extype" name="io.github.vigoo.prox.RedirectionState">RedirectionState</a></span>, <span name="ORS">ORS &lt;: <a href="RedirectionState.html" class="extype" name="io.github.vigoo.prox.RedirectionState">RedirectionState</a></span>, <span name="ERS">ERS &lt;: <a href="RedirectionState.html" class="extype" name="io.github.vigoo.prox.RedirectionState">RedirectionState</a></span>, <span name="RP1">RP1</span>, <span name="RPL1">RPL1 &lt;: <span class="extype" name="shapeless.HList">HList</span></span>, <span name="RP1Last">RP1Last &lt;: <a href="RunningProcess.html" class="extype" name="io.github.vigoo.prox.RunningProcess">RunningProcess</a>[_, _, _]</span>, <span name="RP2">RP2</span>, <span name="RPL2">RPL2 &lt;: <span class="extype" name="shapeless.HList">HList</span></span>, <span name="RP2Head">RP2Head &lt;: <a href="RunningProcess.html" class="extype" name="io.github.vigoo.prox.RunningProcess">RunningProcess</a>[_, _, _]</span>, <span name="RP2Tail">RP2Tail &lt;: <span class="extype" name="shapeless.HList">HList</span></span>, <span name="RPT">RPT</span>, <span name="RPL">RPL &lt;: <span class="extype" name="shapeless.HList">HList</span></span>]</span><span class="params">(<span class="implicit">implicit </span><span name="start1">start1: <a href="#Aux[PN&lt;:io.github.vigoo.prox.ProcessNode[_,_,_,_,_],RP,RPL&lt;:shapeless.HList]=io.github.vigoo.prox.Start[PN]{typeRunningProcesses=RP;typeRunningProcessList=RPL}" class="extmbr" name="io.github.vigoo.prox.Start.Aux">Aux</a>[<span class="extype" name="io.github.vigoo.prox.Start.startPipedProcess.PN1">PN1</span>, <span class="extype" name="io.github.vigoo.prox.Start.startPipedProcess.RP1">RP1</span>, <span class="extype" name="io.github.vigoo.prox.Start.startPipedProcess.RPL1">RPL1</span>]</span>, <span name="start2">start2: <a href="#Aux[PN&lt;:io.github.vigoo.prox.ProcessNode[_,_,_,_,_],RP,RPL&lt;:shapeless.HList]=io.github.vigoo.prox.Start[PN]{typeRunningProcesses=RP;typeRunningProcessList=RPL}" class="extmbr" name="io.github.vigoo.prox.Start.Aux">Aux</a>[<span class="extype" name="io.github.vigoo.prox.Start.startPipedProcess.PN2">PN2</span>, <span class="extype" name="io.github.vigoo.prox.Start.startPipedProcess.RP2">RP2</span>, <span class="extype" name="io.github.vigoo.prox.Start.startPipedProcess.RPL2">RPL2</span>]</span>, <span name="last1">last1: <span class="extype" name="shapeless.ops.hlist.Last.Aux">shapeless.ops.hlist.Last.Aux</span>[<span class="extype" name="io.github.vigoo.prox.Start.startPipedProcess.RPL1">RPL1</span>, <span class="extype" name="io.github.vigoo.prox.Start.startPipedProcess.RP1Last">RP1Last</span>]</span>, <span name="rp1LastType">rp1LastType: <span class="extype" name="scala.Predef.&lt;:&lt;">&lt;:&lt;</span>[<span class="extype" name="io.github.vigoo.prox.Start.startPipedProcess.RP1Last">RP1Last</span>, <a href="RunningProcess.html" class="extype" name="io.github.vigoo.prox.RunningProcess">RunningProcess</a>[<span class="extype" name="scala.Byte">Byte</span>, _, _]]</span>, <span name="hcons2">hcons2: <span class="extype" name="shapeless.ops.hlist.IsHCons.Aux">shapeless.ops.hlist.IsHCons.Aux</span>[<span class="extype" name="io.github.vigoo.prox.Start.startPipedProcess.RPL2">RPL2</span>, <span class="extype" name="io.github.vigoo.prox.Start.startPipedProcess.RP2Head">RP2Head</span>, <span class="extype" name="io.github.vigoo.prox.Start.startPipedProcess.RP2Tail">RP2Tail</span>]</span>, <span name="prepend">prepend: <span class="extype" name="shapeless.ops.hlist.LowPriorityPrepend.Aux">shapeless.ops.hlist.Prepend.Aux</span>[<span class="extype" name="io.github.vigoo.prox.Start.startPipedProcess.RPL1">RPL1</span>, <span class="extype" name="io.github.vigoo.prox.Start.startPipedProcess.RPL2">RPL2</span>, <span class="extype" name="io.github.vigoo.prox.Start.startPipedProcess.RPL">RPL</span>]</span>, <span name="tupler">tupler: <span class="extype" name="shapeless.ops.TuplerInstances.Aux">shapeless.ops.hlist.Tupler.Aux</span>[<span class="extype" name="io.github.vigoo.prox.Start.startPipedProcess.RPL">RPL</span>, <span class="extype" name="io.github.vigoo.prox.Start.startPipedProcess.RPT">RPT</span>]</span>)</span><span class="result">: <a href="#Aux[PN&lt;:io.github.vigoo.prox.ProcessNode[_,_,_,_,_],RP,RPL&lt;:shapeless.HList]=io.github.vigoo.prox.Start[PN]{typeRunningProcesses=RP;typeRunningProcessList=RPL}" class="extmbr" name="io.github.vigoo.prox.Start.Aux">Aux</a>[<a href="PipedProcess.html" class="extype" name="io.github.vigoo.prox.PipedProcess">PipedProcess</a>[<span class="extype" name="io.github.vigoo.prox.Start.startPipedProcess.Out">Out</span>, <span class="extype" name="io.github.vigoo.prox.Start.startPipedProcess.Err">Err</span>, <span class="extype" name="scala.Byte">Byte</span>, <span class="extype" name="io.github.vigoo.prox.Start.startPipedProcess.PN1">PN1</span>, <span class="extype" name="io.github.vigoo.prox.Start.startPipedProcess.PN2">PN2</span>, <span class="extype" name="io.github.vigoo.prox.Start.startPipedProcess.IRS">IRS</span>, <span class="extype" name="io.github.vigoo.prox.Start.startPipedProcess.ORS">ORS</span>, <span class="extype" name="io.github.vigoo.prox.Start.startPipedProcess.ERS">ERS</span>], <span class="extype" name="io.github.vigoo.prox.Start.startPipedProcess.RPT">RPT</span>, <span class="extype" name="io.github.vigoo.prox.Start.startPipedProcess.RPL">RPL</span>]</span>
+        <span class="name">run</span><span class="params">(<span name="stream">stream: <span class="extype" name="fs2.Stream">Stream</span>[<span class="extype" name="cats.effect.IO">IO</span>, <span class="extype" name="scala.Byte">Byte</span>]</span>)</span><span class="params">(<span class="implicit">implicit </span><span name="contextShift">contextShift: <span class="extype" name="cats.effect.ContextShift">ContextShift</span>[<span class="extype" name="cats.effect.IO">IO</span>]</span>)</span><span class="result">: <span class="extype" name="cats.effect.IO">IO</span>[<span class="extype" name="cats.effect.Fiber">Fiber</span>[<span class="extype" name="cats.effect.IO">IO</span>, <span class="extype" name="scala.Unit">Unit</span>]]</span>
       </span>
       
-      
-    </li><li name="io.github.vigoo.prox.Start#startProcess" visbl="pub" class="indented0 " data-isabs="false" fullComment="no" group="Ungrouped">
-      <a id="startProcess[Out,Err,OutResult,ErrResult,IRS&lt;:io.github.vigoo.prox.RedirectionState,ORS&lt;:io.github.vigoo.prox.RedirectionState,ERS&lt;:io.github.vigoo.prox.RedirectionState](implicitoutResultMonoid:cats.kernel.Monoid[OutResult]):io.github.vigoo.prox.Start.Aux[io.github.vigoo.prox.Process[Out,Err,OutResult,ErrResult,IRS,ORS,ERS],io.github.vigoo.prox.RunningProcess[Out,OutResult,ErrResult],io.github.vigoo.prox.RunningProcess[Out,OutResult,ErrResult]::shapeless.HNil]"></a><a id="startProcess[Out,Err,OutResult,ErrResult,IRS&lt;:RedirectionState,ORS&lt;:RedirectionState,ERS&lt;:RedirectionState](Monoid[OutResult]):Aux[Process[Out,Err,OutResult,ErrResult,IRS,ORS,ERS],RunningProcess[Out,OutResult,ErrResult],::[RunningProcess[Out,OutResult,ErrResult],HNil]]"></a>
-      <span class="permalink">
-      <a href="../../../../io/github/vigoo/prox/Start$.html#startProcess[Out,Err,OutResult,ErrResult,IRS&lt;:io.github.vigoo.prox.RedirectionState,ORS&lt;:io.github.vigoo.prox.RedirectionState,ERS&lt;:io.github.vigoo.prox.RedirectionState](implicitoutResultMonoid:cats.kernel.Monoid[OutResult]):io.github.vigoo.prox.Start.Aux[io.github.vigoo.prox.Process[Out,Err,OutResult,ErrResult,IRS,ORS,ERS],io.github.vigoo.prox.RunningProcess[Out,OutResult,ErrResult],io.github.vigoo.prox.RunningProcess[Out,OutResult,ErrResult]::shapeless.HNil]" title="Permalink">
-        <i class="material-icons"></i>
-      </a>
-    </span>
-      <span class="modifier_kind">
-        <span class="modifier">implicit </span>
-        <span class="kind">def</span>
-      </span>
-      <span class="symbol">
-        <span class="name">startProcess</span><span class="tparams">[<span name="Out">Out</span>, <span name="Err">Err</span>, <span name="OutResult">OutResult</span>, <span name="ErrResult">ErrResult</span>, <span name="IRS">IRS &lt;: <a href="RedirectionState.html" class="extype" name="io.github.vigoo.prox.RedirectionState">RedirectionState</a></span>, <span name="ORS">ORS &lt;: <a href="RedirectionState.html" class="extype" name="io.github.vigoo.prox.RedirectionState">RedirectionState</a></span>, <span name="ERS">ERS &lt;: <a href="RedirectionState.html" class="extype" name="io.github.vigoo.prox.RedirectionState">RedirectionState</a></span>]</span><span class="params">(<span class="implicit">implicit </span><span name="outResultMonoid">outResultMonoid: <span class="extype" name="cats.kernel.Monoid">Monoid</span>[<span class="extype" name="io.github.vigoo.prox.Start.startProcess.OutResult">OutResult</span>]</span>)</span><span class="result">: <a href="#Aux[PN&lt;:io.github.vigoo.prox.ProcessNode[_,_,_,_,_],RP,RPL&lt;:shapeless.HList]=io.github.vigoo.prox.Start[PN]{typeRunningProcesses=RP;typeRunningProcessList=RPL}" class="extmbr" name="io.github.vigoo.prox.Start.Aux">Aux</a>[<a href="Process.html" class="extype" name="io.github.vigoo.prox.Process">Process</a>[<span class="extype" name="io.github.vigoo.prox.Start.startProcess.Out">Out</span>, <span class="extype" name="io.github.vigoo.prox.Start.startProcess.Err">Err</span>, <span class="extype" name="io.github.vigoo.prox.Start.startProcess.OutResult">OutResult</span>, <span class="extype" name="io.github.vigoo.prox.Start.startProcess.ErrResult">ErrResult</span>, <span class="extype" name="io.github.vigoo.prox.Start.startProcess.IRS">IRS</span>, <span class="extype" name="io.github.vigoo.prox.Start.startProcess.ORS">ORS</span>, <span class="extype" name="io.github.vigoo.prox.Start.startProcess.ERS">ERS</span>], <a href="RunningProcess.html" class="extype" name="io.github.vigoo.prox.RunningProcess">RunningProcess</a>[<span class="extype" name="io.github.vigoo.prox.Start.startProcess.Out">Out</span>, <span class="extype" name="io.github.vigoo.prox.Start.startProcess.OutResult">OutResult</span>, <span class="extype" name="io.github.vigoo.prox.Start.startProcess.ErrResult">ErrResult</span>], <span class="extype" name="shapeless.::">::</span>[<a href="RunningProcess.html" class="extype" name="io.github.vigoo.prox.RunningProcess">RunningProcess</a>[<span class="extype" name="io.github.vigoo.prox.Start.startProcess.Out">Out</span>, <span class="extype" name="io.github.vigoo.prox.Start.startProcess.OutResult">OutResult</span>, <span class="extype" name="io.github.vigoo.prox.Start.startProcess.ErrResult">ErrResult</span>], <span class="extype" name="shapeless.HNil">HNil</span>]]</span>
-      </span>
-      
-      
+      <p class="shortcomment cmt">Runs the redirection stream
+</p><div class="fullcomment"><div class="comment cmt"><p>Runs the redirection stream
+</p></div><dl class="paramcmts block"><dt class="param">stream</dt><dd class="cmt"><p>The stream to be executed</p></dd><dt class="param">contextShift</dt><dd class="cmt"><p>Context shifter</p></dd><dt>returns</dt><dd class="cmt"><p>Returns the async result of running the stream</p></dd></dl><dl class="attributes block"> <dt>Definition Classes</dt><dd><a href="" class="extype" name="io.github.vigoo.prox.FlushControlledInputStreamingSource">FlushControlledInputStreamingSource</a> → <a href="ProcessIO.html" class="extype" name="io.github.vigoo.prox.ProcessIO">ProcessIO</a></dd></dl></div>
     </li><li name="scala.AnyRef#synchronized" visbl="pub" class="indented0 " data-isabs="false" fullComment="yes" group="Ungrouped">
       <a id="synchronized[T0](x$1:=&gt;T0):T0"></a><a id="synchronized[T0](⇒T0):T0"></a>
       <span class="permalink">
-      <a href="../../../../io/github/vigoo/prox/Start$.html#synchronized[T0](x$1:=&gt;T0):T0" title="Permalink">
+      <a href="../../../../io/github/vigoo/prox/FlushControlledInputStreamingSource.html#synchronized[T0](x$1:=&gt;T0):T0" title="Permalink">
         <i class="material-icons"></i>
       </a>
     </span>
@@ -751,10 +739,26 @@ simple process, but its <a href="syntax$$ProcessOps.html#start[RP](blockingExecu
       </span>
       
       <div class="fullcomment"><dl class="attributes block"> <dt>Definition Classes</dt><dd>AnyRef</dd></dl></div>
+    </li><li name="io.github.vigoo.prox.FlushControlledInputStreamingSource#toRedirect" visbl="pub" class="indented0 " data-isabs="false" fullComment="yes" group="Ungrouped">
+      <a id="toRedirect:ProcessBuilder.Redirect"></a><a id="toRedirect:Redirect"></a>
+      <span class="permalink">
+      <a href="../../../../io/github/vigoo/prox/FlushControlledInputStreamingSource.html#toRedirect:ProcessBuilder.Redirect" title="Permalink">
+        <i class="material-icons"></i>
+      </a>
+    </span>
+      <span class="modifier_kind">
+        <span class="modifier"></span>
+        <span class="kind">def</span>
+      </span>
+      <span class="symbol">
+        <span class="name">toRedirect</span><span class="result">: <span class="extype" name="java.lang.ProcessBuilder.Redirect">Redirect</span></span>
+      </span>
+      
+      <p class="shortcomment cmt">Gets the redirection mode</p><div class="fullcomment"><div class="comment cmt"><p>Gets the redirection mode</p></div><dl class="attributes block"> <dt>Definition Classes</dt><dd><a href="" class="extype" name="io.github.vigoo.prox.FlushControlledInputStreamingSource">FlushControlledInputStreamingSource</a> → <a href="ProcessIO.html" class="extype" name="io.github.vigoo.prox.ProcessIO">ProcessIO</a></dd></dl></div>
     </li><li name="scala.AnyRef#toString" visbl="pub" class="indented0 " data-isabs="false" fullComment="yes" group="Ungrouped">
       <a id="toString():String"></a>
       <span class="permalink">
-      <a href="../../../../io/github/vigoo/prox/Start$.html#toString():String" title="Permalink">
+      <a href="../../../../io/github/vigoo/prox/FlushControlledInputStreamingSource.html#toString():String" title="Permalink">
         <i class="material-icons"></i>
       </a>
     </span>
@@ -770,7 +774,7 @@ simple process, but its <a href="syntax$$ProcessOps.html#start[RP](blockingExecu
     </li><li name="scala.AnyRef#wait" visbl="pub" class="indented0 " data-isabs="false" fullComment="yes" group="Ungrouped">
       <a id="wait():Unit"></a>
       <span class="permalink">
-      <a href="../../../../io/github/vigoo/prox/Start$.html#wait():Unit" title="Permalink">
+      <a href="../../../../io/github/vigoo/prox/FlushControlledInputStreamingSource.html#wait():Unit" title="Permalink">
         <i class="material-icons"></i>
       </a>
     </span>
@@ -792,7 +796,7 @@ simple process, but its <a href="syntax$$ProcessOps.html#start[RP](blockingExecu
     </li><li name="scala.AnyRef#wait" visbl="pub" class="indented0 " data-isabs="false" fullComment="yes" group="Ungrouped">
       <a id="wait(x$1:Long,x$2:Int):Unit"></a><a id="wait(Long,Int):Unit"></a>
       <span class="permalink">
-      <a href="../../../../io/github/vigoo/prox/Start$.html#wait(x$1:Long,x$2:Int):Unit" title="Permalink">
+      <a href="../../../../io/github/vigoo/prox/FlushControlledInputStreamingSource.html#wait(x$1:Long,x$2:Int):Unit" title="Permalink">
         <i class="material-icons"></i>
       </a>
     </span>
@@ -814,7 +818,7 @@ simple process, but its <a href="syntax$$ProcessOps.html#start[RP](blockingExecu
     </li><li name="scala.AnyRef#wait" visbl="pub" class="indented0 " data-isabs="false" fullComment="yes" group="Ungrouped">
       <a id="wait(x$1:Long):Unit"></a><a id="wait(Long):Unit"></a>
       <span class="permalink">
-      <a href="../../../../io/github/vigoo/prox/Start$.html#wait(x$1:Long):Unit" title="Permalink">
+      <a href="../../../../io/github/vigoo/prox/FlushControlledInputStreamingSource.html#wait(x$1:Long):Unit" title="Permalink">
         <i class="material-icons"></i>
       </a>
     </span>
@@ -835,6 +839,22 @@ simple process, but its <a href="syntax$$ProcessOps.html#start[RP](blockingExecu
     </span>)</span>
               
         </dd></dl></div>
+    </li><li name="io.github.vigoo.prox.FlushControlledInputStreamingSource#writeAndFlushOutputStream" visbl="pub" class="indented0 " data-isabs="false" fullComment="no" group="Ungrouped">
+      <a id="writeAndFlushOutputStream(stream:java.io.OutputStream,blockingExecutionContext:scala.concurrent.ExecutionContext)(implicitcontextShift:cats.effect.ContextShift[cats.effect.IO]):fs2.Pipe[cats.effect.IO,Byte,Unit]"></a><a id="writeAndFlushOutputStream(OutputStream,ExecutionContext)(ContextShift[IO]):Pipe[IO,Byte,Unit]"></a>
+      <span class="permalink">
+      <a href="../../../../io/github/vigoo/prox/FlushControlledInputStreamingSource.html#writeAndFlushOutputStream(stream:java.io.OutputStream,blockingExecutionContext:scala.concurrent.ExecutionContext)(implicitcontextShift:cats.effect.ContextShift[cats.effect.IO]):fs2.Pipe[cats.effect.IO,Byte,Unit]" title="Permalink">
+        <i class="material-icons"></i>
+      </a>
+    </span>
+      <span class="modifier_kind">
+        <span class="modifier"></span>
+        <span class="kind">def</span>
+      </span>
+      <span class="symbol">
+        <span class="name">writeAndFlushOutputStream</span><span class="params">(<span name="stream">stream: <span class="extype" name="java.io.OutputStream">OutputStream</span></span>, <span name="blockingExecutionContext">blockingExecutionContext: <span class="extype" name="scala.concurrent.ExecutionContext">ExecutionContext</span></span>)</span><span class="params">(<span class="implicit">implicit </span><span name="contextShift">contextShift: <span class="extype" name="cats.effect.ContextShift">ContextShift</span>[<span class="extype" name="cats.effect.IO">IO</span>]</span>)</span><span class="result">: <span class="extype" name="fs2.Pipe">Pipe</span>[<span class="extype" name="cats.effect.IO">IO</span>, <span class="extype" name="scala.Byte">Byte</span>, <span class="extype" name="scala.Unit">Unit</span>]</span>
+      </span>
+      
+      
     </li>
               </ol>
             </div>
@@ -845,7 +865,11 @@ simple process, but its <a href="syntax$$ProcessOps.html#start[RP](blockingExecu
         </div>
 
         <div id="inheritedMembers">
-        <div class="parent" name="scala.AnyRef">
+        <div class="parent" name="io.github.vigoo.prox.ProcessInputSource">
+              <h3>Inherited from <a href="ProcessInputSource.html" class="extype" name="io.github.vigoo.prox.ProcessInputSource">ProcessInputSource</a></h3>
+            </div><div class="parent" name="io.github.vigoo.prox.ProcessIO">
+              <h3>Inherited from <a href="ProcessIO.html" class="extype" name="io.github.vigoo.prox.ProcessIO">ProcessIO</a>[<span class="extype" name="scala.Byte">Byte</span>, <span class="extype" name="scala.Unit">Unit</span>]</h3>
+            </div><div class="parent" name="scala.AnyRef">
               <h3>Inherited from <span class="extype" name="scala.AnyRef">AnyRef</span></h3>
             </div><div class="parent" name="scala.Any">
               <h3>Inherited from <span class="extype" name="scala.Any">Any</span></h3>
