@@ -41,6 +41,9 @@ class ProcessSpecs extends Specification { def is = s2"""
     be killed                                                       $killSignal
     be executed with custom environment variables                   $customEnvVariables
 
+  Stream input sources can be
+    marked to be flushed per chunks                                 $flushChunks
+
   Stream output targets can be
     folded automatically for monoids                                $outFoldMonoid
     logged automatically for non monoids                            $outLogNonMonoid
@@ -143,6 +146,16 @@ class ProcessSpecs extends Specification { def is = s2"""
     val source = Stream("This is a test string").through(text.utf8Encode)
     val program = for {
       running <- (Process("wc", List("-w")) < source > text.utf8Decode[IO]).start(blockingExecutionContext)
+      result <- running.waitForExit()
+    } yield result.fullOutput.trim
+
+    program.unsafeRunSync() must beEqualTo("5")
+  }
+
+  def flushChunks = {
+    val source: Stream[IO, Byte] = Stream("This ", "is a test", " string").through(text.utf8Encode)
+    val program = for {
+      running <- (Process("wc", List("-w")) < FlushChunks(source) > text.utf8Decode[IO]).start(blockingExecutionContext)
       result <- running.waitForExit()
     } yield result.fullOutput.trim
 
