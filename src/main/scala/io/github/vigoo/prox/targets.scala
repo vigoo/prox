@@ -263,7 +263,7 @@ class FileTarget(path: Path) extends ProcessOutputTarget[Byte, Unit] with Proces
   * @param chunkSize Chunk size
   * @tparam Out      Stream output element type
   */
-abstract class OutputStreamingTargetBase[Out](target: Pipe[IO, Byte, Out], chunkSize: Int = 4096) {
+abstract class OutputStreamingTargetBase[Out](target: Pipe[IO, Byte, Out], chunkSize: Int = 8192) {
 
   def toRedirect: Redirect = Redirect.PIPE
   def connect(systemProcess: lang.Process, blockingExecutionContext: ExecutionContext)(implicit contextShift: ContextShift[IO]): Stream[IO, Out] = {
