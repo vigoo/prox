@@ -1,7 +1,7 @@
 name := "prox"
 organization := "io.github.vigoo"
 
-version := "0.3"
+version := "0.4-SNAPSHOT"
 
 scalaVersion := "2.12.7"
 
