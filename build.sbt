@@ -6,7 +6,7 @@ version := "0.4-SNAPSHOT"
 scalaVersion := "2.12.7"
 
 libraryDependencies ++= Seq(
-  "org.typelevel" %% "cats-effect" % "1.3.0",
+  "org.typelevel" %% "cats-effect" % "1.3.1",
   "co.fs2" %% "fs2-core" % "1.0.4",
   "co.fs2" %% "fs2-io" % "1.0.4",
   "com.chuusai" %% "shapeless" % "2.3.3",
