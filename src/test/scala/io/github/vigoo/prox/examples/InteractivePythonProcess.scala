@@ -1,24 +1,19 @@
 package io.github.vigoo.prox.examples
 
-import cats.implicits._
-import io.github.vigoo.prox._
-import io.github.vigoo.prox.syntax._
-import io.github.vigoo.prox.path._
 import java.nio.file.{Path, Paths}
-import java.util.concurrent.Executors
 
-import cats.effect.{ExitCode, IO, IOApp}
+import cats.effect.{Blocker, ExitCode, IO, IOApp}
+import cats.implicits._
 import fs2.concurrent.Queue
+import io.github.vigoo.prox._
+import io.github.vigoo.prox.path._
+import io.github.vigoo.prox.syntax._
 import fs2._
-
-import scala.concurrent.{ExecutionContext, ExecutionContextExecutor}
 
 /**
   * Example showing how to communicate with an interactive REPL implemented in Python
   */
 object InteractivePythonProcess extends IOApp {
-  val blockingExecutionContext: ExecutionContextExecutor = ExecutionContext.fromExecutor(Executors.newCachedThreadPool())
-
   def println(s: String): IO[Unit] =
     IO(Predef.println(s))
 
@@ -40,36 +35,38 @@ object InteractivePythonProcess extends IOApp {
   }
 
   def startExternalProcess(workingDir: Path, virtualenvRoot: Path, scriptPath: Path): IO[ExternalProcess] = {
-    for {
-      inputQueue <- Queue.unbounded[IO, String]       // queue storing commands to be sent
-      outputQueue <- Queue.noneTerminated[IO, String] // queue storing answers from the process, None represents end of stream
+    Blocker[IO].use { blocker =>
+      for {
+        inputQueue <- Queue.unbounded[IO, String] // queue storing commands to be sent
+        outputQueue <- Queue.noneTerminated[IO, String] // queue storing answers from the process, None represents end of stream
 
-      // input and output are the byte streams connectable to the prox Process
-      input = inputQueue.dequeue.through(text.utf8Encode)
-      output = text.utf8Decode
-        .andThen((s: Stream[IO, String]) => s.through(text.lines))
-        .andThen(_.noneTerminate)
-        .andThen(outputQueue.enqueue)
+        // input and output are the byte streams connectable to the prox Process
+        input = inputQueue.dequeue.through(text.utf8Encode)
+        output = text.utf8Decode
+          .andThen((s: Stream[IO, String]) => s.through(text.lines))
+          .andThen(_.noneTerminate)
+          .andThen(outputQueue.enqueue)
 
-      // Input uses the FlushChunks modifier to avoid flush after each chunk (default buffer size in JRE is 8k)
-      process = (pythonProcess(virtualenvRoot, scriptPath) in workingDir) < FlushChunks(input) > output
+        // Input uses the FlushChunks modifier to avoid flush after each chunk (default buffer size in JRE is 8k)
+        process = (pythonProcess(virtualenvRoot, scriptPath) in workingDir) < FlushChunks(input) > output
 
-      _ <- println("Starting external process...")
-      python <- process.start(blockingExecutionContext)
+        _ <- println("Starting external process...")
+        python <- process.start(blocker)
 
-      // The external process pipe uses the two defined queues as an interface
-      pipe = (s: Stream[IO, String]) => s.through(inputQueue.enqueue).flatMap(_ => outputQueue.dequeue)
-    } yield new ExternalProcess {
-      override def sendAndReceive(message: String): IO[String] =
+        // The external process pipe uses the two defined queues as an interface
+        pipe = (s: Stream[IO, String]) => s.through(inputQueue.enqueue).flatMap(_ => outputQueue.dequeue)
+      } yield new ExternalProcess {
+        override def sendAndReceive(message: String): IO[String] =
         // Sending a single \n terminated command and waiting until a single line answer arrives
-        Stream.emit(message + "\n").through(pipe).take(1).compile.toList.map(_.head)
+          Stream.emit(message + "\n").through(pipe).take(1).compile.toList.map(_.head)
 
-      override def stop(): IO[ExitCode] =
-        for {
-          // We assume that empty line triggers termination in the extenral process
-          _ <- Stream.emit("\n").through(pipe).compile.drain
-          result <- python.waitForExit()
-        } yield ExitCode(result.exitCode)
+        override def stop(): IO[ExitCode] =
+          for {
+            // We assume that empty line triggers termination in the extenral process
+            _ <- Stream.emit("\n").through(pipe).compile.drain
+            result <- python.waitForExit()
+          } yield ExitCode(result.exitCode)
+      }
     }
   }
 

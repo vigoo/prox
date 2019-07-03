@@ -169,10 +169,12 @@ class ProcessSpecs extends Specification { def is = s2"""
 
   def flushChunks = {
     val source: Stream[IO, Byte] = Stream("This ", "is a test", " string").through(text.utf8Encode)
-    val program = for {
-      running <- (Process("wc", List("-w")) < FlushChunks(source) > text.utf8Decode[IO]).start(blockingExecutionContext)
-      result <- running.waitForExit()
-    } yield result.fullOutput.trim
+    val program = Blocker[IO].use { blocker =>
+      for {
+        running <- (Process("wc", List("-w")) < FlushChunks(source) > text.utf8Decode[IO]).start(blocker)
+        result <- running.waitForExit()
+      } yield result.fullOutput.trim
+    }
 
     program.unsafeRunSync() must beEqualTo("5")
   }
