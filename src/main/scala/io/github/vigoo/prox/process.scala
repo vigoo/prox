@@ -3,7 +3,7 @@ package io.github.vigoo.prox
 import java.lang.ProcessBuilder.Redirect
 import java.nio.file.Path
 
-import cats.effect.{ContextShift, Fiber, IO}
+import cats.effect.{Blocker, ContextShift, Fiber, IO}
 import fs2._
 
 import scala.concurrent.ExecutionContext
@@ -34,11 +34,11 @@ trait ProcessIO[O, R] {
   /** Sets up the redirection on the given system process
     *
     * @param systemProcess            The process to connect to
-    * @param blockingExecutionContext The execution context on which the blocking IO stream reads/writes will be executed
+    * @param blocker                  The execution context on which the blocking IO stream reads/writes will be executed
     * @param contextShift             Context shifter
     * @return Returns the not yet started redirection stream
     */
-  def connect(systemProcess: java.lang.Process, blockingExecutionContext: ExecutionContext)(implicit contextShift: ContextShift[IO]): Stream[IO, O]
+  def connect(systemProcess: java.lang.Process, blocker: Blocker)(implicit contextShift: ContextShift[IO]): Stream[IO, O]
 
   /** Runs the redirection stream
     *

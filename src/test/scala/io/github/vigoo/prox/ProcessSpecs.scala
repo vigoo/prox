@@ -4,7 +4,7 @@ import java.io.File
 import java.nio.file.{Files, Paths}
 import java.util.concurrent.Executors
 
-import cats.effect.{ContextShift, IO}
+import cats.effect.{Blocker, ContextShift, IO}
 import cats.implicits._
 import fs2._
 import org.specs2.Specification
@@ -64,87 +64,102 @@ class ProcessSpecs extends Specification { def is = s2"""
   """
 
   implicit val contextShift: ContextShift[IO] = IO.contextShift(ExecutionContext.global)
-  val blockingExecutionContext = ExecutionContext.fromExecutor(Executors.newCachedThreadPool())
 
   def simpleProcessGetExitCode = {
-    val program = for {
-      trueRunning <- Process("true").start(blockingExecutionContext)
-      falseRunning <- Process("false").start(blockingExecutionContext)
-      trueResult <- trueRunning.waitForExit()
-      falseResult <- falseRunning.waitForExit()
-    } yield (trueResult.exitCode, falseResult.exitCode)
+    val program = Blocker[IO].use { blocker =>
+      for {
+        trueRunning <- Process("true").start(blocker)
+        falseRunning <- Process("false").start(blocker)
+        trueResult <- trueRunning.waitForExit()
+        falseResult <- falseRunning.waitForExit()
+      } yield (trueResult.exitCode, falseResult.exitCode)
+    }
     program.unsafeRunSync() must beEqualTo((0, 1))
   }
 
   def workingDirectoryWorks = {
     val tempDirectory = Files.createTempDirectory("prox")
-    val program = for {
-      pwdRunning <- ((Process("pwd") in tempDirectory) > text.utf8Decode[IO]).start(blockingExecutionContext)
-      pwdResult <- pwdRunning.waitForExit()
-    } yield pwdResult.fullOutput.trim
+    val program = Blocker[IO].use { blocker =>
+      for {
+        pwdRunning <- ((Process("pwd") in tempDirectory) > text.utf8Decode[IO]).start(blocker)
+        pwdResult <- pwdRunning.waitForExit()
+      } yield pwdResult.fullOutput.trim
+    }
 
     program.unsafeRunSync() must beOneOf(tempDirectory.toString, s"/private${tempDirectory}")
   }
 
   def simpleProcessFileOutput = {
     val tempFile = File.createTempFile("test", "txt")
-    val program = for {
-      running <- (Process("echo", List("Hello world!")) > tempFile.toPath).start(blockingExecutionContext)
-      _ <- running.waitForExit()
-      contents <- io.file.readAll[IO](tempFile.toPath, ExecutionContext.global, 1024).through(text.utf8Decode).compile.foldMonoid
-    } yield contents
+    val program = Blocker[IO].use { blocker =>
+      for {
+        running <- (Process("echo", List("Hello world!")) > tempFile.toPath).start(blocker)
+        _ <- running.waitForExit()
+        contents <- io.file.readAll[IO](tempFile.toPath, blocker, 1024).through(text.utf8Decode).compile.foldMonoid
+      } yield contents
+    }
 
     program.unsafeRunSync() must beEqualTo("Hello world!\n")
   }
 
   def simpleProcessStreamOutput = {
-    val program = for {
-      running <- (Process("echo", List("Hello world!")) > text.utf8Decode[IO]).start(blockingExecutionContext)
-      result <- running.waitForExit()
-    } yield result.fullOutput
+    val program = Blocker[IO].use { blocker =>
+      for {
+        running <- (Process("echo", List("Hello world!")) > text.utf8Decode[IO]).start(blocker)
+        result <- running.waitForExit()
+      } yield result.fullOutput
+    }
 
     program.unsafeRunSync() must beEqualTo("Hello world!\n")
   }
 
   def simpleProcessSinkOutput = {
-    val builder = StringBuilder.newBuilder
+    val builder = new StringBuilder()
 
     val target: Pipe[IO, Byte, Unit] = _.evalMap(byte => IO { builder.append(byte.toChar) }.void)
-    val program = for {
-      running <- (Process("echo", List("Hello world!")) > target).start(blockingExecutionContext)
-      _ <- running.waitForExit()
-    } yield builder.toString()
+    val program = Blocker[IO].use { blocker =>
+      for {
+        running <- (Process("echo", List("Hello world!")) > target).start(blocker)
+        _ <- running.waitForExit()
+      } yield builder.toString()
+    }
 
     program.unsafeRunSync() must beEqualTo("Hello world!\n")
   }
 
   def simpleProcessStreamError = {
-    val program = for {
-      running <- (Process("perl", List("-e", """print STDERR "Hello"""")) redirectErrorTo text.utf8Decode[IO]).start(blockingExecutionContext)
-      result <- running.waitForExit()
-    } yield result.fullError
+    val program = Blocker[IO].use { blocker =>
+      for {
+        running <- (Process("perl", List("-e", """print STDERR "Hello"""")) redirectErrorTo text.utf8Decode[IO]).start(blocker)
+        result <- running.waitForExit()
+      } yield result.fullError
+    }
 
     program.unsafeRunSync() must beEqualTo("Hello")
   }
 
   def simpleProcessSinkError = {
-    val builder = StringBuilder.newBuilder
+    val builder = new StringBuilder()
 
     val target: Pipe[IO, Byte, Unit] = _.evalMap(byte => IO { builder.append(byte.toChar) }.void)
-    val program = for {
-      running <- (Process("perl", List("-e", """print STDERR "Hello"""")) redirectErrorTo target).start(blockingExecutionContext)
-      _ <- running.waitForExit()
-    } yield builder.toString
+    val program = Blocker[IO].use { blocker =>
+      for {
+        running <- (Process("perl", List("-e", """print STDERR "Hello"""")) redirectErrorTo target).start(blocker)
+        _ <- running.waitForExit()
+      } yield builder.toString
+    }
 
     program.unsafeRunSync() must beEqualTo("Hello")
   }
 
   def simpleProcessStreamInput = {
     val source = Stream("This is a test string").through(text.utf8Encode)
-    val program = for {
-      running <- (Process("wc", List("-w")) < source > text.utf8Decode[IO]).start(blockingExecutionContext)
-      result <- running.waitForExit()
-    } yield result.fullOutput.trim
+    val program = Blocker[IO].use { blocker =>
+      for {
+        running <- (Process("wc", List("-w")) < source > text.utf8Decode[IO]).start(blocker)
+        result <- running.waitForExit()
+      } yield result.fullOutput.trim
+    }
 
     program.unsafeRunSync() must beEqualTo("5")
   }
@@ -153,12 +168,14 @@ class ProcessSpecs extends Specification { def is = s2"""
     val tempFile = Files.createTempFile("prox", "txt")
     Files.write(tempFile, "This is a test string".getBytes("UTF-8"))
     val pipedProcess = Process("cat") | Process("wc", List("-w"))
-    val program = for {
-      runningProcesses <- (pipedProcess < tempFile > text.utf8Decode[IO]).start(blockingExecutionContext)
-      (runningCat, runningWc) = runningProcesses
-      _ <- runningCat.waitForExit()
-      wcResult <- runningWc.waitForExit()
-    } yield wcResult.fullOutput.trim
+    val program = Blocker[IO].use { blocker =>
+      for {
+        runningProcesses <- (pipedProcess < tempFile > text.utf8Decode[IO]).start(blocker)
+        (runningCat, runningWc) = runningProcesses
+        _ <- runningCat.waitForExit()
+        wcResult <- runningWc.waitForExit()
+      } yield wcResult.fullOutput.trim
+    }
 
     program.unsafeRunSync() must beEqualTo("5")
   }
@@ -166,33 +183,39 @@ class ProcessSpecs extends Specification { def is = s2"""
   def pipedProcessStreamInput = {
     val source: Stream[IO, Byte] = Stream("This is a test string").through(text.utf8Encode)
     val pipedProcess = Process("cat") | Process("wc", List("-w"))
-    val program = for {
-      runningProcesses <- (pipedProcess < source > text.utf8Decode[IO]).start(blockingExecutionContext)
-      (runningCat, runningWc) = runningProcesses
-      _ <- runningCat.waitForExit()
-      wcResult <- runningWc.waitForExit()
-    } yield wcResult.fullOutput.trim
+    val program = Blocker[IO].use { blocker =>
+      for {
+        runningProcesses <- (pipedProcess < source > text.utf8Decode[IO]).start(blocker)
+        (runningCat, runningWc) = runningProcesses
+        _ <- runningCat.waitForExit()
+        wcResult <- runningWc.waitForExit()
+      } yield wcResult.fullOutput.trim
+    }
 
     program.unsafeRunSync() must beEqualTo("5")
   }
 
   def pipedProcessStreamError = {
-    val program = for {
-      rps <- ((Process("true") | Process("perl", List("-e", """print STDERR "Hello""""))) redirectErrorTo text.utf8Decode[IO]).start(blockingExecutionContext)
-      (_, running) = rps
-      result <- running.waitForExit()
-    } yield result.fullError
+    val program = Blocker[IO].use { blocker =>
+      for {
+        rps <- ((Process("true") | Process("perl", List("-e", """print STDERR "Hello""""))) redirectErrorTo text.utf8Decode[IO]).start(blocker)
+        (_, running) = rps
+        result <- running.waitForExit()
+      } yield result.fullError
+    }
 
     program.unsafeRunSync() must beEqualTo("Hello")
   }
 
   def simpleProcessPiping = {
-    val program = for {
-      rps <- (Process("echo", List("This is a test string")) | (Process("wc", List("-w")) > text.utf8Decode[IO])).start(blockingExecutionContext)
-      (runningEcho, runningWc) = rps
-      _ <- runningEcho.waitForExit()
-      wcResult <- runningWc.waitForExit()
-    } yield wcResult.fullOutput.trim
+    val program = Blocker[IO].use { blocker =>
+      for {
+        rps <- (Process("echo", List("This is a test string")) | (Process("wc", List("-w")) > text.utf8Decode[IO])).start(blocker)
+        (runningEcho, runningWc) = rps
+        _ <- runningEcho.waitForExit()
+        wcResult <- runningWc.waitForExit()
+      } yield wcResult.fullOutput.trim
+    }
 
     program.unsafeRunSync() must beEqualTo("5")
   }
@@ -207,98 +230,120 @@ class ProcessSpecs extends Specification { def is = s2"""
         .intersperse("\n")
         .through(text.utf8Encode)
 
-    val program = for {
-      rps <- (Process("echo", List("This is a test string")).via(customPipe).to(Process("wc", List("-w")) > text.utf8Decode[IO])).start(blockingExecutionContext)
-      (runningEcho, runningWc) = rps
-      _ <- runningEcho.waitForExit()
-      wcResult <- runningWc.waitForExit()
-    } yield wcResult.fullOutput.trim
+    val program = Blocker[IO].use { blocker =>
+      for {
+        rps <- (Process("echo", List("This is a test string")).via(customPipe).to(Process("wc", List("-w")) > text.utf8Decode[IO])).start(blocker)
+        (runningEcho, runningWc) = rps
+        _ <- runningEcho.waitForExit()
+        wcResult <- runningWc.waitForExit()
+      } yield wcResult.fullOutput.trim
+    }
 
     program.unsafeRunSync() must beEqualTo("11")
   }
 
   def simpleProcessPipingHList = {
-    val program = for {
-      rpHL <- (Process("echo", List("This is a test string")) | (Process("wc", List("-w")) > text.utf8Decode[IO])).startHL(blockingExecutionContext)
-      runningEcho = rpHL.head
-      runningWc = rpHL.tail.head
-      _ <- runningEcho.waitForExit()
-      wcResult <- runningWc.waitForExit()
-    } yield wcResult.fullOutput.trim
+    val program = Blocker[IO].use { blocker =>
+      for {
+        rpHL <- (Process("echo", List("This is a test string")) | (Process("wc", List("-w")) > text.utf8Decode[IO])).startHL(blocker)
+        runningEcho = rpHL.head
+        runningWc = rpHL.tail.head
+        _ <- runningEcho.waitForExit()
+        wcResult <- runningWc.waitForExit()
+      } yield wcResult.fullOutput.trim
+    }
 
     program.unsafeRunSync() must beEqualTo("5")
   }
 
   def multiProcessPiping = {
-    val program = for {
-      rps <- (Process("echo", List("cat\ncat\ndog\napple")) | Process("sort") | (Process("uniq", List("-c")) > text.utf8Decode[IO])).start(blockingExecutionContext)
-      (runningEcho, runningSort, runningUniq) = rps
-      _ <- runningEcho.waitForExit()
-      _ <- runningSort.waitForExit()
-      uniqResult <- runningUniq.waitForExit()
-    } yield uniqResult.fullOutput.lines.map(_.trim).toList
+    val program = Blocker[IO].use { blocker =>
+      for {
+        rps <- (Process("echo", List("cat\ncat\ndog\napple")) | Process("sort") | (Process("uniq", List("-c")) > text.utf8Decode[IO])).start(blocker)
+        (runningEcho, runningSort, runningUniq) = rps
+        _ <- runningEcho.waitForExit()
+        _ <- runningSort.waitForExit()
+        uniqResult <- runningUniq.waitForExit()
+      } yield uniqResult.fullOutput.linesIterator.map(_.trim).toList
+    }
 
     program.unsafeRunSync() must beEqualTo(List("1 apple", "2 cat", "1 dog"))
   }
 
   def multiProcessPipingWithErrorRedir = {
     val errorTarget = ToVector(text.utf8Decode[IO].andThen(text.lines[IO]))
-    val program = for {
-      rps <- ((Process("perl", List("-e", """print STDERR "Hello\nworld"""")) redirectErrorTo errorTarget) | (Process("sort") redirectErrorTo errorTarget) | (Process("uniq", List("-c")) redirectErrorTo errorTarget)).start(blockingExecutionContext)
-      (runningPerl, runningSort, runningUniq) = rps
-      perlResult <- runningPerl.waitForExit()
-      sortResult <- runningSort.waitForExit()
-      uniqResult <- runningUniq.waitForExit()
-    } yield (perlResult.fullError, sortResult.fullError, uniqResult.fullError)
+    val program = Blocker[IO].use { blocker =>
+      for {
+        rps <- ((Process("perl", List("-e", """print STDERR "Hello\nworld"""")) redirectErrorTo errorTarget) | (Process("sort") redirectErrorTo errorTarget) | (Process("uniq", List("-c")) redirectErrorTo errorTarget)).start(blocker)
+        (runningPerl, runningSort, runningUniq) = rps
+        perlResult <- runningPerl.waitForExit()
+        sortResult <- runningSort.waitForExit()
+        uniqResult <- runningUniq.waitForExit()
+      } yield (perlResult.fullError, sortResult.fullError, uniqResult.fullError)
+    }
 
     program.unsafeRunSync() must beEqualTo((Vector("Hello", "world"), Vector.empty, Vector.empty))
   }
 
   def isAlive = {
-    val program = for {
-      running <- Process("sleep", List("10")).start(blockingExecutionContext)
-      isAliveBefore <- running.isAlive
-      _ <- running.terminate()
-      isAliveAfter <- running.isAlive
-    } yield (isAliveBefore, isAliveAfter)
+    val program = Blocker[IO].use { blocker =>
+      for {
+        running <- Process("sleep", List("10")).start(blocker)
+        isAliveBefore <- running.isAlive
+        _ <- running.terminate()
+        isAliveAfter <- running.isAlive
+      } yield (isAliveBefore, isAliveAfter)
+    }
 
     program.unsafeRunSync() must beEqualTo((true, false))
   }
 
   def terminateSignal = {
-    val program = for {
-      running <- Process("perl", List("-e", """$SIG{TERM} = sub { exit 1 }; sleep 30; exit 0""")).start(blockingExecutionContext)
-      _ <- IO { Thread.sleep(250); }
-      result <- running.terminate()
-    } yield (result.exitCode)
+    val program = Blocker[IO].use { blocker =>
+      for {
+        running <- Process("perl", List("-e", """$SIG{TERM} = sub { exit 1 }; sleep 30; exit 0""")).start(blocker)
+        _ <- IO {
+          Thread.sleep(250);
+        }
+        result <- running.terminate()
+      } yield (result.exitCode)
+    }
 
     program.unsafeRunSync() must beEqualTo(1)
   }
 
   def killSignal = {
-    val program = for {
-      running <- Process("perl", List("-e", """$SIG{TERM} = 'IGNORE'; sleep 30; exit 2""")).start(blockingExecutionContext)
-      _ <- IO { Thread.sleep(250); }
-      result <- running.kill()
-    } yield (result.exitCode)
+    val program = Blocker[IO].use { blocker =>
+      for {
+        running <- Process("perl", List("-e", """$SIG{TERM} = 'IGNORE'; sleep 30; exit 2""")).start(blocker)
+        _ <- IO {
+          Thread.sleep(250);
+        }
+        result <- running.kill()
+      } yield (result.exitCode)
+    }
 
     program.unsafeRunSync() must beEqualTo(137)
   }
 
   def customEnvVariables = {
-    val program = for {
-      running <- ((Process("sh", List("-c", "echo \"Hello $TEST1! I am $TEST2!\"")) `with` ("TEST1" -> "world") `with` ("TEST2" -> "prox")) > text.utf8Decode[IO]).start(blockingExecutionContext)
-      result <- running.waitForExit()
-    } yield result.fullOutput
+    val program = Blocker[IO].use { blocker =>
+      for {
+        running <- ((Process("sh", List("-c", "echo \"Hello $TEST1! I am $TEST2!\"")) `with` ("TEST1" -> "world") `with` ("TEST2" -> "prox")) > text.utf8Decode[IO]).start(blocker)
+        result <- running.waitForExit()
+      } yield result.fullOutput
+    }
 
     program.unsafeRunSync() must beEqualTo("Hello world! I am prox!\n")
   }
 
   def outFoldMonoid = {
-    val program = for {
-      running <- (Process("echo", List("Hello\nworld!")) > text.utf8Decode[IO].andThen(text.lines[IO])).start(blockingExecutionContext)
-      result <- running.waitForExit()
-    } yield result.fullOutput
+    val program = Blocker[IO].use { blocker =>
+      for {
+        running <- (Process("echo", List("Hello\nworld!")) > text.utf8Decode[IO].andThen(text.lines[IO])).start(blocker)
+        result <- running.waitForExit()
+      } yield result.fullOutput
+    }
 
     program.unsafeRunSync() must beEqualTo("Helloworld!")
   }
@@ -306,84 +351,102 @@ class ProcessSpecs extends Specification { def is = s2"""
   case class StringLength(value: Int)
 
   def outLogNonMonoid = {
-    val program = for {
-      running <- (Process("echo", List("Hello\nworld!")) > text.utf8Decode[IO].andThen(text.lines[IO]).andThen(_.map(s => StringLength(s.length)))).start(blockingExecutionContext)
-      result <- running.waitForExit()
-    } yield result.fullOutput
+    val program = Blocker[IO].use { blocker =>
+      for {
+        running <- (Process("echo", List("Hello\nworld!")) > text.utf8Decode[IO].andThen(text.lines[IO]).andThen(_.map(s => StringLength(s.length)))).start(blocker)
+        result <- running.waitForExit()
+      } yield result.fullOutput
+    }
 
     program.unsafeRunSync() must beEqualTo(Vector(StringLength(5), StringLength(6), StringLength(0)))
   }
 
   def outLogMonoid = {
-    val program = for {
-      running <- (Process("echo", List("Hello\nworld!")) > ToVector(text.utf8Decode[IO].andThen(text.lines[IO]).andThen(_.map(_.length)))).start(blockingExecutionContext)
-      result <- running.waitForExit()
-    } yield result.fullOutput
+    val program = Blocker[IO].use { blocker =>
+      for {
+        running <- (Process("echo", List("Hello\nworld!")) > ToVector(text.utf8Decode[IO].andThen(text.lines[IO]).andThen(_.map(_.length)))).start(blocker)
+        result <- running.waitForExit()
+      } yield result.fullOutput
+    }
 
     program.unsafeRunSync() must beEqualTo(Vector(5, 6, 0))
   }
 
   def outIgnore = {
-    val program = for {
-      running <- (Process("echo", List("Hello\nworld!")) > Drain(text.utf8Decode[IO].andThen(text.lines[IO]))).start(blockingExecutionContext)
-      result <- running.waitForExit()
-    } yield result.fullOutput
+    val program = Blocker[IO].use { blocker =>
+      for {
+        running <- (Process("echo", List("Hello\nworld!")) > Drain(text.utf8Decode[IO].andThen(text.lines[IO]))).start(blocker)
+        result <- running.waitForExit()
+      } yield result.fullOutput
+    }
 
     program.unsafeRunSync() must beEqualTo(())
   }
 
   def outCustomFold = {
-    val program = for {
-      running <- (Process("echo", List("Hello\nworld!")) >
-        Fold(text.utf8Decode[IO].andThen(text.lines[IO]), Vector.empty, (l: Vector[Option[Char]], s: String) => l :+ s.headOption)).start(blockingExecutionContext)
-      result <- running.waitForExit()
-    } yield result.fullOutput
+    val program = Blocker[IO].use { blocker =>
+      for {
+        running <- (Process("echo", List("Hello\nworld!")) >
+          Fold(text.utf8Decode[IO].andThen(text.lines[IO]), Vector.empty, (l: Vector[Option[Char]], s: String) => l :+ s.headOption)).start(blocker)
+        result <- running.waitForExit()
+      } yield result.fullOutput
+    }
 
     program.unsafeRunSync() must beEqualTo(Vector(Some('H'), Some('w'), None))
   }
 
   def errFoldMonoid = {
-    val program = for {
-      running <- (Process("perl", List("-e", "print STDERR 'Hello\nworld!\n'")) redirectErrorTo text.utf8Decode[IO].andThen(text.lines[IO])).start(blockingExecutionContext)
+    val program = Blocker[IO].use { blocker =>
+      for {
+        running <- (Process("perl", List("-e", "print STDERR 'Hello\nworld!\n'")) redirectErrorTo text.utf8Decode[IO].andThen(text.lines[IO])).start(blocker)
         result <- running.waitForExit()
-    } yield result.fullError
+      } yield result.fullError
+    }
 
     program.unsafeRunSync() must beEqualTo("Helloworld!")
   }
 
   def errLogNonMonoid = {
-    val program = for {
-      running <- (Process("perl", List("-e", "print STDERR 'Hello\nworld!\n'")) redirectErrorTo text.utf8Decode[IO].andThen(text.lines[IO]).andThen(_.map(s => StringLength(s.length)))).start(blockingExecutionContext)
-      result <- running.waitForExit()
-    } yield result.fullError
+    val program = Blocker[IO].use { blocker =>
+      for {
+        running <- (Process("perl", List("-e", "print STDERR 'Hello\nworld!\n'")) redirectErrorTo text.utf8Decode[IO].andThen(text.lines[IO]).andThen(_.map(s => StringLength(s.length)))).start(blocker)
+        result <- running.waitForExit()
+      } yield result.fullError
+    }
 
     program.unsafeRunSync() must beEqualTo(Vector(StringLength(5), StringLength(6), StringLength(0)))
   }
 
   def errLogMonoid = {
-    val program = for {
-      running <- (Process("perl", List("-e", "print STDERR 'Hello\nworld!\n'")) redirectErrorTo ToVector(text.utf8Decode[IO].andThen(text.lines[IO]).andThen(_.map(_.length)))).start(blockingExecutionContext)
-      result <- running.waitForExit()
-    } yield result.fullError
+    val program = Blocker[IO].use { blocker =>
+      for {
+        running <- (Process("perl", List("-e", "print STDERR 'Hello\nworld!\n'")) redirectErrorTo ToVector(text.utf8Decode[IO].andThen(text.lines[IO]).andThen(_.map(_.length)))).start(blocker)
+        result <- running.waitForExit()
+      } yield result.fullError
+    }
 
     program.unsafeRunSync() must beEqualTo(Vector(5, 6, 0))
   }
 
   def errIgnore = {
-    val program = for {
-      running <- (Process("perl", List("-e", "print STDERR 'Hello\nworld!\n'")) redirectErrorTo Drain(text.utf8Decode[IO].andThen(text.lines[IO]))).start(blockingExecutionContext)
-      result <- running.waitForExit()
-    } yield result.fullError
+    val program = Blocker[IO].use { blocker =>
+      for {
+        running <- (Process("perl", List("-e", "print STDERR 'Hello\nworld!\n'")) redirectErrorTo Drain(text.utf8Decode[IO].andThen(text.lines[IO]))).start(blocker)
+        result <- running.waitForExit()
+      } yield result.fullError
+    }
 
     program.unsafeRunSync() must beEqualTo(())
   }
 
   def errCustomFold = {
-    val program = for {
-      running <- (Process("perl", List("-e", "print STDERR 'Hello\nworld!\n'")) redirectErrorTo
-        Fold(text.utf8Decode[IO].andThen(text.lines[IO]), Vector.empty, (l: Vector[Option[Char]], s: String) => l :+ s.headOption)).start(blockingExecutionContext)
-      result <- running.waitForExit()
-    } yield result.fullError
+    val program = Blocker[IO].use { blocker =>
+      for {
+        running <- (Process("perl", List("-e", "print STDERR 'Hello\nworld!\n'")) redirectErrorTo
+          Fold(text.utf8Decode[IO].andThen(text.lines[IO]), Vector.empty, (l: Vector[Option[Char]], s: String) => l :+ s.headOption)).start(blocker)
+        result <- running.waitForExit()
+      } yield result.fullError
+    }
 
     program.unsafeRunSync() must beEqualTo(Vector(Some('H'), Some('w'), None))
   }

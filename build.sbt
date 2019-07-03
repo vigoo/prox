@@ -1,23 +1,36 @@
 name := "prox"
 organization := "io.github.vigoo"
 
-version := "0.2.2-SNAPSHOT"
+version := "0.3.0-SNAPSHOT"
 
-scalaVersion := "2.12.7"
+val scala212 = "2.12.8"
+val scala213 = "2.13.0"
+
+scalaVersion := scala213
+crossScalaVersions := List(scala212, scala213)
 
 libraryDependencies ++= Seq(
-  "org.typelevel" %% "cats-effect" % "1.2.0",
-  "co.fs2" %% "fs2-core" % "1.0.4",
-  "co.fs2" %% "fs2-io" % "1.0.4",
+  "org.typelevel" %% "cats-effect" % "2.0.0-M4",
+  "co.fs2" %% "fs2-core" % "1.1.0-M1",
+  "co.fs2" %% "fs2-io" % "1.1.0-M1",
   "com.chuusai" %% "shapeless" % "2.3.3",
+  "org.scala-lang.modules" %% "scala-collection-compat" % "2.0.0",
 
-  "org.specs2" %% "specs2-core" % "4.5.1" % "test"
+  "org.specs2" %% "specs2-core" % "4.6.0" % "test"
 )
 
 coverageEnabled in(Test, compile) := true
 coverageEnabled in(Compile, compile) := false
 
-scalacOptions ++= Seq("-Ypartial-unification", "-deprecation")
+val scalacOptions212 = Seq("-Ypartial-unification", "-deprecation")
+val scalacOptions213 = Seq("-deprecation")
+
+scalacOptions ++= (CrossVersion.partialVersion(scalaVersion.value) match {
+  case Some((2, 12)) => scalacOptions212
+  case Some((2, 13)) => scalacOptions213
+  case _ => Nil
+})
+
 scalacOptions in Test ++= Seq("-Yrangepos")
 
 // Publishing

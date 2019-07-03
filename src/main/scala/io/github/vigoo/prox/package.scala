@@ -22,11 +22,12 @@ import io.github.vigoo.prox._
   * Use the returned value to wait for the process to exit or to send a termination signal to it:
   *
   * {{{
-  *   val program =
-  *   for {
-  *     echo <- Process("echo", List("Hello world")).start
-  *     result <- echo.waitForExit()
-  *   } yield result.exitCode
+  *   val program = Blocker[IO].use { blocker =>
+  *     for {
+  *       echo <- Process("echo", List("Hello world")).start(blocker)
+  *       result <- echo.waitForExit()
+  *     } yield result.exitCode
+  *   }
   *
   *   val exitCode = program.unsafeRunSync()
   * }}}
@@ -50,12 +51,12 @@ import io.github.vigoo.prox._
   *
   * Three special wrapper types can be used to modify how the streams are executed when the IO operation is composed:
   *
-  *  - [[Drain]] to run the stream with [[fs2.Stream.InvariantOps.run]], having a result of [[Unit]]
-  *  - [[ToVector]] to run the stream with [[fs2.Stream.InvariantOps.runLog]], having a result of [[Vector]]
-  *  - [[Fold]] to run the stream with [[fs2.Stream.InvariantOps.runFold]], having a custom fold result
+  *  - [[Drain]] to run the stream with [[fs2.Stream.CompileOps.drain]], having a result of [[Unit]]
+  *  - [[ToVector]] to run the stream with [[fs2.Stream.CompileOps.toVector]], having a result of [[Vector]]
+  *  - [[Fold]] to run the stream with [[fs2.Stream.CompileOps.fold]], having a custom fold result
   *
-  * If none of the above wrappers is used, the default is to use [[fs2.Stream.InvariantOps.run]] for [[fs2.Sink]],
-  * [[fs2.Stream.InvariantOps.runFoldMonoid]] if the pipe's output is a [[cats.Monoid]] and [[fs2.Stream.InvariantOps.runLog]]
+  * If none of the above wrappers is used, the default is to use [[fs2.Stream.CompileOps.drain]] for [[fs2.Sink]],
+  * [[fs2.Stream.CompileOps.foldMonoid]] if the pipe's output is a [[cats.Monoid]] and [[fs2.Stream.CompileOps.toVector]]
   * otherwise.
   *
   * == Piping ==

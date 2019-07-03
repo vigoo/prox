@@ -6,7 +6,7 @@ import java.lang.ProcessBuilder.Redirect
 import java.nio.file.Path
 
 import cats.Monoid
-import cats.effect.{Concurrent, ContextShift, Fiber, IO}
+import cats.effect.{Blocker, Concurrent, ContextShift, Fiber, IO}
 import fs2._
 
 import scala.concurrent.ExecutionContext
@@ -225,7 +225,7 @@ object CanBeProcessErrorTarget extends LowPriorityCanBeProcessErrorTarget {
 object StdOut extends ProcessOutputTarget[Byte, Unit] {
   override def toRedirect: Redirect = Redirect.INHERIT
 
-  override def connect(systemProcess: lang.Process, blockingExecutionContext: ExecutionContext)(implicit contextShift: ContextShift[IO]): Stream[IO, Byte] =
+  override def connect(systemProcess: lang.Process, blocker: Blocker)(implicit contextShift: ContextShift[IO]): Stream[IO, Byte] =
     Stream.empty
 
   override def run(stream: Stream[IO, Byte])(implicit contextShift: ContextShift[IO]): IO[Fiber[IO, Unit]] =
@@ -236,7 +236,7 @@ object StdOut extends ProcessOutputTarget[Byte, Unit] {
 object StdError extends ProcessErrorTarget[Byte, Unit] {
   override def toRedirect: Redirect = Redirect.INHERIT
 
-  override def connect(systemProcess: lang.Process, blockingExecutionContext: ExecutionContext)(implicit contextShift: ContextShift[IO]): Stream[IO, Byte] =
+  override def connect(systemProcess: lang.Process, blocker: Blocker)(implicit contextShift: ContextShift[IO]): Stream[IO, Byte] =
     Stream.empty
 
   override def run(stream: Stream[IO, Byte])(implicit contextShift: ContextShift[IO]): IO[Fiber[IO, Unit]] =
@@ -250,7 +250,7 @@ object StdError extends ProcessErrorTarget[Byte, Unit] {
 class FileTarget(path: Path) extends ProcessOutputTarget[Byte, Unit] with ProcessErrorTarget[Byte, Unit] {
   override def toRedirect: Redirect = Redirect.to(path.toFile)
 
-  override def connect(systemProcess: lang.Process, blockingExecutionContext: ExecutionContext)(implicit contextShift: ContextShift[IO]): Stream[IO, Byte] =
+  override def connect(systemProcess: lang.Process, blocker: Blocker)(implicit contextShift: ContextShift[IO]): Stream[IO, Byte] =
     Stream.empty
 
   override def run(stream: Stream[IO, Byte])(implicit contextShift: ContextShift[IO]): IO[Fiber[IO, Unit]] =
@@ -266,12 +266,12 @@ class FileTarget(path: Path) extends ProcessOutputTarget[Byte, Unit] with Proces
 abstract class OutputStreamingTargetBase[Out](target: Pipe[IO, Byte, Out], chunkSize: Int = 4096) {
 
   def toRedirect: Redirect = Redirect.PIPE
-  def connect(systemProcess: lang.Process, blockingExecutionContext: ExecutionContext)(implicit contextShift: ContextShift[IO]): Stream[IO, Out] = {
+  def connect(systemProcess: lang.Process, blocker: Blocker)(implicit contextShift: ContextShift[IO]): Stream[IO, Out] = {
     io.readInputStream[IO](
       getStream(systemProcess),
       chunkSize,
       closeAfterUse = true,
-      blockingExecutionContext = blockingExecutionContext)
+      blocker = blocker)
       .through(target)
   }
 

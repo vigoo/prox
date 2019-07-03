@@ -1,13 +1,13 @@
 package io.github.vigoo.prox
 
-import cats.effect.{Concurrent, ContextShift, IO}
+import cats.effect.{Blocker, Concurrent, ContextShift, IO}
 import cats.kernel.Monoid
 import fs2._
 import shapeless._
 import shapeless.ops.hlist.{IsHCons, Last, Prepend, Tupler}
 
-import scala.collection.JavaConverters._
 import scala.concurrent.ExecutionContext
+import scala.jdk.CollectionConverters._
 import scala.language.higherKinds
 
 /** Type class for starting processes
@@ -30,11 +30,11 @@ trait Start[PN <: ProcessNode[_, _, _, _, _]] {
     *
     * @param process                  The process to be started
     * @param dontStartOutput          Do no start the output redirection stream
-    * @param blockingExecutionContext Execution context for the blocking stream IO
+    * @param blocker                  Execution context for the blocking stream IO
     * @param contextShift             Context shifter to be used for the streams
     * @return Returns the [[RunningProcess]] instances of the started system processes
     */
-  def apply(process: PN, dontStartOutput: Boolean = false, blockingExecutionContext: ExecutionContext)(implicit contextShift: ContextShift[IO]): IO[RunningProcesses]
+  def apply(process: PN, dontStartOutput: Boolean = false, blocker: Blocker)(implicit contextShift: ContextShift[IO]): IO[RunningProcesses]
 
   /** Start the given process
     *
@@ -45,11 +45,11 @@ trait Start[PN <: ProcessNode[_, _, _, _, _]] {
     *
     * @param process                  The process to be started
     * @param dontStartOutput          Do no start the output redirection stream
-    * @param blockingExecutionContext Execution context for the blocking stream IO
+    * @param blocker                  Execution context for the blocking stream IO
     * @param contextShift             Context shifter to be used for the streams
     * @return Returns the [[RunningProcess]] instances of the started system processes as a [[shapeless.HList]]
     */
-  def toHList(process: PN, dontStartOutput: Boolean = false, blockingExecutionContext: ExecutionContext)(implicit contextShift: ContextShift[IO]): IO[RunningProcessList]
+  def toHList(process: PN, dontStartOutput: Boolean = false, blocker: Blocker)(implicit contextShift: ContextShift[IO]): IO[RunningProcessList]
 }
 
 object Start {
@@ -66,7 +66,7 @@ object Start {
     new Start[Process[Out, Err, OutResult, ErrResult, IRS, ORS, ERS]] {
       override type RunningProcesses = RunningProcess[Out, OutResult, ErrResult]
       override type RunningProcessList = RunningProcess[Out, OutResult, ErrResult] :: HNil
-      override def apply(process: Process[Out, Err, OutResult, ErrResult, IRS, ORS, ERS], dontStartOutput: Boolean, blockingExecutionContext: ExecutionContext)
+      override def apply(process: Process[Out, Err, OutResult, ErrResult, IRS, ORS, ERS], dontStartOutput: Boolean, blocker: Blocker)
                         (implicit contextShift: ContextShift[IO]): IO[RunningProcess[Out, OutResult, ErrResult]] = {
         def withWorkingDirectory(builder: ProcessBuilder): ProcessBuilder =
           process.workingDirectory match {
@@ -87,9 +87,9 @@ object Start {
         builder.redirectError(process.errorTarget.toRedirect)
         for {
           proc <- IO(builder.start)
-          inputStream = process.inputSource.connect(proc, blockingExecutionContext)
-          outputStream = process.outputTarget.connect(proc, blockingExecutionContext)
-          errorStream = process.errorTarget.connect(proc, blockingExecutionContext)
+          inputStream = process.inputSource.connect(proc, blocker)
+          outputStream = process.outputTarget.connect(proc, blocker)
+          errorStream = process.errorTarget.connect(proc, blocker)
           runningInput <- process.inputSource.run(inputStream)
           runningOutput <- if (dontStartOutput) { Concurrent[IO].start(IO(outResultMonoid.empty)) } else { process.outputTarget.run(outputStream) }
           runningError <- process.errorTarget.run(errorStream)
@@ -101,8 +101,8 @@ object Start {
             runningError)
       }
 
-      override def toHList(process: Process[Out, Err, OutResult, ErrResult, IRS, ORS, ERS], dontStartOutput: Boolean, blockingExecutionContext: ExecutionContext)(implicit contextShift: ContextShift[IO]): IO[RunningProcessList] =
-        apply(process, dontStartOutput, blockingExecutionContext).map(runningProcess => runningProcess :: HNil)
+      override def toHList(process: Process[Out, Err, OutResult, ErrResult, IRS, ORS, ERS], dontStartOutput: Boolean, blocker: Blocker)(implicit contextShift: ContextShift[IO]): IO[RunningProcessList] =
+        apply(process, dontStartOutput, blocker).map(runningProcess => runningProcess :: HNil)
     }
 
   implicit def startPipedProcess[
@@ -126,17 +126,17 @@ object Start {
       override type RunningProcesses = RPT
       override type RunningProcessList = RPL
 
-      override def apply(pipe: PipedProcess[Out, Err, Byte, PN1, PN2, IRS, ORS, ERS], dontStartOutput: Boolean, blockingExecutionContext: ExecutionContext)
+      override def apply(pipe: PipedProcess[Out, Err, Byte, PN1, PN2, IRS, ORS, ERS], dontStartOutput: Boolean, blocker: Blocker)
                         (implicit contextShift: ContextShift[IO]): IO[RPT] = {
-        toHList(pipe, dontStartOutput, blockingExecutionContext).map(_.tupled)
+        toHList(pipe, dontStartOutput, blocker).map(_.tupled)
       }
 
-      override def toHList(pipe: PipedProcess[Out, Err, Byte, PN1, PN2, IRS, ORS, ERS], dontStartOutput: Boolean, blockingExecutionContext: ExecutionContext)
+      override def toHList(pipe: PipedProcess[Out, Err, Byte, PN1, PN2, IRS, ORS, ERS], dontStartOutput: Boolean, blocker: Blocker)
                           (implicit contextShift: ContextShift[IO]): IO[RPL] = {
-        start1.toHList(pipe.from, dontStartOutput = true, blockingExecutionContext).flatMap { runningSourceProcesses =>
+        start1.toHList(pipe.from, dontStartOutput = true, blocker).flatMap { runningSourceProcesses =>
           val runningFrom = runningSourceProcesses.last.asInstanceOf[RunningProcess[Byte, _, _]]
           val to = pipe.createTo(PipeConstruction(runningFrom.notStartedOutput.get))
-          start2.toHList(to, dontStartOutput, blockingExecutionContext).flatMap { runningTargetProcesses =>
+          start2.toHList(to, dontStartOutput, blocker).flatMap { runningTargetProcesses =>
             IO(runningSourceProcesses ::: runningTargetProcesses)
           }
         }
@@ -537,23 +537,23 @@ object syntax {
     /** Starts the process
       *
       * @param start                    Type class implementing the process starting
-      * @param blockingExecutionContext Execution context for the blocking stream IO
+      * @param blocker                  Execution context for the blocking stream IO
       * @param contextShift             Context shifter to be used for the streams
       * @tparam RP                      Type encoding the [[RunningProcess]] instances
       * @return Returns the [[RunningProcess]] instances for the system processes which has been started
       */
-    def start[RP](blockingExecutionContext: ExecutionContext)(implicit start: Start.Aux[PN, RP, _], contextShift: ContextShift[IO]): IO[RP] =
-      start(processNode, dontStartOutput = false, blockingExecutionContext)
+    def start[RP](blocker: Blocker)(implicit start: Start.Aux[PN, RP, _], contextShift: ContextShift[IO]): IO[RP] =
+      start(processNode, dontStartOutput = false, blocker)
 
     /** Starts the process
       *
       * @param start                    Type class implementing the process starting
-      * @param blockingExecutionContext Execution context for the blocking stream IO
+      * @param blocker                  Execution context for the blocking stream IO
       * @param contextShift             Context shifter to be used for the streams
       * @tparam RPL                     Type encoding the [[RunningProcess]] instances in a [[shapeless.HList]]
       * @return Returns the HList of [[RunningProcess]] instances for the system processes which has been started
       */
-    def startHL[RPL <: HList](blockingExecutionContext: ExecutionContext)(implicit start: Start.Aux[PN, _, RPL], contextShift: ContextShift[IO]): IO[RPL] =
-      start.toHList(processNode, dontStartOutput = false, blockingExecutionContext)
+    def startHL[RPL <: HList](blocker: Blocker)(implicit start: Start.Aux[PN, _, RPL], contextShift: ContextShift[IO]): IO[RPL] =
+      start.toHList(processNode, dontStartOutput = false, blocker)
   }
 }
