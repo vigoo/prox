@@ -127,7 +127,8 @@ class Process[Out, Err, OutResult, ErrResult, IRS <: RedirectionState, ORS <: Re
  val inputSource: ProcessInputSource,
  val outputTarget: ProcessOutputTarget[Out, OutResult],
  val errorTarget: ProcessErrorTarget[Err, ErrResult],
- val environmentVariables: Map[String, String])
+ val environmentVariables: Map[String, String],
+ val removedEnvironmentVariables: Set[String])
   extends ProcessNode[Out, Err, IRS, ORS, ERS] {
 
   /** Defines a process with an overwritten working directory
@@ -148,7 +149,8 @@ class Process[Out, Err, OutResult, ErrResult, IRS <: RedirectionState, ORS <: Re
       inputSource = inputSource,
       outputTarget = outputTarget,
       errorTarget = errorTarget,
-      environmentVariables = environmentVariables)
+      environmentVariables = environmentVariables,
+      removedEnvironmentVariables = removedEnvironmentVariables)
   }
 
   /** Adds a custom environment variable to the defined process
@@ -168,7 +170,20 @@ class Process[Out, Err, OutResult, ErrResult, IRS <: RedirectionState, ORS <: Re
       inputSource = inputSource,
       outputTarget = outputTarget,
       errorTarget = errorTarget,
-      environmentVariables = environmentVariables + nameValuePair)
+      environmentVariables = environmentVariables + nameValuePair,
+      removedEnvironmentVariables = removedEnvironmentVariables - nameValuePair._1)
+  }
+
+  def without(name: String): Process[Out, Err, OutResult, ErrResult, IRS, ORS, ERS] = {
+    new Process[Out, Err, OutResult, ErrResult, IRS, ORS, ERS](
+      command = command,
+      arguments = arguments,
+      workingDirectory = workingDirectory,
+      inputSource = inputSource,
+      outputTarget = outputTarget,
+      errorTarget = errorTarget,
+      environmentVariables = environmentVariables - name,
+      removedEnvironmentVariables = removedEnvironmentVariables + name)
   }
 }
 
@@ -185,7 +200,7 @@ object Process {
   def apply(command: String,
             arguments: List[String] = List.empty,
             workingDirectory: Option[Path] = None): Process[Byte, Byte, Unit, Unit, NotRedirected, NotRedirected, NotRedirected] =
-    new Process[Byte, Byte, Unit, Unit, NotRedirected, NotRedirected, NotRedirected](command, arguments, workingDirectory, StdIn, StdOut, StdError, Map.empty)
+    new Process[Byte, Byte, Unit, Unit, NotRedirected, NotRedirected, NotRedirected](command, arguments, workingDirectory, StdIn, StdOut, StdError, Map.empty, Set.empty)
 }
 
 

@@ -8,3 +8,4 @@ project/plugins/project/
 .cache
 .lib/
 .idea
+examples/externalpyproc/virtualenv

@@ -78,6 +78,9 @@ object Start {
           process.environmentVariables.foreach { case (name, value) =>
             builder.environment().put(name, value)
           }
+          process.removedEnvironmentVariables.foreach { name =>
+            builder.environment().remove(name)
+          }
           builder
         }
 
@@ -181,7 +184,8 @@ object RedirectInput {
           implicitly[CanBeProcessInputSource[From]].apply(from),
           process.outputTarget,
           process.errorTarget,
-          process.environmentVariables
+          process.environmentVariables,
+          process.removedEnvironmentVariables
         )
     }
 
@@ -242,7 +246,8 @@ object RedirectOutput {
           process.inputSource,
           target(to),
           process.errorTarget,
-          process.environmentVariables
+          process.environmentVariables,
+          process.removedEnvironmentVariables
         )
     }
 
@@ -311,7 +316,8 @@ object RedirectError {
           process.inputSource,
           process.outputTarget,
           target(to),
-          process.environmentVariables
+          process.environmentVariables,
+          process.removedEnvironmentVariables
         )
     }
 

@@ -1,5 +1,6 @@
 package io.github.vigoo.prox
 
+import java.io.OutputStream
 import java.lang
 import java.lang.ProcessBuilder.Redirect
 import java.nio.file.Path
@@ -7,8 +8,16 @@ import java.nio.file.Path
 import cats.effect.{Blocker, Concurrent, ContextShift, Fiber, IO}
 import fs2._
 
-import scala.concurrent.ExecutionContext
+import scala.concurrent.blocking
 import scala.language.higherKinds
+
+/** Wrapper for input streams that enables flushing the process pipe stream after each chunk of bytes.
+  *
+  * This is useful for interactive processes, as the pipe stream has a 8K buffer on it.
+  *
+  * @param stream The input stream for the process
+  */
+final case class FlushChunks[F[_]](stream: Stream[F, Byte])
 
 /** Base trait for input redirection handlers */
 trait ProcessInputSource extends ProcessIO[Byte, Unit]
@@ -40,6 +49,9 @@ object CanBeProcessInputSource {
 
   implicit def pureStreamAsSource: CanBeProcessInputSource[Stream[Pure, Byte]] =
     (source: Stream[Pure, Byte]) => new InputStreamingSource(source)
+
+  implicit def flushControlledStreamAsSource: CanBeProcessInputSource[FlushChunks[IO]] =
+    (source: FlushChunks[IO]) => new FlushControlledInputStreamingSource(source)
 }
 
 /** Default input source representing no redirection */
@@ -76,11 +88,51 @@ class InputStreamingSource(source: Stream[IO, Byte]) extends ProcessInputSource 
   override def connect(systemProcess: lang.Process, blocker: Blocker)(implicit contextShift: ContextShift[IO]): Stream[IO, Byte] = {
     source.observe(
       io.writeOutputStream[IO](
-        IO { systemProcess.getOutputStream },
+        IO {
+          systemProcess.getOutputStream
+        },
         closeAfterUse = true,
         blocker = blocker))
   }
 
   override def run(stream: Stream[IO, Byte])(implicit contextShift: ContextShift[IO]): IO[Fiber[IO, Unit]] =
     Concurrent[IO].start(stream.compile.drain)
+}
+
+/** Input source implementation that calls 'flush' after each chunk of bytes. Useful for interactive
+  * communication with processes.
+  *
+  * @param source The input byte stream
+  */
+class FlushControlledInputStreamingSource(source: FlushChunks[IO]) extends ProcessInputSource {
+  override def toRedirect: Redirect = Redirect.PIPE
+
+  override def connect(systemProcess: lang.Process, blocker: Blocker)(implicit contextShift: ContextShift[IO]): Stream[IO, Byte] = {
+    source.stream.observe(
+      writeAndFlushOutputStream(
+        systemProcess.getOutputStream,
+        blocker = blocker))
+  }
+
+  override def run(stream: Stream[IO, Byte])(implicit contextShift: ContextShift[IO]): IO[Fiber[IO, Unit]] =
+    Concurrent[IO].start(stream.compile.drain)
+
+  def writeAndFlushOutputStream(stream: OutputStream,
+                                blocker: Blocker)
+                               (implicit contextShift: ContextShift[IO]): Pipe[IO, Byte, Unit] = s => {
+    Stream
+      .bracket(IO.pure(stream))(os => IO(os.close()))
+      .flatMap { os =>
+        s.chunks.evalMap { chunk =>
+          blocker.blockOn {
+            IO {
+              blocking {
+                os.write(chunk.toArray)
+                os.flush()
+              }
+            }
+          }
+        }
+      }
+  }
 }
