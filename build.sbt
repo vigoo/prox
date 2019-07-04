@@ -1,8 +1,6 @@
 name := "prox"
 organization := "io.github.vigoo"
 
-version := "0.3.0-SNAPSHOT"
-
 val scala212 = "2.12.8"
 val scala213 = "2.13.0"
 
