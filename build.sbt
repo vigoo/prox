@@ -1,6 +1,8 @@
 name := "prox"
 organization := "io.github.vigoo"
 
+dynverSonatypeSnapshots in ThisBuild := true
+
 val scala212 = "2.12.8"
 val scala213 = "2.13.0"
 
