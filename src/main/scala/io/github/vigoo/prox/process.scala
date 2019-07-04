@@ -3,10 +3,11 @@ package io.github.vigoo.prox
 import java.lang.ProcessBuilder.Redirect
 import java.nio.file.Path
 
-import cats.effect.{Blocker, ContextShift, Fiber, IO}
+import cats.effect._
+import cats.effect.syntax.all._
+import cats.implicits._
 import fs2._
 
-import scala.concurrent.ExecutionContext
 import scala.language.{higherKinds, implicitConversions}
 
 /** Holds information about a terminated process
@@ -27,26 +28,26 @@ case class ProcessResult[OutResult, ErrResult](exitCode: Int, fullOutput: OutRes
   * @tparam O The redirection stream element type
   * @tparam R Result type we get by running the redirection stream
   */
-trait ProcessIO[O, R] {
+trait ProcessIO[F[_], O, R] {
   /** Gets the redirection mode */
   def toRedirect: Redirect
 
   /** Sets up the redirection on the given system process
     *
-    * @param systemProcess            The process to connect to
-    * @param blocker                  The execution context on which the blocking IO stream reads/writes will be executed
-    * @param contextShift             Context shifter
+    * @param systemProcess The process to connect to
+    * @param blocker       The execution context on which the blocking IO stream reads/writes will be executed
+    * @param contextShift  Context shifter
     * @return Returns the not yet started redirection stream
     */
-  def connect(systemProcess: java.lang.Process, blocker: Blocker)(implicit contextShift: ContextShift[IO]): Stream[IO, O]
+  def connect(systemProcess: java.lang.Process, blocker: Blocker)(implicit contextShift: ContextShift[F]): Stream[F, O]
 
   /** Runs the redirection stream
     *
-    * @param stream           The stream to be executed
-    * @param contextShift     Context shifter
+    * @param stream       The stream to be executed
+    * @param contextShift Context shifter
     * @return Returns the async result of running the stream
     */
-  def run(stream: Stream[IO, O])(implicit contextShift: ContextShift[IO]): IO[Fiber[IO, R]]
+  def run(stream: Stream[F, O])(implicit contextShift: ContextShift[F]): F[Fiber[F, R]]
 }
 
 
@@ -55,7 +56,7 @@ trait ProcessIO[O, R] {
   * @param outStream Output stream of the first process, to be used as the input stream of the second one
   * @tparam Out Element type of the piping stream
   */
-case class PipeConstruction[Out](outStream: Stream[IO, Out])
+case class PipeConstruction[F[_], Out](outStream: Stream[F, Out])
 
 
 /** Phantom type representing the redirection state of a process */
@@ -78,8 +79,7 @@ trait Redirected extends RedirectionState
   * @tparam ORS Output channel redirection state
   * @tparam ERS Error channel redirection state
   */
-sealed trait ProcessNode[Out, Err, IRS <: RedirectionState, ORS <: RedirectionState, ERS <: RedirectionState] {
-}
+sealed trait ProcessNode[Out, Err, IRS <: RedirectionState, ORS <: RedirectionState, ERS <: RedirectionState]
 
 /** Represents two process piped together
   *
@@ -97,8 +97,8 @@ sealed trait ProcessNode[Out, Err, IRS <: RedirectionState, ORS <: RedirectionSt
   * @tparam ORS    Output channel redirection state
   * @tparam ERS    Error channel redirection state
   */
-class PipedProcess[Out, Err, PN1Out, PN1 <: ProcessNode[_, _, _, _, _], PN2 <: ProcessNode[_, _, _, _, _], IRS <: RedirectionState, ORS <: RedirectionState, ERS <: RedirectionState]
-(val from: PN1, val createTo: PipeConstruction[PN1Out] => PN2)
+class PipedProcess[F[_], Out, Err, PN1Out, PN1 <: ProcessNode[_, _, _, _, _], PN2 <: ProcessNode[_, _, _, _, _], IRS <: RedirectionState, ORS <: RedirectionState, ERS <: RedirectionState]
+(val from: PN1, val createTo: PipeConstruction[F, PN1Out] => PN2)
   extends ProcessNode[Out, Err, IRS, ORS, ERS] {
 }
 
@@ -120,13 +120,13 @@ class PipedProcess[Out, Err, PN1Out, PN1 <: ProcessNode[_, _, _, _, _], PN2 <: P
   * @tparam ORS       Output channel redirection state
   * @tparam ERS       Error channel redirection state
   */
-class Process[Out, Err, OutResult, ErrResult, IRS <: RedirectionState, ORS <: RedirectionState, ERS <: RedirectionState]
+class Process[F[_], Out, Err, OutResult, ErrResult, IRS <: RedirectionState, ORS <: RedirectionState, ERS <: RedirectionState]
 (val command: String,
  val arguments: List[String],
  val workingDirectory: Option[Path],
- val inputSource: ProcessInputSource,
- val outputTarget: ProcessOutputTarget[Out, OutResult],
- val errorTarget: ProcessErrorTarget[Err, ErrResult],
+ val inputSource: ProcessInputSource[F],
+ val outputTarget: ProcessOutputTarget[F, Out, OutResult],
+ val errorTarget: ProcessErrorTarget[F, Err, ErrResult],
  val environmentVariables: Map[String, String],
  val removedEnvironmentVariables: Set[String])
   extends ProcessNode[Out, Err, IRS, ORS, ERS] {
@@ -141,8 +141,8 @@ class Process[Out, Err, OutResult, ErrResult, IRS <: RedirectionState, ORS <: Re
     * @param workingDirectory The working directory to run the process in
     * @return Returns a process with the working directory set
     */
-  def in(workingDirectory: Path): Process[Out, Err, OutResult, ErrResult, IRS, ORS, ERS] = {
-    new Process[Out, Err, OutResult, ErrResult, IRS, ORS, ERS](
+  def in(workingDirectory: Path): Process[F, Out, Err, OutResult, ErrResult, IRS, ORS, ERS] = {
+    new Process[F, Out, Err, OutResult, ErrResult, IRS, ORS, ERS](
       command = command,
       arguments = arguments,
       workingDirectory = Some(workingDirectory),
@@ -159,11 +159,12 @@ class Process[Out, Err, OutResult, ErrResult, IRS <: RedirectionState, ORS <: Re
     * {{{
     *   val process = Process("sh", List("-c", "echo $X")) `with` ("X" -> "something")
     * }}}
+    *
     * @param nameValuePair The environment variable's name-value pair
     * @return Returns a process with the custom environment variable added
     */
-  def `with`(nameValuePair: (String, String)): Process[Out, Err, OutResult, ErrResult, IRS, ORS, ERS] = {
-    new Process[Out, Err, OutResult, ErrResult, IRS, ORS, ERS](
+  def `with`(nameValuePair: (String, String)): Process[F, Out, Err, OutResult, ErrResult, IRS, ORS, ERS] = {
+    new Process[F, Out, Err, OutResult, ErrResult, IRS, ORS, ERS](
       command = command,
       arguments = arguments,
       workingDirectory = workingDirectory,
@@ -174,8 +175,8 @@ class Process[Out, Err, OutResult, ErrResult, IRS <: RedirectionState, ORS <: Re
       removedEnvironmentVariables = removedEnvironmentVariables - nameValuePair._1)
   }
 
-  def without(name: String): Process[Out, Err, OutResult, ErrResult, IRS, ORS, ERS] = {
-    new Process[Out, Err, OutResult, ErrResult, IRS, ORS, ERS](
+  def without(name: String): Process[F, Out, Err, OutResult, ErrResult, IRS, ORS, ERS] = {
+    new Process[F, Out, Err, OutResult, ErrResult, IRS, ORS, ERS](
       command = command,
       arguments = arguments,
       workingDirectory = workingDirectory,
@@ -197,10 +198,10 @@ object Process {
     * @param workingDirectory Working directory for the process
     * @return Returns the specification of a system process
     */
-  def apply(command: String,
-            arguments: List[String] = List.empty,
-            workingDirectory: Option[Path] = None): Process[Byte, Byte, Unit, Unit, NotRedirected, NotRedirected, NotRedirected] =
-    new Process[Byte, Byte, Unit, Unit, NotRedirected, NotRedirected, NotRedirected](command, arguments, workingDirectory, StdIn, StdOut, StdError, Map.empty, Set.empty)
+  def apply[F[_] : Concurrent](command: String,
+                               arguments: List[String] = List.empty,
+                               workingDirectory: Option[Path] = None): Process[F, Byte, Byte, Unit, Unit, NotRedirected, NotRedirected, NotRedirected] =
+    new Process[F, Byte, Byte, Unit, Unit, NotRedirected, NotRedirected, NotRedirected](command, arguments, workingDirectory, new StdIn[F], new StdOut[F], new StdError[F], Map.empty, Set.empty)
 }
 
 
@@ -214,41 +215,42 @@ object Process {
   * The result of the process can be acquied by either waiting for it to terminate or terminating it. The
   * result will be contained by a [[ProcessResult]] object.
   *
+  * @tparam F         Context
   * @tparam Out       Output stream element type
   * @tparam OutResult Result type of running the redirected output stream. [[Unit]] if there is no such result.
   * @tparam ErrResult Result type of running the redirected error stream. [[Unit]] if there is no such result.
   */
-trait RunningProcess[Out, OutResult, ErrResult] {
+trait RunningProcess[F[_], Out, OutResult, ErrResult] {
   /** Checks whether the process is still running
     *
     * @return Returns true if the process is alive
     */
-  def isAlive: IO[Boolean]
+  def isAlive: F[Boolean]
 
   /** Blocks the current thread until the process terminates
     *
     * @return Returns the result of the process
     */
-  def waitForExit(): IO[ProcessResult[OutResult, ErrResult]]
+  def waitForExit(): F[ProcessResult[OutResult, ErrResult]]
 
   /** Forcibly terminates the process
     *
     * @return Returns the result of the process
     */
-  def kill(): IO[ProcessResult[OutResult, ErrResult]]
+  def kill(): F[ProcessResult[OutResult, ErrResult]]
 
   /** Terminates the process
     *
     * @return Returns the result of the process
     */
-  def terminate(): IO[ProcessResult[OutResult, ErrResult]]
+  def terminate(): F[ProcessResult[OutResult, ErrResult]]
 
   /** Interface for getting the not yet started output stream of a process
     * during pipe construction.
     *
     * @return Returns the output stream for the piping
     */
-  private[prox] def notStartedOutput: Option[Stream[IO, Out]]
+  private[prox] def notStartedOutput: Option[Stream[F, Out]]
 }
 
 
@@ -265,36 +267,36 @@ trait RunningProcess[Out, OutResult, ErrResult] {
   * @tparam OutResult Result type of running the redirected output stream. [[Unit]] if there is no such result.
   * @tparam ErrResult Result type of running the redirected error stream. [[Unit]] if there is no such result.
   */
-private[prox] class WrappedProcess[Out, OutResult, ErrResult](systemProcess: java.lang.Process,
-                                                              val notStartedOutput: Option[Stream[IO, Out]],
-                                                              runningInput: Fiber[IO, Unit],
-                                                              runningOutput: Fiber[IO, OutResult],
-                                                              runningError: Fiber[IO, ErrResult])
-  extends RunningProcess[Out, OutResult, ErrResult] {
+private[prox] class WrappedProcess[F[_] : Sync, Out, OutResult, ErrResult](systemProcess: java.lang.Process,
+                                                                           val notStartedOutput: Option[Stream[F, Out]],
+                                                                           runningInput: Fiber[F, Unit],
+                                                                           runningOutput: Fiber[F, OutResult],
+                                                                           runningError: Fiber[F, ErrResult])
+  extends RunningProcess[F, Out, OutResult, ErrResult] {
 
-  override def isAlive: IO[Boolean] =
-    IO {
+  override def isAlive: F[Boolean] =
+    Sync[F].delay {
       systemProcess.isAlive
     }
 
-  override def waitForExit(): IO[ProcessResult[OutResult, ErrResult]] = {
+  override def waitForExit(): F[ProcessResult[OutResult, ErrResult]] = {
     for {
-      exitCode <- IO(systemProcess.waitFor())
+      exitCode <- Sync[F].delay(systemProcess.waitFor())
       output <- runningOutput.join
       error <- runningError.join
     } yield ProcessResult(exitCode, output, error)
   }
 
-  override def kill(): IO[ProcessResult[OutResult, ErrResult]] = {
+  override def kill(): F[ProcessResult[OutResult, ErrResult]] = {
     for {
-      _ <- IO(systemProcess.destroyForcibly())
+      _ <- Sync[F].delay(systemProcess.destroyForcibly())
       result <- waitForExit()
     } yield result
   }
 
-  override def terminate(): IO[ProcessResult[OutResult, ErrResult]] = {
+  override def terminate(): F[ProcessResult[OutResult, ErrResult]] = {
     for {
-      _ <- IO(systemProcess.destroy())
+      _ <- Sync[F].delay(systemProcess.destroy())
       result <- waitForExit()
     } yield result
   }

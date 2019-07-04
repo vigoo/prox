@@ -2,14 +2,12 @@ package io.github.vigoo.prox
 
 import java.io.File
 import java.nio.file.{Files, Paths}
-import java.util.concurrent.Executors
 
-import cats.effect.{Blocker, ContextShift, IO}
+import cats.effect._
 import cats.implicits._
 import fs2._
 import org.specs2.Specification
 
-import scala.concurrent.ExecutionContext.Implicits.global
 import shapeless.test.illTyped
 import syntax._
 
@@ -71,8 +69,8 @@ class ProcessSpecs extends Specification { def is = s2"""
   def simpleProcessGetExitCode = {
     val program = Blocker[IO].use { blocker =>
       for {
-        trueRunning <- Process("true").start(blocker)
-        falseRunning <- Process("false").start(blocker)
+        trueRunning <- Process[IO]("true").start(blocker)
+        falseRunning <- Process[IO]("false").start(blocker)
         trueResult <- trueRunning.waitForExit()
         falseResult <- falseRunning.waitForExit()
       } yield (trueResult.exitCode, falseResult.exitCode)
@@ -84,7 +82,7 @@ class ProcessSpecs extends Specification { def is = s2"""
     val tempDirectory = Files.createTempDirectory("prox")
     val program = Blocker[IO].use { blocker =>
       for {
-        pwdRunning <- ((Process("pwd") in tempDirectory) > text.utf8Decode[IO]).start(blocker)
+        pwdRunning <- ((Process[IO]("pwd") in tempDirectory) > text.utf8Decode[IO]).start(blocker)
         pwdResult <- pwdRunning.waitForExit()
       } yield pwdResult.fullOutput.trim
     }
@@ -96,7 +94,7 @@ class ProcessSpecs extends Specification { def is = s2"""
     val tempFile = File.createTempFile("test", "txt")
     val program = Blocker[IO].use { blocker =>
       for {
-        running <- (Process("echo", List("Hello world!")) > tempFile.toPath).start(blocker)
+        running <- (Process[IO]("echo", List("Hello world!")) > tempFile.toPath).start(blocker)
         _ <- running.waitForExit()
         contents <- io.file.readAll[IO](tempFile.toPath, blocker, 1024).through(text.utf8Decode).compile.foldMonoid
       } yield contents
