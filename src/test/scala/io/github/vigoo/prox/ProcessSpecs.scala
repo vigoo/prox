@@ -3,18 +3,16 @@ package io.github.vigoo.prox
 import java.io.File
 import java.nio.file.{Files, Paths}
 
+import syntax._
+
 import cats.effect._
 import cats.implicits._
 import fs2._
 import org.specs2.Specification
 
 import shapeless.test.illTyped
-import syntax._
 
 import scala.concurrent.ExecutionContext
-
-// scalastyle:off public.methods.have.type
-// scalastyle:off public.member.have.type
 
 class ProcessSpecs extends Specification { def is = s2"""
   A process can be
@@ -106,7 +104,7 @@ class ProcessSpecs extends Specification { def is = s2"""
   def simpleProcessStreamOutput = {
     val program = Blocker[IO].use { blocker =>
       for {
-        running <- (Process("echo", List("Hello world!")) > text.utf8Decode[IO]).start(blocker)
+        running <- (Process[IO]("echo", List("Hello world!")) > text.utf8Decode[IO]).start(blocker)
         result <- running.waitForExit()
       } yield result.fullOutput
     }
@@ -120,7 +118,7 @@ class ProcessSpecs extends Specification { def is = s2"""
     val target: Pipe[IO, Byte, Unit] = _.evalMap(byte => IO { builder.append(byte.toChar) }.void)
     val program = Blocker[IO].use { blocker =>
       for {
-        running <- (Process("echo", List("Hello world!")) > target).start(blocker)
+        running <- (Process[IO]("echo", List("Hello world!")) > target).start(blocker)
         _ <- running.waitForExit()
       } yield builder.toString()
     }
@@ -131,7 +129,7 @@ class ProcessSpecs extends Specification { def is = s2"""
   def simpleProcessStreamError = {
     val program = Blocker[IO].use { blocker =>
       for {
-        running <- (Process("perl", List("-e", """print STDERR "Hello"""")) redirectErrorTo text.utf8Decode[IO]).start(blocker)
+        running <- (Process[IO]("perl", List("-e", """print STDERR "Hello"""")) redirectErrorTo text.utf8Decode[IO]).start(blocker)
         result <- running.waitForExit()
       } yield result.fullError
     }
@@ -145,7 +143,7 @@ class ProcessSpecs extends Specification { def is = s2"""
     val target: Pipe[IO, Byte, Unit] = _.evalMap(byte => IO { builder.append(byte.toChar) }.void)
     val program = Blocker[IO].use { blocker =>
       for {
-        running <- (Process("perl", List("-e", """print STDERR "Hello"""")) redirectErrorTo target).start(blocker)
+        running <- (Process[IO]("perl", List("-e", """print STDERR "Hello"""")) redirectErrorTo target).start(blocker)
         _ <- running.waitForExit()
       } yield builder.toString
     }
@@ -157,7 +155,7 @@ class ProcessSpecs extends Specification { def is = s2"""
     val source = Stream("This is a test string").through(text.utf8Encode)
     val program = Blocker[IO].use { blocker =>
       for {
-        running <- (Process("wc", List("-w")) < source > text.utf8Decode[IO]).start(blocker)
+        running <- (Process[IO]("wc", List("-w")) < source > text.utf8Decode[IO]).start(blocker)
         result <- running.waitForExit()
       } yield result.fullOutput.trim
     }
@@ -169,7 +167,7 @@ class ProcessSpecs extends Specification { def is = s2"""
     val source: Stream[IO, Byte] = Stream("This ", "is a test", " string").through(text.utf8Encode)
     val program = Blocker[IO].use { blocker =>
       for {
-        running <- (Process("wc", List("-w")) < FlushChunks(source) > text.utf8Decode[IO]).start(blocker)
+        running <- (Process[IO]("wc", List("-w")) < FlushChunks(source) > text.utf8Decode[IO]).start(blocker)
         result <- running.waitForExit()
       } yield result.fullOutput.trim
     }
@@ -180,7 +178,7 @@ class ProcessSpecs extends Specification { def is = s2"""
   def pipedProcessFileInput = {
     val tempFile = Files.createTempFile("prox", "txt")
     Files.write(tempFile, "This is a test string".getBytes("UTF-8"))
-    val pipedProcess = Process("cat") | Process("wc", List("-w"))
+    val pipedProcess = Process[IO]("cat") | Process[IO]("wc", List("-w"))
     val program = Blocker[IO].use { blocker =>
       for {
         runningProcesses <- (pipedProcess < tempFile > text.utf8Decode[IO]).start(blocker)
@@ -195,7 +193,7 @@ class ProcessSpecs extends Specification { def is = s2"""
 
   def pipedProcessStreamInput = {
     val source: Stream[IO, Byte] = Stream("This is a test string").through(text.utf8Encode)
-    val pipedProcess = Process("cat") | Process("wc", List("-w"))
+    val pipedProcess = Process[IO]("cat") | Process[IO]("wc", List("-w"))
     val program = Blocker[IO].use { blocker =>
       for {
         runningProcesses <- (pipedProcess < source > text.utf8Decode[IO]).start(blocker)
@@ -211,7 +209,7 @@ class ProcessSpecs extends Specification { def is = s2"""
   def pipedProcessStreamError = {
     val program = Blocker[IO].use { blocker =>
       for {
-        rps <- ((Process("true") | Process("perl", List("-e", """print STDERR "Hello""""))) redirectErrorTo text.utf8Decode[IO]).start(blocker)
+        rps <- ((Process[IO]("true") | Process[IO]("perl", List("-e", """print STDERR "Hello""""))) redirectErrorTo text.utf8Decode[IO]).start(blocker)
         (_, running) = rps
         result <- running.waitForExit()
       } yield result.fullError
@@ -223,7 +221,7 @@ class ProcessSpecs extends Specification { def is = s2"""
   def simpleProcessPiping = {
     val program = Blocker[IO].use { blocker =>
       for {
-        rps <- (Process("echo", List("This is a test string")) | (Process("wc", List("-w")) > text.utf8Decode[IO])).start(blocker)
+        rps <- (Process[IO]("echo", List("This is a test string")) | (Process[IO]("wc", List("-w")) > text.utf8Decode[IO])).start(blocker)
         (runningEcho, runningWc) = rps
         _ <- runningEcho.waitForExit()
         wcResult <- runningWc.waitForExit()
@@ -245,7 +243,7 @@ class ProcessSpecs extends Specification { def is = s2"""
 
     val program = Blocker[IO].use { blocker =>
       for {
-        rps <- (Process("echo", List("This is a test string")).via(customPipe).to(Process("wc", List("-w")) > text.utf8Decode[IO])).start(blocker)
+        rps <- (Process[IO]("echo", List("This is a test string")).via(customPipe).to(Process[IO]("wc", List("-w")) > text.utf8Decode[IO])).start(blocker)
         (runningEcho, runningWc) = rps
         _ <- runningEcho.waitForExit()
         wcResult <- runningWc.waitForExit()
@@ -258,7 +256,7 @@ class ProcessSpecs extends Specification { def is = s2"""
   def simpleProcessPipingHList = {
     val program = Blocker[IO].use { blocker =>
       for {
-        rpHL <- (Process("echo", List("This is a test string")) | (Process("wc", List("-w")) > text.utf8Decode[IO])).startHL(blocker)
+        rpHL <- (Process[IO]("echo", List("This is a test string")) | (Process[IO]("wc", List("-w")) > text.utf8Decode[IO])).startHL(blocker)
         runningEcho = rpHL.head
         runningWc = rpHL.tail.head
         _ <- runningEcho.waitForExit()
@@ -272,7 +270,7 @@ class ProcessSpecs extends Specification { def is = s2"""
   def multiProcessPiping = {
     val program = Blocker[IO].use { blocker =>
       for {
-        rps <- (Process("echo", List("cat\ncat\ndog\napple")) | Process("sort") | (Process("uniq", List("-c")) > text.utf8Decode[IO])).start(blocker)
+        rps <- (Process[IO]("echo", List("cat\ncat\ndog\napple")) | Process[IO]("sort") | (Process[IO]("uniq", List("-c")) > text.utf8Decode[IO])).start(blocker)
         (runningEcho, runningSort, runningUniq) = rps
         _ <- runningEcho.waitForExit()
         _ <- runningSort.waitForExit()
@@ -287,7 +285,7 @@ class ProcessSpecs extends Specification { def is = s2"""
     val errorTarget = ToVector(text.utf8Decode[IO].andThen(text.lines[IO]))
     val program = Blocker[IO].use { blocker =>
       for {
-        rps <- ((Process("perl", List("-e", """print STDERR "Hello\nworld"""")) redirectErrorTo errorTarget) | (Process("sort") redirectErrorTo errorTarget) | (Process("uniq", List("-c")) redirectErrorTo errorTarget)).start(blocker)
+        rps <- ((Process[IO]("perl", List("-e", """print STDERR "Hello\nworld"""")) redirectErrorTo errorTarget) | (Process[IO]("sort") redirectErrorTo errorTarget) | (Process[IO]("uniq", List("-c")) redirectErrorTo errorTarget)).start(blocker)
         (runningPerl, runningSort, runningUniq) = rps
         perlResult <- runningPerl.waitForExit()
         sortResult <- runningSort.waitForExit()
@@ -301,7 +299,7 @@ class ProcessSpecs extends Specification { def is = s2"""
   def isAlive = {
     val program = Blocker[IO].use { blocker =>
       for {
-        running <- Process("sleep", List("10")).start(blocker)
+        running <- Process[IO]("sleep", List("10")).start(blocker)
         isAliveBefore <- running.isAlive
         _ <- running.terminate()
         isAliveAfter <- running.isAlive
@@ -314,7 +312,7 @@ class ProcessSpecs extends Specification { def is = s2"""
   def terminateSignal = {
     val program = Blocker[IO].use { blocker =>
       for {
-        running <- Process("perl", List("-e", """$SIG{TERM} = sub { exit 1 }; sleep 30; exit 0""")).start(blocker)
+        running <- Process[IO]("perl", List("-e", """$SIG{TERM} = sub { exit 1 }; sleep 30; exit 0""")).start(blocker)
         _ <- IO {
           Thread.sleep(250);
         }
@@ -328,7 +326,7 @@ class ProcessSpecs extends Specification { def is = s2"""
   def killSignal = {
     val program = Blocker[IO].use { blocker =>
       for {
-        running <- Process("perl", List("-e", """$SIG{TERM} = 'IGNORE'; sleep 30; exit 2""")).start(blocker)
+        running <- Process[IO]("perl", List("-e", """$SIG{TERM} = 'IGNORE'; sleep 30; exit 2""")).start(blocker)
         _ <- IO {
           Thread.sleep(250);
         }
@@ -342,7 +340,7 @@ class ProcessSpecs extends Specification { def is = s2"""
   def customEnvVariables = {
     val program = Blocker[IO].use { blocker =>
       for {
-        running <- ((Process("sh", List("-c", "echo \"Hello $TEST1! I am $TEST2!\"")) `with` ("TEST1" -> "world") `with` ("TEST2" -> "prox")) > text.utf8Decode[IO]).start(blocker)
+        running <- ((Process[IO]("sh", List("-c", "echo \"Hello $TEST1! I am $TEST2!\"")) `with` ("TEST1" -> "world") `with` ("TEST2" -> "prox")) > text.utf8Decode[IO]).start(blocker)
         result <- running.waitForExit()
       } yield result.fullOutput
     }
@@ -353,7 +351,7 @@ class ProcessSpecs extends Specification { def is = s2"""
   def outFoldMonoid = {
     val program = Blocker[IO].use { blocker =>
       for {
-        running <- (Process("echo", List("Hello\nworld!")) > text.utf8Decode[IO].andThen(text.lines[IO])).start(blocker)
+        running <- (Process[IO]("echo", List("Hello\nworld!")) > text.utf8Decode[IO].andThen(text.lines[IO])).start(blocker)
         result <- running.waitForExit()
       } yield result.fullOutput
     }
@@ -366,7 +364,7 @@ class ProcessSpecs extends Specification { def is = s2"""
   def outLogNonMonoid = {
     val program = Blocker[IO].use { blocker =>
       for {
-        running <- (Process("echo", List("Hello\nworld!")) > text.utf8Decode[IO].andThen(text.lines[IO]).andThen(_.map(s => StringLength(s.length)))).start(blocker)
+        running <- (Process[IO]("echo", List("Hello\nworld!")) > text.utf8Decode[IO].andThen(text.lines[IO]).andThen(_.map(s => StringLength(s.length)))).start(blocker)
         result <- running.waitForExit()
       } yield result.fullOutput
     }
@@ -377,7 +375,7 @@ class ProcessSpecs extends Specification { def is = s2"""
   def outLogMonoid = {
     val program = Blocker[IO].use { blocker =>
       for {
-        running <- (Process("echo", List("Hello\nworld!")) > ToVector(text.utf8Decode[IO].andThen(text.lines[IO]).andThen(_.map(_.length)))).start(blocker)
+        running <- (Process[IO]("echo", List("Hello\nworld!")) > ToVector(text.utf8Decode[IO].andThen(text.lines[IO]).andThen(_.map(_.length)))).start(blocker)
         result <- running.waitForExit()
       } yield result.fullOutput
     }
@@ -388,7 +386,7 @@ class ProcessSpecs extends Specification { def is = s2"""
   def outIgnore = {
     val program = Blocker[IO].use { blocker =>
       for {
-        running <- (Process("echo", List("Hello\nworld!")) > Drain(text.utf8Decode[IO].andThen(text.lines[IO]))).start(blocker)
+        running <- (Process[IO]("echo", List("Hello\nworld!")) > Drain(text.utf8Decode[IO].andThen(text.lines[IO]))).start(blocker)
         result <- running.waitForExit()
       } yield result.fullOutput
     }
@@ -399,7 +397,7 @@ class ProcessSpecs extends Specification { def is = s2"""
   def outCustomFold = {
     val program = Blocker[IO].use { blocker =>
       for {
-        running <- (Process("echo", List("Hello\nworld!")) >
+        running <- (Process[IO]("echo", List("Hello\nworld!")) >
           Fold(text.utf8Decode[IO].andThen(text.lines[IO]), Vector.empty, (l: Vector[Option[Char]], s: String) => l :+ s.headOption)).start(blocker)
         result <- running.waitForExit()
       } yield result.fullOutput
@@ -411,7 +409,7 @@ class ProcessSpecs extends Specification { def is = s2"""
   def errFoldMonoid = {
     val program = Blocker[IO].use { blocker =>
       for {
-        running <- (Process("perl", List("-e", "print STDERR 'Hello\nworld!\n'")) redirectErrorTo text.utf8Decode[IO].andThen(text.lines[IO])).start(blocker)
+        running <- (Process[IO]("perl", List("-e", "print STDERR 'Hello\nworld!\n'")) redirectErrorTo text.utf8Decode[IO].andThen(text.lines[IO])).start(blocker)
         result <- running.waitForExit()
       } yield result.fullError
     }
@@ -422,7 +420,7 @@ class ProcessSpecs extends Specification { def is = s2"""
   def errLogNonMonoid = {
     val program = Blocker[IO].use { blocker =>
       for {
-        running <- (Process("perl", List("-e", "print STDERR 'Hello\nworld!\n'")) redirectErrorTo text.utf8Decode[IO].andThen(text.lines[IO]).andThen(_.map(s => StringLength(s.length)))).start(blocker)
+        running <- (Process[IO]("perl", List("-e", "print STDERR 'Hello\nworld!\n'")) redirectErrorTo text.utf8Decode[IO].andThen(text.lines[IO]).andThen(_.map(s => StringLength(s.length)))).start(blocker)
         result <- running.waitForExit()
       } yield result.fullError
     }
@@ -433,7 +431,7 @@ class ProcessSpecs extends Specification { def is = s2"""
   def errLogMonoid = {
     val program = Blocker[IO].use { blocker =>
       for {
-        running <- (Process("perl", List("-e", "print STDERR 'Hello\nworld!\n'")) redirectErrorTo ToVector(text.utf8Decode[IO].andThen(text.lines[IO]).andThen(_.map(_.length)))).start(blocker)
+        running <- (Process[IO]("perl", List("-e", "print STDERR 'Hello\nworld!\n'")) redirectErrorTo ToVector(text.utf8Decode[IO].andThen(text.lines[IO]).andThen(_.map(_.length)))).start(blocker)
         result <- running.waitForExit()
       } yield result.fullError
     }
@@ -444,7 +442,7 @@ class ProcessSpecs extends Specification { def is = s2"""
   def errIgnore = {
     val program = Blocker[IO].use { blocker =>
       for {
-        running <- (Process("perl", List("-e", "print STDERR 'Hello\nworld!\n'")) redirectErrorTo Drain(text.utf8Decode[IO].andThen(text.lines[IO]))).start(blocker)
+        running <- (Process[IO]("perl", List("-e", "print STDERR 'Hello\nworld!\n'")) redirectErrorTo Drain(text.utf8Decode[IO].andThen(text.lines[IO]))).start(blocker)
         result <- running.waitForExit()
       } yield result.fullError
     }
@@ -455,7 +453,7 @@ class ProcessSpecs extends Specification { def is = s2"""
   def errCustomFold = {
     val program = Blocker[IO].use { blocker =>
       for {
-        running <- (Process("perl", List("-e", "print STDERR 'Hello\nworld!\n'")) redirectErrorTo
+        running <- (Process[IO]("perl", List("-e", "print STDERR 'Hello\nworld!\n'")) redirectErrorTo
           Fold(text.utf8Decode[IO].andThen(text.lines[IO]), Vector.empty, (l: Vector[Option[Char]], s: String) => l :+ s.headOption)).start(blocker)
         result <- running.waitForExit()
       } yield result.fullError
@@ -465,27 +463,27 @@ class ProcessSpecs extends Specification { def is = s2"""
   }
 
   def doubleOutputRedirectIsIllegal = {
-    illTyped("""val bad = (Process("echo", List("Hello world!")) > new File("x").toPath) > new File("y").toPath""")
+    illTyped("""val bad = (Process[IO]("echo", List("Hello world!")) > new File("x").toPath) > new File("y").toPath""")
     ok
   }
 
   def doubleInputRedirectIsIllegal = {
-    illTyped("""val bad = (Process("wc", List("-w")) < Stream.eval(IO("X")).through(text.utf8Encode)) < Stream.eval(IO("Y")).through(text.utf8Encode)""")
+    illTyped("""val bad = (Process[IO]("wc", List("-w")) < Stream.eval(IO("X")).through(text.utf8Encode)) < Stream.eval(IO("Y")).through(text.utf8Encode)""")
     ok
   }
 
   def doubleErrorRedirectIsIllegal = {
-    illTyped("""val bad = (Process("echo", List("Hello world!")) redirectErrorTo (new File("x").toPath)) redirectErrorTo (new File("y").toPath)""")
+    illTyped("""val bad = (Process[IO]("echo", List("Hello world!")) redirectErrorTo (new File("x").toPath)) redirectErrorTo (new File("y").toPath)""")
     ok
   }
 
   def pipingRedirectedOutputIsIllegal = {
-    illTyped("""val bad = (Process("echo", List("Hello world!")) > new File("x").toPath) | Process("wc", List("-w"))""")
+    illTyped("""val bad = (Process[IO]("echo", List("Hello world!")) > new File("x").toPath) | Process[IO]("wc", List("-w"))""")
     ok
   }
 
   def pipingToRedirectedInputIsIllegal = {
-    illTyped("""val bad = Process("echo", List("Hello world!")) | (Process("wc", List("-w")) < new File("x").path)""")
+    illTyped("""val bad = Process[IO]("echo", List("Hello world!")) | (Process[IO]("wc", List("-w")) < new File("x").path)""")
     ok
   }
 }

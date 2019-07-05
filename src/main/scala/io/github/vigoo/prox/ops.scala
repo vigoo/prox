@@ -1,5 +1,6 @@
 package io.github.vigoo.prox
 
+import cats.Applicative
 import cats.effect._
 import cats.effect.syntax.all._
 import cats.implicits._
@@ -11,11 +12,40 @@ import shapeless.ops.hlist.{IsHCons, Last, Prepend, Tupler}
 import scala.jdk.CollectionConverters._
 import scala.language.higherKinds
 
+trait ContextOf[PN] {
+  type Context[_]
+}
+
+object ContextOf {
+  type Aux[PN, F[_]] = ContextOf[PN] {
+    type Context[_] = F[_]
+  }
+
+  def apply[PN <: ProcessNode[_, _, _, _, _], F[_]](implicit contextOf: ContextOf.Aux[PN, F]): Aux[PN, F] = contextOf
+
+  implicit def contextOfProcess[F[_], Out, Err, OutResult, ErrResult, IRS <: RedirectionState, ORS <: RedirectionState, ERS <: RedirectionState]:
+  Aux[Process[F, Out, Err, OutResult, ErrResult, IRS, ORS, ERS], F] =
+    new ContextOf[Process[F, Out, Err, OutResult, ErrResult, IRS, ORS, ERS]] {
+      override type Context[_] = F[_]
+    }
+
+  implicit def contextOfPipedProcess[
+  F[_],
+  Out, Err,
+  PN1 <: ProcessNode[_, _, _, _, _],
+  PN2 <: ProcessNode[_, _, _, _, _],
+  IRS <: RedirectionState, ORS <: RedirectionState, ERS <: RedirectionState]:
+  Aux[PipedProcess[F, Out, Err, Byte, PN1, PN2, IRS, ORS, ERS], F] =
+    new ContextOf[PipedProcess[F, Out, Err, Byte, PN1, PN2, IRS, ORS, ERS]] {
+      override type Context[_] = F[_]
+    }
+}
+
 /** Type class for starting processes
   *
   * @tparam PN Process type
   */
-trait Start[PN] {
+trait Start[F[_], PN] {
   /** The type returned by starting the processes holding one or more [[RunningProcess]] instances */
   type RunningProcesses
 
@@ -35,8 +65,10 @@ trait Start[PN] {
     * @param contextShift    Context shifter to be used for the streams
     * @return Returns the [[RunningProcess]] instances of the started system processes
     */
-  def apply[F[_] : Concurrent](process: PN, dontStartOutput: Boolean = false, blocker: Blocker)
-           (implicit contextShift: ContextShift[F]): F[RunningProcesses]
+  def apply(process: PN, dontStartOutput: Boolean = false, blocker: Blocker)
+           (implicit
+            concurrent: Concurrent[F],
+            contextShift: ContextShift[F]): F[RunningProcesses]
 
   /** Start the given process
     *
@@ -51,28 +83,31 @@ trait Start[PN] {
     * @param contextShift    Context shifter to be used for the streams
     * @return Returns the [[RunningProcess]] instances of the started system processes as a [[shapeless.HList]]
     */
-  def toHList[F[_] : Concurrent](process: PN, dontStartOutput: Boolean = false, blocker: Blocker)
-                   (implicit contextShift: ContextShift[F]): F[RunningProcessList]
+  def toHList(process: PN, dontStartOutput: Boolean = false, blocker: Blocker)
+             (implicit
+              concurrent: Concurrent[F],
+              contextShift: ContextShift[F]): F[RunningProcessList]
 }
 
 object Start {
-  type Aux[PN, RP, RPL <: HList] = Start[PN] {
+  type Aux[F[_], PN, RP, RPL <: HList] = Start[F, PN] {
     type RunningProcesses = RP
     type RunningProcessList = RPL
   }
 
-  def apply[F[_], PN <: ProcessNode[_, _, _, _, _], RP, RPL <: HList](implicit start: Start.Aux[PN, RP, RPL]): Aux[PN, RP, RPL] = start
+  def apply[F[_], PN <: ProcessNode[_, _, _, _, _], RP, RPL <: HList](implicit start: Start.Aux[F, PN, RP, RPL]): Aux[F, PN, RP, RPL] = start
 
-  // TODO: remove F[_] from the implicit def so it's only get assigned in apply
   implicit def startProcess[F[_], Out, Err, OutResult: Monoid, ErrResult, IRS <: RedirectionState, ORS <: RedirectionState, ERS <: RedirectionState]:
-  Aux[Process[F, Out, Err, OutResult, ErrResult, IRS, ORS, ERS], RunningProcess[F, Out, OutResult, ErrResult], RunningProcess[F, Out, OutResult, ErrResult] :: HNil] =
+  Aux[F, Process[F, Out, Err, OutResult, ErrResult, IRS, ORS, ERS], RunningProcess[F, Out, OutResult, ErrResult], RunningProcess[F, Out, OutResult, ErrResult] :: HNil] =
 
-    new Start[Process[F, Out, Err, OutResult, ErrResult, IRS, ORS, ERS]] {
+    new Start[F, Process[F, Out, Err, OutResult, ErrResult, IRS, ORS, ERS]] {
       override type RunningProcesses = RunningProcess[F, Out, OutResult, ErrResult]
       override type RunningProcessList = RunningProcess[F, Out, OutResult, ErrResult] :: HNil
 
-      override def apply[F[_]: Concurrent](process: Process[F, Out, Err, OutResult, ErrResult, IRS, ORS, ERS], dontStartOutput: Boolean, blocker: Blocker)
-                        (implicit contextShift: ContextShift[F]): F[RunningProcess[F, Out, OutResult, ErrResult]] = {
+      override def apply(process: Process[F, Out, Err, OutResult, ErrResult, IRS, ORS, ERS], dontStartOutput: Boolean, blocker: Blocker)
+                        (implicit
+                         concurrent: Concurrent[F],
+                         contextShift: ContextShift[F]): F[RunningProcess[F, Out, OutResult, ErrResult]] = {
         def withWorkingDirectory(builder: ProcessBuilder): ProcessBuilder =
           process.workingDirectory match {
             case Some(directory) => builder.directory(directory.toFile)
@@ -113,13 +148,15 @@ object Start {
           runningError)
       }
 
-      override def toHList[F[_]: Concurrent](process: Process[F, Out, Err, OutResult, ErrResult, IRS, ORS, ERS], dontStartOutput: Boolean, blocker: Blocker)
-                          (implicit contextShift: ContextShift[F]): F[RunningProcessList] =
+      override def toHList(process: Process[F, Out, Err, OutResult, ErrResult, IRS, ORS, ERS], dontStartOutput: Boolean, blocker: Blocker)
+                          (implicit
+                           concurrent: Concurrent[F],
+                           contextShift: ContextShift[F]): F[RunningProcessList] =
         apply(process, dontStartOutput, blocker).map(runningProcess => runningProcess :: HNil)
     }
 
   implicit def startPipedProcess[
-  F[_] : Concurrent,
+  F[_],
   Out, Err,
   PN1 <: ProcessNode[_, _, _, _, _],
   PN2 <: ProcessNode[_, _, _, _, _],
@@ -128,25 +165,29 @@ object Start {
   RP2, RPL2 <: HList, RP2Head <: RunningProcess[F, _, _, _], RP2Tail <: HList,
   RPT, RPL <: HList]
   (implicit
-   start1: Start.Aux[PN1, RP1, RPL1],
-   start2: Start.Aux[PN2, RP2, RPL2],
+   start1: Start.Aux[F, PN1, RP1, RPL1],
+   start2: Start.Aux[F, PN2, RP2, RPL2],
    last1: Last.Aux[RPL1, RP1Last],
    rp1LastType: RP1Last <:< RunningProcess[F, Byte, _, _],
    hcons2: IsHCons.Aux[RPL2, RP2Head, RP2Tail],
    prepend: Prepend.Aux[RPL1, RPL2, RPL],
    tupler: Tupler.Aux[RPL, RPT]):
-  Aux[PipedProcess[F, Out, Err, Byte, PN1, PN2, IRS, ORS, ERS], RPT, RPL] =
-    new Start[PipedProcess[F, Out, Err, Byte, PN1, PN2, IRS, ORS, ERS]] {
+  Aux[F, PipedProcess[F, Out, Err, Byte, PN1, PN2, IRS, ORS, ERS], RPT, RPL] =
+    new Start[F, PipedProcess[F, Out, Err, Byte, PN1, PN2, IRS, ORS, ERS]] {
       override type RunningProcesses = RPT
       override type RunningProcessList = RPL
 
-      override def apply[F[_] : Concurrent](pipe: PipedProcess[F, Out, Err, Byte, PN1, PN2, IRS, ORS, ERS], dontStartOutput: Boolean, blocker: Blocker)
-                        (implicit contextShift: ContextShift[F]): F[RPT] = {
+      override def apply(pipe: PipedProcess[F, Out, Err, Byte, PN1, PN2, IRS, ORS, ERS], dontStartOutput: Boolean, blocker: Blocker)
+                        (implicit
+                         concurrent: Concurrent[F],
+                         contextShift: ContextShift[F]): F[RPT] = {
         toHList(pipe, dontStartOutput, blocker).map(_.tupled)
       }
 
-      override def toHList[F[_] : Concurrent](pipe: PipedProcess[F, Out, Err, Byte, PN1, PN2, IRS, ORS, ERS], dontStartOutput: Boolean, blocker: Blocker)
-                          (implicit contextShift: ContextShift[F]): F[RPL] = {
+      override def toHList(pipe: PipedProcess[F, Out, Err, Byte, PN1, PN2, IRS, ORS, ERS], dontStartOutput: Boolean, blocker: Blocker)
+                          (implicit
+                           concurrent: Concurrent[F],
+                           contextShift: ContextShift[F]): F[RPL] = {
         start1.toHList(pipe.from, dontStartOutput = true, blocker).flatMap { runningSourceProcesses =>
           val runningFrom = runningSourceProcesses.last.asInstanceOf[RunningProcess[F, Byte, _, _]]
           val to = pipe.createTo(PipeConstruction[F, Byte](runningFrom.notStartedOutput.get))
@@ -202,14 +243,14 @@ object RedirectInput {
     }
 
   implicit def redirectPipedProcessInput[
-    F[_],
-    Out, Err, PN1Out,
-    PN1 <: ProcessNode[_, _, NotRedirected, _, _],
-    PN2 <: ProcessNode[_, _, _, _, _],
-    ORS <: RedirectionState, ERS <: RedirectionState,
-    PN1Redirected <: ProcessNode[_, _, Redirected, _, _]]
-    (implicit redirectPN1Input: RedirectInput.Aux[F, PN1, PN1Redirected]):
-    Aux[F, PipedProcess[F, Out, Err, PN1Out, PN1, PN2, NotRedirected, ORS, ERS], PipedProcess[F, Out, Err, PN1Out, PN1Redirected, PN2, Redirected, ORS, ERS]] =
+  F[_],
+  Out, Err, PN1Out,
+  PN1 <: ProcessNode[_, _, NotRedirected, _, _],
+  PN2 <: ProcessNode[_, _, _, _, _],
+  ORS <: RedirectionState, ERS <: RedirectionState,
+  PN1Redirected <: ProcessNode[_, _, Redirected, _, _]]
+  (implicit redirectPN1Input: RedirectInput.Aux[F, PN1, PN1Redirected]):
+  Aux[F, PipedProcess[F, Out, Err, PN1Out, PN1, PN2, NotRedirected, ORS, ERS], PipedProcess[F, Out, Err, PN1Out, PN1Redirected, PN2, Redirected, ORS, ERS]] =
 
     new RedirectInput[F, PipedProcess[F, Out, Err, PN1Out, PN1, PN2, NotRedirected, ORS, ERS]] {
       override type Result = PipedProcess[F, Out, Err, PN1Out, PN1Redirected, PN2, Redirected, ORS, ERS]
@@ -376,7 +417,8 @@ trait Piping[F[_], PN1 <: ProcessNode[_, _, _, NotRedirected, _], PN2 <: Process
     * @param via  The [[fs2.Pipe]] between the two processes
     * @return Returns the piped process
     */
-  def apply(from: PN1, to: PN2, via: Pipe[F, Byte, Byte]): ResultProcess
+  def apply(from: PN1, to: PN2, via: Pipe[F, Byte, Byte])
+           (implicit concurrent: Concurrent[F]): ResultProcess
 }
 
 
@@ -385,7 +427,7 @@ object Piping {
     Piping[F, PN1, PN2] {type ResultProcess = RP}
 
   implicit def pipeProcess[
-  F[_] : Concurrent,
+  F[_] : Sync,
   PN1IRS <: RedirectionState, PN1ERS <: RedirectionState,
   PN2Out, PN2Err, PN2ORS <: RedirectionState, PN2ERS <: RedirectionState,
   PN1 <: ProcessNode[_, _, _, NotRedirected, _],
@@ -409,7 +451,8 @@ object Piping {
           PN2Redirected,
           PN1IRS, PN2ORS, PN2ERS]
 
-      override def apply(from: PN1, to: PN2, via: Pipe[F, Byte, Byte]): ResultProcess = {
+      override def apply(from: PN1, to: PN2, via: Pipe[F, Byte, Byte])
+                        (implicit concurrent: Concurrent[F]): ResultProcess = {
         val channel = Drain(via)
         new PipedProcess(
           redirectPN1Output(from, channel),
@@ -435,7 +478,10 @@ class PipeBuilder[F[_], PN <: ProcessNode[_, _, _, NotRedirected, _]](processNod
     * @tparam RP  Result process type of the piping
     * @return Returns the piped process
     */
-  def to[PN2 <: ProcessNode[_, _, NotRedirected, _, _], RP <: ProcessNode[_, _, _, _, _]](to: PN2)(implicit piping: Piping.Aux[F, PN, PN2, RP]): RP =
+  def to[PN2 <: ProcessNode[_, _, NotRedirected, _, _], RP <: ProcessNode[_, _, _, _, _]](to: PN2)
+                                                                                         (implicit
+                                                                                          concurrent: Concurrent[F],
+                                                                                          piping: Piping.Aux[F, PN, PN2, RP]): RP =
     piping(processNode, to, via)
 }
 
@@ -482,7 +528,7 @@ class PipeBuilder[F[_], PN <: ProcessNode[_, _, _, NotRedirected, _]](processNod
   */
 object syntax {
 
-  implicit class ProcessNodeOutputRedirect[F[_], PN <: ProcessNode[_, _, _, NotRedirected, _]](processNode: PN) {
+  implicit class ProcessNodeOutputRedirect[PN <: ProcessNode[_, _, _, NotRedirected, _]](processNode: PN) {
     /** Redirects the output channel of a process
       *
       * @param to             Redirection target
@@ -494,9 +540,11 @@ object syntax {
       * @tparam Result       Type of the process with the redirection encoded
       * @return Returns the process with its output channel redirected
       */
-    def >[To, NewOut, NewOutResult, Result <: ProcessNode[_, _, _, Redirected, _]]
+    def >[F[_], To, NewOut, NewOutResult, Result <: ProcessNode[_, _, _, Redirected, _]]
     (to: To)
-    (implicit target: CanBeProcessOutputTarget.Aux[F, To, NewOut, NewOutResult],
+    (implicit
+     contextOf: ContextOf.Aux[PN, F],
+     target: CanBeProcessOutputTarget.Aux[F, To, NewOut, NewOutResult],
      redirectOutput: RedirectOutput.Aux[F, PN, To, NewOut, NewOutResult, Result]): Result = {
       redirectOutput(processNode, to)
     }
@@ -509,9 +557,12 @@ object syntax {
       * @tparam RP  Type of the piped result process
       * @return Returns a piped process
       */
-    def |[PN2 <: ProcessNode[_, _, NotRedirected, _, _], RP <: ProcessNode[_, _, _, _, _]]
+    def |[F[_], PN2 <: ProcessNode[_, _, NotRedirected, _, _], RP <: ProcessNode[_, _, _, _, _]]
     (to: PN2)
-    (implicit piping: Piping.Aux[F, PN, PN2, RP]): RP =
+    (implicit
+     contextOf: ContextOf.Aux[PN, F],
+     concurrent: Concurrent[F],
+     piping: Piping.Aux[F, PN, PN2, RP]): RP =
       piping(processNode, to, identity[Stream[F, Byte]])
 
     /** Creates a piped process by providing a custom pipe
@@ -519,11 +570,12 @@ object syntax {
       * @param via The custom pipe between the two process
       * @return Returns a [[PipeBuilder]] instance which can be used to complete the piping specification
       */
-    def via(via: Pipe[F, Byte, Byte]): PipeBuilder[F, PN] =
+    def via[F[_]](via: Pipe[F, Byte, Byte])
+                 (implicit contextOf: ContextOf.Aux[PN, F]): PipeBuilder[F, PN] =
       new PipeBuilder(processNode, via)
   }
 
-  implicit class ProcessNodeInputRedirect[F[_], PN <: ProcessNode[_, _, NotRedirected, _, _]](processNode: PN) {
+  implicit class ProcessNodeInputRedirect[PN <: ProcessNode[_, _, NotRedirected, _, _]](processNode: PN) {
     /** Redirects the input channel of a process
       *
       * @param from          Redirection source
@@ -533,14 +585,17 @@ object syntax {
       * @tparam PNRedirected Type of the process with the redirection encoded
       * @return Returns the process with its input channel redirected
       */
-    def <[From, PNRedirected <: ProcessNode[_, _, Redirected, _, _]]
+    def <[F[_], From, PNRedirected <: ProcessNode[_, _, Redirected, _, _]]
     (from: From)
-    (implicit source: CanBeProcessInputSource[F, From], redirectInput: RedirectInput.Aux[F, PN, PNRedirected]): PNRedirected = {
+    (implicit
+     contextOf: ContextOf.Aux[PN, F],
+     source: CanBeProcessInputSource[F, From],
+     redirectInput: RedirectInput.Aux[F, PN, PNRedirected]): PNRedirected = {
       redirectInput(processNode, from)
     }
   }
 
-  implicit class ProcessNodeErrorRedirect[F[_], PN <: ProcessNode[_, _, _, _, NotRedirected]](processNode: PN) {
+  implicit class ProcessNodeErrorRedirect[PN <: ProcessNode[_, _, _, _, NotRedirected]](processNode: PN) {
     /** Redirects the error channel of a process
       *
       * @param to            Redirection target
@@ -552,15 +607,17 @@ object syntax {
       * @tparam Result       Type of the process with the redirection encoded
       * @return Returns the process with its error channel redirected
       */
-    def redirectErrorTo[To, NewErr, NewErrResult, Result <: ProcessNode[_, _, _, _, Redirected]]
+    def redirectErrorTo[F[_], To, NewErr, NewErrResult, Result <: ProcessNode[_, _, _, _, Redirected]]
     (to: To)
-    (implicit target: CanBeProcessErrorTarget.Aux[F, To, NewErr, NewErrResult],
+    (implicit
+     contextOf: ContextOf.Aux[PN, F],
+     target: CanBeProcessErrorTarget.Aux[F, To, NewErr, NewErrResult],
      redirectError: RedirectError.Aux[F, PN, To, NewErr, NewErrResult, Result]): Result = {
       redirectError(processNode, to)
     }
   }
 
-  implicit class ProcessOps[F[_] : Concurrent, PN <: ProcessNode[_, _, _, _, _]](processNode: PN) {
+  implicit class ProcessOps[PN <: ProcessNode[_, _, _, _, _]](processNode: PN) {
     /** Starts the process
       *
       * @param start        Type class implementing the process starting
@@ -569,7 +626,11 @@ object syntax {
       * @tparam RP Type encoding the [[RunningProcess]] instances
       * @return Returns the [[RunningProcess]] instances for the system processes which has been started
       */
-    def start[RP](blocker: Blocker)(implicit start: Start.Aux[PN, RP, _], contextShift: ContextShift[F]): F[RP] =
+    def start[F[_], RP](blocker: Blocker)(implicit
+                                          contextOf: ContextOf.Aux[PN, F],
+                                          start: Start.Aux[F, PN, RP, _],
+                                          concurrent: Concurrent[F],
+                                          contextShift: ContextShift[F]): F[RP] =
       start(processNode, dontStartOutput = false, blocker)
 
     /** Starts the process
@@ -580,7 +641,12 @@ object syntax {
       * @tparam RPL Type encoding the [[RunningProcess]] instances in a [[shapeless.HList]]
       * @return Returns the HList of [[RunningProcess]] instances for the system processes which has been started
       */
-    def startHL[RPL <: HList](blocker: Blocker)(implicit start: Start.Aux[PN, _, RPL], contextShift: ContextShift[F]): F[RPL] =
+    def startHL[F[_], RPL <: HList](blocker: Blocker)
+                                   (implicit
+                                    contextOf: ContextOf.Aux[PN, F],
+                                    start: Start.Aux[F, PN, _, RPL],
+                                    concurrent: Concurrent[F],
+                                    contextShift: ContextShift[F]): F[RPL] =
       start.toHList(processNode, dontStartOutput = false, blocker)
   }
 

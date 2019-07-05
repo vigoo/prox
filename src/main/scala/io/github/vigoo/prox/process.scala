@@ -199,8 +199,8 @@ object Process {
     * @return Returns the specification of a system process
     */
   def apply[F[_] : Concurrent](command: String,
-                               arguments: List[String] = List.empty,
-                               workingDirectory: Option[Path] = None): Process[F, Byte, Byte, Unit, Unit, NotRedirected, NotRedirected, NotRedirected] =
+                         arguments: List[String] = List.empty,
+                         workingDirectory: Option[Path] = None): Process[F, Byte, Byte, Unit, Unit, NotRedirected, NotRedirected, NotRedirected] =
     new Process[F, Byte, Byte, Unit, Unit, NotRedirected, NotRedirected, NotRedirected](command, arguments, workingDirectory, new StdIn[F], new StdOut[F], new StdError[F], Map.empty, Set.empty)
 }
 
