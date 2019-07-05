@@ -5,7 +5,10 @@ import java.lang
 import java.lang.ProcessBuilder.Redirect
 import java.nio.file.Path
 
-import cats.effect.{Blocker, Concurrent, ContextShift, Fiber, IO}
+import cats.Applicative
+import cats.effect._
+import cats.effect.syntax.all._
+import cats.implicits._
 import fs2._
 
 import scala.concurrent.blocking
@@ -20,7 +23,7 @@ import scala.language.higherKinds
 final case class FlushChunks[F[_]](stream: Stream[F, Byte])
 
 /** Base trait for input redirection handlers */
-trait ProcessInputSource extends ProcessIO[Byte, Unit]
+trait ProcessInputSource[F[_]] extends ProcessIO[F, Byte, Unit]
 
 /** Type class for creating input redirection handlers
   *
@@ -29,8 +32,8 @@ trait ProcessInputSource extends ProcessIO[Byte, Unit]
   *
   * @tparam From Type to be used as an input source
   */
-trait CanBeProcessInputSource[From] {
-  def apply(from: From): ProcessInputSource
+trait CanBeProcessInputSource[F[_], From] {
+  def apply(from: From): ProcessInputSource[F]
 }
 
 /** Instances of the [[CanBeProcessInputSource]] type class
@@ -41,62 +44,61 @@ trait CanBeProcessInputSource[From] {
   * - [[fs2.Stream]] to use a byte stream as input
   */
 object CanBeProcessInputSource {
-  implicit val pathAsSource: CanBeProcessInputSource[Path] =
-    (path: Path) => new FileSource(path)
+  implicit def pathAsSource[F[_]: Concurrent]: CanBeProcessInputSource[F, Path] =
+    (path: Path) => new FileSource[F](path)
 
-  implicit def streamAsSource: CanBeProcessInputSource[Stream[IO, Byte]] =
-    (source: Stream[IO, Byte]) => new InputStreamingSource(source)
+  implicit def streamAsSource[F[_] : Concurrent]: CanBeProcessInputSource[F, Stream[F, Byte]] =
+    (source: Stream[F, Byte]) => new InputStreamingSource(source)
 
-  implicit def pureStreamAsSource: CanBeProcessInputSource[Stream[Pure, Byte]] =
+  implicit def pureStreamAsSource[F[_] : Concurrent]: CanBeProcessInputSource[F, Stream[Pure, Byte]] =
     (source: Stream[Pure, Byte]) => new InputStreamingSource(source)
 
-  implicit def flushControlledStreamAsSource: CanBeProcessInputSource[FlushChunks[IO]] =
-    (source: FlushChunks[IO]) => new FlushControlledInputStreamingSource(source)
+  implicit def flushControlledStreamAsSource[F[_] : Concurrent]: CanBeProcessInputSource[F, FlushChunks[F]] =
+    (source: FlushChunks[F]) => new FlushControlledInputStreamingSource(source)
 }
 
 /** Default input source representing no redirection */
-object StdIn extends ProcessInputSource {
+class StdIn[F[_] : Concurrent] extends ProcessInputSource[F] {
   override def toRedirect: Redirect = Redirect.INHERIT
 
-  override def connect(systemProcess: lang.Process, blocker: Blocker)(implicit contextShift: ContextShift[IO]): Stream[IO, Byte] =
+  override def connect(systemProcess: lang.Process, blocker: Blocker)(implicit contextShift: ContextShift[F]): Stream[F, Byte] =
     Stream.empty
 
-  override def run(stream: Stream[IO, Byte])(implicit contextShift: ContextShift[IO]): IO[Fiber[IO, Unit]] =
-    Concurrent[IO].start(IO.unit)
+  override def run(stream: Stream[F, Byte])(implicit contextShift: ContextShift[F]): F[Fiber[F, Unit]] =
+    Concurrent[F].start(Applicative[F].unit)
 }
 
 /** Input source implementation of using a file as input
   *
   * @param path Path to the file
   */
-class FileSource(path: Path) extends ProcessInputSource {
+class FileSource[F[_] : Concurrent](path: Path) extends ProcessInputSource[F] {
   override def toRedirect: Redirect = Redirect.from(path.toFile)
-  override def connect(systemProcess: lang.Process, blocker: Blocker)(implicit contextShift: ContextShift[IO]): Stream[IO, Byte] =
+
+  override def connect(systemProcess: lang.Process, blocker: Blocker)(implicit contextShift: ContextShift[F]): Stream[F, Byte] =
     Stream.empty
 
-  override def run(stream: Stream[IO, Byte])(implicit contextShift: ContextShift[IO]): IO[Fiber[IO, Unit]] =
-    Concurrent[IO].start(IO.unit)
+  override def run(stream: Stream[F, Byte])(implicit contextShift: ContextShift[F]): F[Fiber[F, Unit]] =
+    Concurrent[F].start(Applicative[F].unit)
 }
 
 /** Input source implementation of using a byte stream as input
   *
   * @param source The input byte stream
   */
-class InputStreamingSource(source: Stream[IO, Byte]) extends ProcessInputSource {
+class InputStreamingSource[F[_] : Concurrent](source: Stream[F, Byte]) extends ProcessInputSource[F] {
   override def toRedirect: Redirect = Redirect.PIPE
 
-  override def connect(systemProcess: lang.Process, blocker: Blocker)(implicit contextShift: ContextShift[IO]): Stream[IO, Byte] = {
+  override def connect(systemProcess: lang.Process, blocker: Blocker)(implicit contextShift: ContextShift[F]): Stream[F, Byte] = {
     source.observe(
-      io.writeOutputStream[IO](
-        IO {
-          systemProcess.getOutputStream
-        },
+      io.writeOutputStream[F](
+        Sync[F].delay(systemProcess.getOutputStream),
         closeAfterUse = true,
         blocker = blocker))
   }
 
-  override def run(stream: Stream[IO, Byte])(implicit contextShift: ContextShift[IO]): IO[Fiber[IO, Unit]] =
-    Concurrent[IO].start(stream.compile.drain)
+  override def run(stream: Stream[F, Byte])(implicit contextShift: ContextShift[F]): F[Fiber[F, Unit]] =
+    Concurrent[F].start(stream.compile.drain)
 }
 
 /** Input source implementation that calls 'flush' after each chunk of bytes. Useful for interactive
@@ -104,28 +106,28 @@ class InputStreamingSource(source: Stream[IO, Byte]) extends ProcessInputSource 
   *
   * @param source The input byte stream
   */
-class FlushControlledInputStreamingSource(source: FlushChunks[IO]) extends ProcessInputSource {
+class FlushControlledInputStreamingSource[F[_] : Concurrent](source: FlushChunks[F]) extends ProcessInputSource[F] {
   override def toRedirect: Redirect = Redirect.PIPE
 
-  override def connect(systemProcess: lang.Process, blocker: Blocker)(implicit contextShift: ContextShift[IO]): Stream[IO, Byte] = {
+  override def connect(systemProcess: lang.Process, blocker: Blocker)(implicit contextShift: ContextShift[F]): Stream[F, Byte] = {
     source.stream.observe(
       writeAndFlushOutputStream(
         systemProcess.getOutputStream,
         blocker = blocker))
   }
 
-  override def run(stream: Stream[IO, Byte])(implicit contextShift: ContextShift[IO]): IO[Fiber[IO, Unit]] =
-    Concurrent[IO].start(stream.compile.drain)
+  override def run(stream: Stream[F, Byte])(implicit contextShift: ContextShift[F]): F[Fiber[F, Unit]] =
+    Concurrent[F].start(stream.compile.drain)
 
   def writeAndFlushOutputStream(stream: OutputStream,
                                 blocker: Blocker)
-                               (implicit contextShift: ContextShift[IO]): Pipe[IO, Byte, Unit] = s => {
+                               (implicit contextShift: ContextShift[F]): Pipe[F, Byte, Unit] = s => {
     Stream
-      .bracket(IO.pure(stream))(os => IO(os.close()))
+      .bracket(Applicative[F].pure(stream))(os => Sync[F].delay(os.close()))
       .flatMap { os =>
         s.chunks.evalMap { chunk =>
           blocker.blockOn {
-            IO {
+            Sync[F].delay {
               blocking {
                 os.write(chunk.toArray)
                 os.flush()

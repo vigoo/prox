@@ -2,7 +2,7 @@ package io.github.vigoo.prox.examples
 
 import java.nio.file.{Path, Paths}
 
-import cats.effect.{Blocker, ExitCode, IO, IOApp}
+import cats.effect.{Blocker, Concurrent, ExitCode, IO, IOApp}
 import cats.implicits._
 import fs2.concurrent.Queue
 import io.github.vigoo.prox._
@@ -20,10 +20,10 @@ object InteractivePythonProcess extends IOApp {
   /**
     * Wrapper for defining Python processes, equivalent to "activating the virtualenv"
     */
-  def pythonProcess(virtualenvRoot: Path, scriptFileName: Path, args: List[String] = List.empty): Process[Byte, Byte, Unit, Unit, NotRedirected, NotRedirected, NotRedirected] = {
+  def pythonProcess[F[_] : Concurrent](virtualenvRoot: Path, scriptFileName: Path, args: List[String] = List.empty): Process[F, Byte, Byte, Unit, Unit, NotRedirected, NotRedirected, NotRedirected] = {
     val bin = virtualenvRoot / "bin"
     val python = bin / "python"
-    Process(python.toString, scriptFileName.toString :: args) `with`
+    Process[F](python.toString, scriptFileName.toString :: args) `with`
       ("PATH" -> (bin.toString + ":" + System.getenv("PATH"))) `with`
       ("VIRTUAL_ENV" -> virtualenvRoot.toString) without "PYTHONHOME"
   }
@@ -48,7 +48,7 @@ object InteractivePythonProcess extends IOApp {
           .andThen(outputQueue.enqueue)
 
         // Input uses the FlushChunks modifier to avoid flush after each chunk (default buffer size in JRE is 8k)
-        process = (pythonProcess(virtualenvRoot, scriptPath) in workingDir) < FlushChunks(input) > output
+        process = (pythonProcess[IO](virtualenvRoot, scriptPath) in workingDir) < FlushChunks(input) > output
 
         _ <- println("Starting external process...")
         python <- process.start(blocker)
