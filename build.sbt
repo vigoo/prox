@@ -9,6 +9,8 @@ val scala213 = "2.13.0"
 scalaVersion := scala213
 crossScalaVersions := List(scala212, scala213)
 
+addCompilerPlugin("org.typelevel" %% "kind-projector" % "0.10.3")
+
 libraryDependencies ++= Seq(
   "org.typelevel" %% "cats-effect" % "2.0.0-M4",
   "co.fs2" %% "fs2-core" % "1.1.0-M1",
@@ -16,7 +18,9 @@ libraryDependencies ++= Seq(
   "com.chuusai" %% "shapeless" % "2.3.3",
   "org.scala-lang.modules" %% "scala-collection-compat" % "2.1.1",
 
-  "org.specs2" %% "specs2-core" % "4.6.0" % "test"
+  "org.specs2" %% "specs2-core" % "4.6.0" % "test",
+  "dev.zio" %% "zio" % "1.0.0-RC10-1" % "test",
+  "dev.zio" %% "zio-interop-cats" % "2.0.0.0-RC1" % "test",
 )
 
 coverageEnabled in(Test, compile) := true
