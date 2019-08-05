@@ -2,7 +2,7 @@ package io.github.vigoo.prox.examples
 
 import java.nio.file.{Path, Paths}
 
-import cats.effect.{Blocker, Concurrent, ExitCode, IO, IOApp}
+import cats.effect.{Blocker, Concurrent, ExitCode}
 import cats.implicits._
 import fs2.concurrent.Queue
 import io.github.vigoo.prox._
@@ -10,8 +10,8 @@ import io.github.vigoo.prox.path._
 import io.github.vigoo.prox.syntax._
 import fs2._
 import zio.console.Console
-import zio.{Task, TaskR, UIO, ZIO}
 import zio.interop.catz._
+import zio.{RIO, Task, UIO, ZIO}
 
 /**
   * Example showing how to communicate with an interactive REPL implemented in Python
@@ -37,8 +37,8 @@ object ZIOInteractivePythonProcess extends CatsApp {
     def stop(): Task[ExitCode]
   }
 
-  def startExternalProcess(workingDir: Path, virtualenvRoot: Path, scriptPath: Path): TaskR[Console, ExternalProcess] = {
-    Blocker[TaskR[Console, ?]].use { blocker =>
+  def startExternalProcess(workingDir: Path, virtualenvRoot: Path, scriptPath: Path): RIO[Console, ExternalProcess] = {
+    Blocker[RIO[Console, ?]].use { blocker =>
       for {
         inputQueue <- Queue.unbounded[Task, String] // queue storing commands to be sent
         outputQueue <- Queue.noneTerminated[Task, String] // queue storing answers from the process, None represents end of stream
