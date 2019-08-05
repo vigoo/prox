@@ -19,7 +19,7 @@ libraryDependencies ++= Seq(
   "org.scala-lang.modules" %% "scala-collection-compat" % "2.1.1",
 
   "org.specs2" %% "specs2-core" % "4.6.0" % "test",
-  "dev.zio" %% "zio" % "1.0.0-RC10-1" % "test",
+  "dev.zio" %% "zio" % "1.0.0-RC11-1" % "test",
   "dev.zio" %% "zio-interop-cats" % "2.0.0.0-RC1" % "test",
 )
 
