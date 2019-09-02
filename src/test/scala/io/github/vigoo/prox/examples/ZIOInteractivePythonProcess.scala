@@ -4,6 +4,7 @@ import java.nio.file.{Path, Paths}
 
 import cats.effect.{Blocker, Concurrent, ExitCode}
 import cats.implicits._
+import cats.syntax.flatMap._
 import fs2.concurrent.Queue
 import io.github.vigoo.prox._
 import io.github.vigoo.prox.path._
@@ -91,6 +92,6 @@ object ZIOInteractivePythonProcess extends CatsApp {
       _ <- console.putStrLn(s"Result is $exitCode")
     } yield ExitCode.Success.code
 
-    program.catchAll(error => console.putStrLn(s"Failed with $error") >> UIO(ExitCode.Error.code))
+    program.catchAll(error => console.putStrLn(s"Failed with $error").flatMap(_ => UIO(ExitCode.Error.code)))
   }
 }
