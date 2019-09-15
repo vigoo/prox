@@ -19,26 +19,26 @@ It works by first defining a one or more processes then starting them, getting a
 Add the following dependency:
 
 ```scala
-libraryDependencies += "io.github.vigoo" %% "prox" % "0.3"
+libraryDependencies += "io.github.vigoo" %% "prox" % "0.4"
 ```
 
 Let's start by defining a single process with the `Process` constructor, taking a command and optionally a list of arguments and a working directory:
 
 ```scala
+import cats.effect._
 import cats.implicits._
 import io.github.vigoo.prox._
 import io.github.vigoo.prox.syntax._
 
-val process = Process("echo", List("Hello world"))
+val process = Process[IO]("echo", List("Hello world"))
 ```
 
 This is just a definition of a process, no real effect happened yet. We can *start* this process by using the `start` method on it, which creates an *effectful operation* in the IO monad, defined by [cats-effect](https://github.com/typelevel/cats-effect):
 
 ```scala
 implicit val contextShift: ContextShift[IO] = IO.contextShift(ExecutionContext.global)
-val blockingExecutionContext = ExecutionContext.fromExecutor(Executors.newCachedThreadPool())
 
-val runningProcess: IO[RunningProcess] = process.start(blockingExecutionContext)
+val runningProcess: IO[RunningProcess] = Blocker[IO].use { blocker => process.start(blocker) }
 ```
 
 This, when executed, will start the above defined process and return an instance of `RunningProcess`, which allows things like waiting for the process to be terminated, or kill it. 
@@ -47,11 +47,12 @@ Let's see a full example of running the above process and printing it's exit cod
 
 ```scala
 val program = 
+  Blocker[IO].use { blocker => 
     for {
-      echo <- Process("echo", List("Hello world")).start(blockingExecutionContext)
+      echo <- Process[IO]("echo", List("Hello world")).start(blocker)
       result <- echo.waitForExit()
     } yield result.exitCode
-    
+  }  
 val exitCode = program.unsafeRunSync()
 ``` 
 
@@ -59,10 +60,10 @@ val exitCode = program.unsafeRunSync()
 Let's take a look at the type of `process` we defined above:
 
 ```scala
-process: Process[NotRedirected, NotRedirected, NotRedirected]
+process: Process[IO, Byte, Byte, Unit, Unit, NotRedirected, NotRedirected, NotRedirected]
 ```
 
-The three type parameters indicate the redirection status of the processes *input*, *output* and *error* streams. The default is that they are *not redirected*, inheriting the parent processes streams.
+The last three type parameters indicate the redirection status of the processes *input*, *output* and *error* streams. The default is that they are *not redirected*, inheriting the parent processes streams.
 
 Each stream can be redirected **at most once** using the `<`, `>` and `redirectErrorTo` operators. The target of these redirections are described by three type classes: `CanBeProcessOutputTarget`, `CanBeProcessErrorTarget` and `CanBeProcessInputSource`.
 
@@ -71,20 +72,20 @@ One type with such instances is `Path`. Let's how to redirect the output:
 ```scala
 import io.github.vigoo.prox.path._
 
-val process = Process("echo", List("Hello world")) > (home / "tmp" / "out.txt")
+val process = Process[IO]("echo", List("Hello world")) > (home / "tmp" / "out.txt")
 ``` 
 
 Running this process will redirect the process' output to the given file directly using the *Java process builder API'. We can't use this operator twice as it would be ambigous (and outputting to multiple files directly is not supported by the system), so the following does not typecheck:
 
 ```scala
-val process = Process("echo", List("Hello world")) > (home / "tmp" / "out.txt") > (home / "tmp" / "out2.txt")
+val process = Process[IO]("echo", List("Hello world")) > (home / "tmp" / "out.txt") > (home / "tmp" / "out2.txt")
 ```
 
 Similarly we can redirect the input and the error:
 
 ```scala
-val p1 = Process("cat") < (home / "something")
-val p2 = Process("make") redirectErrorTo (home / "errors.log")
+val p1 = Process[IO]("cat") < (home / "something")
+val p2 = Process[IO]("make") redirectErrorTo (home / "errors.log")
 ```
 
 ### Streams
@@ -133,15 +134,15 @@ The library also provides a way to **pipe two or more processes together**. This
 Let's start by piping two processes together:
 
 ```scala
-val echoProcess = Process("echo", List("This is an output"))
-val wordCountProcess = Process("wc", List("-w"))
+val echoProcess = Process[IO]("echo", List("This is an output"))
+val wordCountProcess = Process[IO]("wc", List("-w"))
 val combined = echoProcess | wordCountProcess
 ```
 
 The combined process is no longer a `Process`; it is a `PipedProcess`, but otherwise it works exactly the same, you can redirect its input and outputs or pipe it to another process:
 
 ```scala
-val multipleProcesses = Process("cat", List("log.txt")) | Process("grep", List("ERROR")) | Process("sort") | Process("uniq", List("-c"))
+val multipleProcesses = Process[IO]("cat", List("log.txt")) | Process[IO]("grep", List("ERROR")) | Process[IO]("sort") | Process[IO]("uniq", List("-c"))
 ```
 
 The `start` method for piped processes no longer returns a single `IO[RunningProcess]`, but a *tuple* containing all the `RunningProcess`
@@ -149,10 +150,10 @@ instances for the involved processes:
 
 ```scala
 for {
-  runningProcs1 <- (echoProcess | wordCountProcess).start(blockingExecutionContext)
+  runningProcs1 <- (echoProcess | wordCountProcess).start(blocker)
   (echo, wordCount) = runningProcs1
   
-  runningProcs2 <- multipleProcesses.start(blockingExecutionContext)
+  runningProcs2 <- multipleProcesses.start(blocker)
   (cat, grep, sort, uniq) = runningProcs2
   
   _ <- wordCount.waitForExit()
@@ -181,3 +182,8 @@ There are two parameters controlling the execution of the processes.
 - The `start` method on processes now requires a `blockingExecutionContext` argument
 - `Ignore` has been renamed to `Drain`
 - `Log` has been renamed to `ToVector`
+
+### from 0.2 to 0.4
+
+- `Process` now takes the effect type as parameter, so in case of cats-effect, `Process(...)` becomes `Process[IO](...)`
+- The `start` method on processes now gets a `Blocker` instead of an execution context
