@@ -81,6 +81,13 @@ trait LowPriorityCanBeProcessOutputTarget {
       override def run(stream: Stream[F, Out])(implicit contextShift: ContextShift[F]): F[Fiber[F, Vector[Out]]] =
         Concurrent[F].start(stream.compile.toVector)
     })
+
+  implicit def monoidPipeAsTarget[F[_] : Concurrent, Out: Monoid]: CanBeProcessOutputTarget.Aux[F, Pipe[F, Byte, Out], Out, Out] =
+    CanBeProcessOutputTarget.create((pipe: Pipe[F, Byte, Out]) => new OutputStreamingTarget(pipe) with ProcessOutputTarget[F, Out, Out] {
+      override def run(stream: Stream[F, Out])(implicit contextShift: ContextShift[F]): F[Fiber[F, Out]] = {
+        Concurrent[F].start(stream.compile.foldMonoid)
+      }
+    })
 }
 
 /** Instances of the [[CanBeProcessOutputTarget]] type class
@@ -117,13 +124,6 @@ object CanBeProcessOutputTarget extends LowPriorityCanBeProcessOutputTarget {
 
       override def run(stream: Stream[F, Unit])(implicit contextShift: ContextShift[F]): F[Fiber[F, Unit]] =
         Concurrent[F].start(stream.compile.drain)
-    })
-
-  implicit def monoidPipeAsTarget[F[_] : Concurrent, Out: Monoid]: Aux[F, Pipe[F, Byte, Out], Out, Out] =
-    create((pipe: Pipe[F, Byte, Out]) => new OutputStreamingTarget(pipe) with ProcessOutputTarget[F, Out, Out] {
-      override def run(stream: Stream[F, Out])(implicit contextShift: ContextShift[F]): F[Fiber[F, Out]] = {
-        Concurrent[F].start(stream.compile.foldMonoid)
-      }
     })
 
   implicit def ignorePipeAsOutputTarget[F[_] : Concurrent, Out]: Aux[F, Drain[F, Out], Out, Unit] =
