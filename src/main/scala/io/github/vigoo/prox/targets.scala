@@ -75,13 +75,15 @@ case class ToVector[F[_], O](pipe: Pipe[F, Byte, O])
   */
 case class Fold[F[_], O, R](pipe: Pipe[F, Byte, O], init: R, f: (R, O) => R)
 
-trait LowPriorityCanBeProcessOutputTarget {
+trait LowerPriorityCanBeProcessOutputTarget {
   implicit def pipeAsTarget[F[_] : Concurrent, Out]: CanBeProcessOutputTarget.Aux[F, Pipe[F, Byte, Out], Out, Vector[Out]] =
     CanBeProcessOutputTarget.create((pipe: Pipe[F, Byte, Out]) => new OutputStreamingTarget(pipe) with ProcessOutputTarget[F, Out, Vector[Out]] {
       override def run(stream: Stream[F, Out])(implicit contextShift: ContextShift[F]): F[Fiber[F, Vector[Out]]] =
         Concurrent[F].start(stream.compile.toVector)
     })
+}
 
+trait LowPriorityCanBeProcessOutputTarget extends LowerPriorityCanBeProcessOutputTarget {
   implicit def monoidPipeAsTarget[F[_] : Concurrent, Out: Monoid]: CanBeProcessOutputTarget.Aux[F, Pipe[F, Byte, Out], Out, Out] =
     CanBeProcessOutputTarget.create((pipe: Pipe[F, Byte, Out]) => new OutputStreamingTarget(pipe) with ProcessOutputTarget[F, Out, Out] {
       override def run(stream: Stream[F, Out])(implicit contextShift: ContextShift[F]): F[Fiber[F, Out]] = {
