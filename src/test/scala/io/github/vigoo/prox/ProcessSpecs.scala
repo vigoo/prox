@@ -76,18 +76,6 @@ class ProcessSpecs extends Specification { def is = s2"""
     program.unsafeRunSync() must beEqualTo((0, 1))
   }
 
-  def workingDirectoryWorks = {
-    val tempDirectory = Files.createTempDirectory("prox")
-    val program = Blocker[IO].use { blocker =>
-      for {
-        pwdRunning <- ((Process[IO]("pwd") in tempDirectory) > text.utf8Decode[IO]).start(blocker)
-        pwdResult <- pwdRunning.waitForExit()
-      } yield pwdResult.fullOutput.trim
-    }
-
-    program.unsafeRunSync() must beOneOf(tempDirectory.toString, s"/private${tempDirectory}")
-  }
-
   def simpleProcessFileOutput = {
     val tempFile = File.createTempFile("test", "txt")
     val program = Blocker[IO].use { blocker =>
@@ -116,6 +104,7 @@ class ProcessSpecs extends Specification { def is = s2"""
     val builder = new StringBuilder()
 
     val target: Pipe[IO, Byte, Unit] = _.evalMap(byte => IO { builder.append(byte.toChar) }.void)
+
     val program = Blocker[IO].use { blocker =>
       for {
         running <- (Process[IO]("echo", List("Hello world!")) > target).start(blocker)
@@ -161,61 +150,6 @@ class ProcessSpecs extends Specification { def is = s2"""
     }
 
     program.unsafeRunSync() must beEqualTo("5")
-  }
-
-  def flushChunks = {
-    val source: Stream[IO, Byte] = Stream("This ", "is a test", " string").through(text.utf8Encode)
-    val program = Blocker[IO].use { blocker =>
-      for {
-        running <- (Process[IO]("wc", List("-w")) < FlushChunks(source) > text.utf8Decode[IO]).start(blocker)
-        result <- running.waitForExit()
-      } yield result.fullOutput.trim
-    }
-
-    program.unsafeRunSync() must beEqualTo("5")
-  }
-
-  def pipedProcessFileInput = {
-    val tempFile = Files.createTempFile("prox", "txt")
-    Files.write(tempFile, "This is a test string".getBytes("UTF-8"))
-    val pipedProcess = Process[IO]("cat") | Process[IO]("wc", List("-w"))
-    val program = Blocker[IO].use { blocker =>
-      for {
-        runningProcesses <- (pipedProcess < tempFile > text.utf8Decode[IO]).start(blocker)
-        (runningCat, runningWc) = runningProcesses
-        _ <- runningCat.waitForExit()
-        wcResult <- runningWc.waitForExit()
-      } yield wcResult.fullOutput.trim
-    }
-
-    program.unsafeRunSync() must beEqualTo("5")
-  }
-
-  def pipedProcessStreamInput = {
-    val source: Stream[IO, Byte] = Stream("This is a test string").through(text.utf8Encode)
-    val pipedProcess = Process[IO]("cat") | Process[IO]("wc", List("-w"))
-    val program = Blocker[IO].use { blocker =>
-      for {
-        runningProcesses <- (pipedProcess < source > text.utf8Decode[IO]).start(blocker)
-        (runningCat, runningWc) = runningProcesses
-        _ <- runningCat.waitForExit()
-        wcResult <- runningWc.waitForExit()
-      } yield wcResult.fullOutput.trim
-    }
-
-    program.unsafeRunSync() must beEqualTo("5")
-  }
-
-  def pipedProcessStreamError = {
-    val program = Blocker[IO].use { blocker =>
-      for {
-        rps <- ((Process[IO]("true") | Process[IO]("perl", List("-e", """print STDERR "Hello""""))) redirectErrorTo text.utf8Decode[IO]).start(blocker)
-        (_, running) = rps
-        result <- running.waitForExit()
-      } yield result.fullError
-    }
-
-    program.unsafeRunSync() must beEqualTo("Hello")
   }
 
   def simpleProcessPiping = {
@@ -296,6 +230,61 @@ class ProcessSpecs extends Specification { def is = s2"""
     program.unsafeRunSync() must beEqualTo((Vector("Hello", "world"), Vector.empty, Vector.empty))
   }
 
+  def workingDirectoryWorks = {
+    val tempDirectory = Files.createTempDirectory("prox")
+    val program = Blocker[IO].use { blocker =>
+      for {
+        pwdRunning <- ((Process[IO]("pwd") in tempDirectory) > text.utf8Decode[IO]).start(blocker)
+        pwdResult <- pwdRunning.waitForExit()
+      } yield pwdResult.fullOutput.trim
+    }
+
+    program.unsafeRunSync() must beOneOf(tempDirectory.toString, s"/private${tempDirectory}")
+  }
+
+  def pipedProcessStreamInput = {
+    val source: Stream[IO, Byte] = Stream("This is a test string").through(text.utf8Encode)
+    val pipedProcess = Process[IO]("cat") | Process[IO]("wc", List("-w"))
+    val program = Blocker[IO].use { blocker =>
+      for {
+        runningProcesses <- (pipedProcess < source > text.utf8Decode[IO]).start(blocker)
+        (runningCat, runningWc) = runningProcesses
+        _ <- runningCat.waitForExit()
+        wcResult <- runningWc.waitForExit()
+      } yield wcResult.fullOutput.trim
+    }
+
+    program.unsafeRunSync() must beEqualTo("5")
+  }
+
+  def pipedProcessFileInput = {
+    val tempFile = Files.createTempFile("prox", "txt")
+    Files.write(tempFile, "This is a test string".getBytes("UTF-8"))
+    val pipedProcess = Process[IO]("cat") | Process[IO]("wc", List("-w"))
+    val program = Blocker[IO].use { blocker =>
+      for {
+        runningProcesses <- (pipedProcess < tempFile > text.utf8Decode[IO]).start(blocker)
+        (runningCat, runningWc) = runningProcesses
+        _ <- runningCat.waitForExit()
+        wcResult <- runningWc.waitForExit()
+      } yield wcResult.fullOutput.trim
+    }
+
+    program.unsafeRunSync() must beEqualTo("5")
+  }
+
+  def pipedProcessStreamError = {
+    val program = Blocker[IO].use { blocker =>
+      for {
+        rps <- ((Process[IO]("true") | Process[IO]("perl", List("-e", """print STDERR "Hello""""))) redirectErrorTo text.utf8Decode[IO]).start(blocker)
+        (_, running) = rps
+        result <- running.waitForExit()
+      } yield result.fullError
+    }
+
+    program.unsafeRunSync() must beEqualTo("Hello")
+  }
+
   def isAlive = {
     val program = Blocker[IO].use { blocker =>
       for {
@@ -346,6 +335,18 @@ class ProcessSpecs extends Specification { def is = s2"""
     }
 
     program.unsafeRunSync() must beEqualTo("Hello world! I am prox!\n")
+  }
+
+  def flushChunks = {
+    val source: Stream[IO, Byte] = Stream("This ", "is a test", " string").through(text.utf8Encode)
+    val program = Blocker[IO].use { blocker =>
+      for {
+        running <- (Process[IO]("wc", List("-w")) < FlushChunks(source) > text.utf8Decode[IO]).start(blocker)
+        result <- running.waitForExit()
+      } yield result.fullOutput.trim
+    }
+
+    program.unsafeRunSync() must beEqualTo("5")
   }
 
   def outFoldMonoid = {
