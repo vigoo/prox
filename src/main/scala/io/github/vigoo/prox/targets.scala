@@ -75,11 +75,20 @@ case class ToVector[F[_], O](pipe: Pipe[F, Byte, O])
   */
 case class Fold[F[_], O, R](pipe: Pipe[F, Byte, O], init: R, f: (R, O) => R)
 
-trait LowPriorityCanBeProcessOutputTarget {
+trait LowerPriorityCanBeProcessOutputTarget {
   implicit def pipeAsTarget[F[_] : Concurrent, Out]: CanBeProcessOutputTarget.Aux[F, Pipe[F, Byte, Out], Out, Vector[Out]] =
     CanBeProcessOutputTarget.create((pipe: Pipe[F, Byte, Out]) => new OutputStreamingTarget(pipe) with ProcessOutputTarget[F, Out, Vector[Out]] {
       override def run(stream: Stream[F, Out])(implicit contextShift: ContextShift[F]): F[Fiber[F, Vector[Out]]] =
         Concurrent[F].start(stream.compile.toVector)
+    })
+}
+
+trait LowPriorityCanBeProcessOutputTarget extends LowerPriorityCanBeProcessOutputTarget {
+  implicit def monoidPipeAsTarget[F[_] : Concurrent, Out: Monoid]: CanBeProcessOutputTarget.Aux[F, Pipe[F, Byte, Out], Out, Out] =
+    CanBeProcessOutputTarget.create((pipe: Pipe[F, Byte, Out]) => new OutputStreamingTarget(pipe) with ProcessOutputTarget[F, Out, Out] {
+      override def run(stream: Stream[F, Out])(implicit contextShift: ContextShift[F]): F[Fiber[F, Out]] = {
+        Concurrent[F].start(stream.compile.foldMonoid)
+      }
     })
 }
 
@@ -119,13 +128,6 @@ object CanBeProcessOutputTarget extends LowPriorityCanBeProcessOutputTarget {
         Concurrent[F].start(stream.compile.drain)
     })
 
-  implicit def monoidPipeAsTarget[F[_] : Concurrent, Out: Monoid]: Aux[F, Pipe[F, Byte, Out], Out, Out] =
-    create((pipe: Pipe[F, Byte, Out]) => new OutputStreamingTarget(pipe) with ProcessOutputTarget[F, Out, Out] {
-      override def run(stream: Stream[F, Out])(implicit contextShift: ContextShift[F]): F[Fiber[F, Out]] = {
-        Concurrent[F].start(stream.compile.foldMonoid)
-      }
-    })
-
   implicit def ignorePipeAsOutputTarget[F[_] : Concurrent, Out]: Aux[F, Drain[F, Out], Out, Unit] =
     create((ignore: Drain[F, Out]) => new OutputStreamingTarget(ignore.pipe) with ProcessOutputTarget[F, Out, Unit] {
       override def run(stream: Stream[F, Out])(implicit contextShift: ContextShift[F]): F[Fiber[F, Unit]] = {
@@ -159,13 +161,23 @@ trait CanBeProcessErrorTarget[F[_], To] {
   def apply(to: To): ProcessErrorTarget[F, Err, ErrResult]
 }
 
-trait LowPriorityCanBeProcessErrorTarget {
+trait LowerPriorityCanBeProcessErrorTarget {
   implicit def pipeAsErrorTarget[F[_] : Concurrent, Err]: CanBeProcessErrorTarget.Aux[F, Pipe[F, Byte, Err], Err, Vector[Err]] =
     CanBeProcessErrorTarget.create((pipe: Pipe[F, Byte, Err]) => new ErrorStreamingTarget(pipe) with ProcessErrorTarget[F, Err, Vector[Err]] {
       override def run(stream: Stream[F, Err])(implicit contextShift: ContextShift[F]): F[Fiber[F, Vector[Err]]] = {
         Concurrent[F].start(stream.compile.toVector)
       }
     })
+}
+
+trait LowPriorityCanBeProcessErrorTarget extends LowerPriorityCanBeProcessErrorTarget {
+  implicit def monoidPipeAsErrorTarget[F[_] : Concurrent, Err: Monoid]: CanBeProcessErrorTarget.Aux[F, Pipe[F, Byte, Err], Err, Err] =
+    CanBeProcessErrorTarget.create((pipe: Pipe[F, Byte, Err]) => new ErrorStreamingTarget(pipe) with ProcessErrorTarget[F, Err, Err] {
+      override def run(stream: Stream[F, Err])(implicit contextShift: ContextShift[F]): F[Fiber[F, Err]] = {
+        Concurrent[F].start(stream.compile.foldMonoid)
+      }
+    })
+
 }
 
 /** Instances of the [[CanBeProcessErrorTarget]] type class
@@ -197,11 +209,11 @@ object CanBeProcessErrorTarget extends LowPriorityCanBeProcessErrorTarget {
   implicit def pathAsErrorTarget[F[_] : Concurrent]: Aux[F, Path, Byte, Unit] =
     create((path: Path) => new FileTarget[F](path))
 
-  implicit def monoidPipeAsErrorTarget[F[_] : Concurrent, Err: Monoid]: Aux[F, Pipe[F, Byte, Err], Err, Err] =
-    create((pipe: Pipe[F, Byte, Err]) => new ErrorStreamingTarget(pipe) with ProcessErrorTarget[F, Err, Err] {
-      override def run(stream: Stream[F, Err])(implicit contextShift: ContextShift[F]): F[Fiber[F, Err]] = {
-        Concurrent[F].start(stream.compile.foldMonoid)
-      }
+  implicit def sinkAsErrorTarget[F[_] : Concurrent]: Aux[F, Pipe[F, Byte, Unit], Unit, Unit] =
+    create((pipe: Pipe[F, Byte, Unit]) => new ErrorStreamingTarget(pipe) with ProcessErrorTarget[F, Unit, Unit] {
+
+      override def run(stream: Stream[F, Unit])(implicit contextShift: ContextShift[F]): F[Fiber[F, Unit]] =
+        Concurrent[F].start(stream.compile.drain)
     })
 
   implicit def logPipeAsErrorTarget[F[_] : Concurrent, Err]: Aux[F, ToVector[F, Err], Err, Vector[Err]] =

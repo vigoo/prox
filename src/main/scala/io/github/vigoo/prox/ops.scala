@@ -31,12 +31,12 @@ object ContextOf {
 
   implicit def contextOfPipedProcess[
   F[_],
-  Out, Err,
+  Out, Err, PN1Out,
   PN1 <: ProcessNode[_, _, _, _, _],
   PN2 <: ProcessNode[_, _, _, _, _],
   IRS <: RedirectionState, ORS <: RedirectionState, ERS <: RedirectionState]:
-  Aux[PipedProcess[F, Out, Err, Byte, PN1, PN2, IRS, ORS, ERS], F] =
-    new ContextOf[PipedProcess[F, Out, Err, Byte, PN1, PN2, IRS, ORS, ERS]] {
+  Aux[PipedProcess[F, Out, Err, PN1Out, PN1, PN2, IRS, ORS, ERS], F] =
+    new ContextOf[PipedProcess[F, Out, Err, PN1Out, PN1, PN2, IRS, ORS, ERS]] {
       override type Context[_] = F[_]
     }
 }
@@ -161,8 +161,8 @@ object Start {
   PN1 <: ProcessNode[_, _, _, _, _],
   PN2 <: ProcessNode[_, _, _, _, _],
   IRS <: RedirectionState, ORS <: RedirectionState, ERS <: RedirectionState,
-  RP1, RPL1 <: HList, RP1Last <: RunningProcess[F, _, _, _],
-  RP2, RPL2 <: HList, RP2Head <: RunningProcess[F, _, _, _], RP2Tail <: HList,
+  RP1, RPL1 <: HList, RP1Last,
+  RP2, RPL2 <: HList, RP2Head, RP2Tail <: HList,
   RPT, RPL <: HList]
   (implicit
    start1: Start.Aux[F, PN1, RP1, RPL1],
