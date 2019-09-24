@@ -20,7 +20,7 @@ libraryDependencies ++= Seq(
 
   "org.specs2" %% "specs2-core" % "4.7.1" % "test",
   "dev.zio" %% "zio" % "1.0.0-RC13" % "test",
-  "dev.zio" %% "zio-interop-cats" % "2.0.0.0-RC3" % "test",
+  "dev.zio" %% "zio-interop-cats" % "2.0.0.0-RC4" % "test",
 )
 
 coverageEnabled in(Test, compile) := true
