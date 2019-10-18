@@ -12,7 +12,7 @@ import io.github.vigoo.prox.syntax._
 import fs2._
 import zio.console.Console
 import zio.interop.catz._
-import zio.{RIO, Task, UIO, ZIO}
+import zio.{RIO, Task, UIO, ZEnv, ZIO}
 
 /**
   * Example showing how to communicate with an interactive REPL implemented in Python
@@ -74,7 +74,7 @@ object ZIOInteractivePythonProcess extends CatsApp {
     }
   }
 
-  override def run(args: List[String]): ZIO[Environment, Nothing, Int] = {
+  override def run(args: List[String]): ZIO[ZEnv, Nothing, Int] = {
     val program = for {
       external <- startExternalProcess(
         workingDir = Paths.get(args.head), // pass the project root as argument
