@@ -16,7 +16,7 @@ libraryDependencies ++= Seq(
   "co.fs2" %% "fs2-core" % "2.1.0",
   "co.fs2" %% "fs2-io" % "2.1.0",
   "com.chuusai" %% "shapeless" % "2.3.3",
-  "org.scala-lang.modules" %% "scala-collection-compat" % "2.1.2",
+  "org.scala-lang.modules" %% "scala-collection-compat" % "2.1.3",
 
   "org.specs2" %% "specs2-core" % "4.8.1" % "test",
   "dev.zio" %% "zio" % "1.0.0-RC17" % "test",
