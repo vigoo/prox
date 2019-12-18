@@ -5,6 +5,7 @@ import java.nio.file.Path
 
 import cats.effect.ExitCase.{Canceled, Completed, Error}
 import cats.effect._
+import cats.kernel.Monoid
 import cats.syntax.flatMap._
 import io.github.vigoo.prox.TypedRedirection._
 import fs2._
@@ -33,7 +34,28 @@ object TypedRedirection {
 
   // Redirection is an extra capability
   trait RedirectableOutput[+P[_] <: Process[_]] {
-    def >[R <: OutputRedirection, O](target: R)(implicit outputRedirectionType: OutputRedirectionType.Aux[R, O]): P[O]
+    def connectOutput[R <: OutputRedirection, O](target: R)(implicit outputRedirectionType: OutputRedirectionType.Aux[R, O]): P[O]
+
+    def >(sink: Pipe[IO, Byte, Unit]): P[Unit] =
+      connectOutput(OutputStream(sink, (s: Stream[IO, Unit]) => s.compile.drain))
+
+    // Note: these operators can be merged with > with further type classes and implicit prioritization
+    def >#[O : Monoid](pipe: Pipe[IO, Byte, O]): P[O] =
+      connectOutput(OutputStream(pipe, (s: Stream[IO, O]) => s.compile.foldMonoid))
+
+    def >?[O](pipe: Pipe[IO, Byte, O]): P[Vector[O]] =
+      connectOutput(OutputStream(pipe, (s: Stream[IO, O]) => s.compile.toVector))
+
+    def drainOutput[O](pipe: Pipe[IO, Byte, O]): P[Unit] =
+      connectOutput(OutputStream(pipe, (s: Stream[IO, O]) => s.compile.drain))
+
+    def foldOutput[O, R](pipe: Pipe[IO, Byte, O], init: R, fn: (R, O) => R): P[R] =
+      connectOutput(OutputStream(pipe, (s: Stream[IO, O]) => s.compile.fold(init)(fn)))
+
+    def >(path: Path): P[Unit] =
+      connectOutput(OutputFile(path, append = false))
+    def >>(path: Path): P[Unit] =
+      connectOutput(OutputFile(path, append = true))
   }
 
   trait RedirectableInput[+P] {
@@ -110,7 +132,7 @@ object TypedRedirection {
                                inputRedirection: Option[Stream[IO, Byte]])
       extends Process[O] with RedirectableOutput[ProcessImplIO] with ProcessConfiguration[ProcessImplI[O]] {
 
-      def >[R <: OutputRedirection, RO](target: R)(implicit outputRedirectionType: OutputRedirectionType.Aux[R, RO]): ProcessImplIO[RO] =
+      def connectOutput[R <: OutputRedirection, RO](target: R)(implicit outputRedirectionType: OutputRedirectionType.Aux[R, RO]): ProcessImplIO[RO] =
         ProcessImplIO(
           command,
           arguments,
@@ -135,7 +157,7 @@ object TypedRedirection {
                               override val runOutputStream: (JvmProcess, Blocker, ContextShift[IO]) => IO[O])
       extends Process[O] with RedirectableOutput[ProcessImplO] with RedirectableInput[ProcessImplI[O]] with ProcessConfiguration[ProcessImpl[_]] {
 
-      def >[R <: OutputRedirection, RO](target: R)(implicit outputRedirectionType: OutputRedirectionType.Aux[R, RO]): ProcessImplO[RO] =
+      def connectOutput[R <: OutputRedirection, RO](target: R)(implicit outputRedirectionType: OutputRedirectionType.Aux[R, RO]): ProcessImplO[RO] =
         ProcessImplO(
           command,
           arguments,
@@ -225,7 +247,8 @@ object TypedRedirection {
 
       val outputRedirect = process.outputRedirection match {
         case StdOut => ProcessBuilder.Redirect.INHERIT
-        case OutputFile(path) => ProcessBuilder.Redirect.to(path.toFile)
+        case OutputFile(path, false) => ProcessBuilder.Redirect.to(path.toFile)
+        case OutputFile(path, true) => ProcessBuilder.Redirect.appendTo(path.toFile)
         case OutputStream(_, _, _) => ProcessBuilder.Redirect.PIPE
       }
       builder.redirectOutput(outputRedirect)
@@ -276,7 +299,7 @@ object TypedRedirection {
   // - file
   // - fs2 pipe
 
-  // Type classes can be defined to convert arbitrary types to these
+  // Extension methods could be defined to convert arbitrary types to these
 
   // Some dependent typing necessary because we have to run the connected stream somehow, and
   // we want to specify the redirections purely.
@@ -286,7 +309,7 @@ object TypedRedirection {
 
   case object StdOut extends OutputRedirection
 
-  case class OutputFile(path: Path) extends OutputRedirection
+  case class OutputFile(path: Path, append: Boolean) extends OutputRedirection
 
   case class OutputStream[O, +OR](pipe: Pipe[IO, Byte, O], runner: Stream[IO, O] => IO[OR], chunkSize: Int = 8192) extends OutputRedirection
 
@@ -344,68 +367,80 @@ object Playground extends App {
   implicit val contextShift: ContextShift[IO] = IO.contextShift(ExecutionContext.global)
   implicit val runner: ProcessRunner = new JVMProcessRunner
   implicit val timer: Timer[IO] = IO.timer(ExecutionContext.global)
+//
+//  println("--1--")
+//  val input = Stream("This is a test string").through(text.utf8Encode)
+//  val output = text
+//      .utf8Decode[IO]
+//      .andThen(text.lines[IO])
+//      .andThen(_.evalMap(s => IO(println(s))))
+//  val process1 = (((Process("echo", List("Hello", " ", "world")) in home) > output) < input) without "TEMP"
+//
+//  val program1 = Blocker[IO].use { blocker =>
+//    for {
+//      result <- process1.start(blocker).use(_.join)
+//    } yield result.exitCode
+//  }
+//
+//  val result1 = program1.unsafeRunSync()
+//  println(result1)
+//
+//  println("--2--")
+//  val process2 = Process("sh", List("-c", "sleep 500"))
+//  val program2 = Blocker[IO].use { blocker =>
+//    for {
+//      result <- process2.start(blocker).use { runningProcess =>
+//        runningProcess.join.timeoutTo(2.second, IO.pure(SimpleProcessResult(ExitCode(100), ())))
+//      }
+//    } yield result.exitCode
+//  }
+//  val result2 = program2.unsafeRunSync()
+//
+//  println(result2)
+//
+//  println("--3--")
+//  val process3 = Process("sh", List("-c", "sleep 500"))
+//  val program3 = Blocker[IO].use { blocker =>
+//    for {
+//      result <- process3.start(blocker).use { runningProcess =>
+//        runningProcess.join
+//      }.timeoutTo(2.second, IO.pure(SimpleProcessResult(ExitCode(100), ())))
+//    } yield result.exitCode
+//  }
+//  val result3 = program3.unsafeRunSync()
+//
+//  println(result3)
+//
+//  println("--4--")
+//
+//  def withInput[O, P <: Process[O] with ProcessConfiguration[P]](s: String)(process: Process[O] with RedirectableInput[P]): P = {
+//    val input = Stream("This is a test string").through(text.utf8Encode)
+//    process < input `with` ("hello" -> "world")
+//  }
+//
+//  val process4 = withInput("Test string")(Process("echo", List("Hello", " ", "world")))
+//
+//  val program4 = Blocker[IO].use { blocker =>
+//    for {
+//      result <- process4.start(blocker).use(_.join)
+//    } yield result.exitCode
+//  }
+//
+//  val result4 = program4.unsafeRunSync()
+//  println(result4)
 
-  println("--1--")
-  val input = Stream("This is a test string").through(text.utf8Encode)
-  val output = OutputStream(
-    text
-      .utf8Decode[IO]
-      .andThen(text.lines[IO])
-      .andThen(_.evalTap(s => IO(println(s)))),
-    (s: Stream[IO, String]) => s.compile.drain
-  )
-  val process1 = (((Process("echo", List("Hello", " ", "world")) in home) > output) < input) without "TEMP"
+  println("--5--")
+  val output5 = text
+    .utf8Decode[IO]
+    .andThen(text.lines[IO])
 
-  val program1 = Blocker[IO].use { blocker =>
+  val process5 = (Process("echo", List("Hello", "\n", "world")) in home) >? output5
+
+  val program5 = Blocker[IO].use { blocker =>
     for {
-      result <- process1.start(blocker).use(_.join)
-    } yield result.exitCode
+      result <- process5.start(blocker).use(_.join)
+    } yield result.output
   }
-
-  val result1 = program1.unsafeRunSync()
-  println(result1)
-
-  println("--2--")
-  val process2 = Process("sh", List("-c", "sleep 500"))
-  val program2 = Blocker[IO].use { blocker =>
-    for {
-      result <- process2.start(blocker).use { runningProcess =>
-        runningProcess.join.timeoutTo(2.second, IO.pure(SimpleProcessResult(ExitCode(100), ())))
-      }
-    } yield result.exitCode
-  }
-  val result2 = program2.unsafeRunSync()
-
-  println(result2)
-
-  println("--3--")
-  val process3 = Process("sh", List("-c", "sleep 500"))
-  val program3 = Blocker[IO].use { blocker =>
-    for {
-      result <- process3.start(blocker).use { runningProcess =>
-        runningProcess.join
-      }.timeoutTo(2.second, IO.pure(SimpleProcessResult(ExitCode(100), ())))
-    } yield result.exitCode
-  }
-  val result3 = program3.unsafeRunSync()
-
-  println(result3)
-
-  println("--4--")
-
-  def withInput[O, P <: Process[O] with ProcessConfiguration[P]](s: String)(process: Process[O] with RedirectableInput[P]): P = {
-    val input = Stream("This is a test string").through(text.utf8Encode)
-    process < input `with` ("hello" -> "world")
-  }
-
-  val process4 = withInput("Test string")(Process("echo", List("Hello", " ", "world")))
-
-  val program4 = Blocker[IO].use { blocker =>
-    for {
-      result <- process4.start(blocker).use(_.join)
-    } yield result.exitCode
-  }
-
-  val result4 = program1.unsafeRunSync()
-  println(result4)
+  val result5 = program5.unsafeRunSync()
+  println(result5)
 }
