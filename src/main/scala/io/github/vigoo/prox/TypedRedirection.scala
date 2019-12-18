@@ -6,11 +6,14 @@ import java.nio.file.Path
 import cats.effect.ExitCase.{Canceled, Completed, Error}
 import cats.effect._
 import cats.syntax.flatMap._
-import io.github.vigoo.prox.TypedRedirection.{JVMProcessRunner, Process, ProcessRunner, SimpleProcessResult}
+import io.github.vigoo.prox.TypedRedirection._
+import fs2._
 
 import scala.concurrent.ExecutionContext
 import scala.concurrent.duration._
 import scala.jdk.CollectionConverters._
+
+import path._
 
 object TypedRedirection {
 
@@ -24,29 +27,141 @@ object TypedRedirection {
     val removedEnvironmentVariables: Set[String]
   }
 
+  // Redirection is an extra capability
+  trait RedirectableOutput[+P] {
+    def >[O](pipe: Pipe[IO, Byte, O]): P
+  }
+
+  trait RedirectableInput[+P] {
+    def <(stream: Stream[IO, Byte]): P
+  }
+
+  trait ProcessConfiguration[+P <: Process] {
+    this: Process =>
+
+    protected def selfCopy(command: String,
+                           arguments: List[String],
+                           workingDirectory: Option[Path],
+                           environmentVariables: Map[String, String],
+                           removedEnvironmentVariables: Set[String]): P
+
+    def in(workingDirectory: Path): P =
+      selfCopy(command, arguments, workingDirectory = Some(workingDirectory), environmentVariables, removedEnvironmentVariables)
+
+    def `with`(nameValuePair: (String, String)): P =
+      selfCopy(command, arguments, workingDirectory, environmentVariables = environmentVariables + nameValuePair, removedEnvironmentVariables)
+
+    def without(name: String): P =
+      selfCopy(command, arguments, workingDirectory, environmentVariables, removedEnvironmentVariables = removedEnvironmentVariables + name)
+  }
+
   object Process {
+
+    case class ProcessImplIO(override val command: String,
+                             override val arguments: List[String],
+                             override val workingDirectory: Option[Path],
+                             override val environmentVariables: Map[String, String],
+                             override val removedEnvironmentVariables: Set[String],
+                             outputRedirection: Option[Pipe[IO, Byte, _]],
+                             inputRedirection: Option[Stream[IO, Byte]])
+      extends Process with ProcessConfiguration[ProcessImplIO] {
+
+      override protected def selfCopy(command: String, arguments: List[String], workingDirectory: Option[Path], environmentVariables: Map[String, String], removedEnvironmentVariables: Set[String]): ProcessImplIO =
+        copy(command, arguments, workingDirectory, environmentVariables, removedEnvironmentVariables)
+    }
+
+    case class ProcessImplO(command: String,
+                            arguments: List[String],
+                            workingDirectory: Option[Path],
+                            environmentVariables: Map[String, String],
+                            removedEnvironmentVariables: Set[String],
+                            outputRedirection: Option[Pipe[IO, Byte, _]])
+      extends Process with RedirectableInput[ProcessImplIO] with ProcessConfiguration[ProcessImplO] {
+
+      override def <(stream: Stream[IO, Byte]): ProcessImplIO =
+        ProcessImplIO(
+          command,
+          arguments,
+          workingDirectory,
+          environmentVariables,
+          removedEnvironmentVariables,
+          outputRedirection,
+          Some(stream),
+        )
+
+      override protected def selfCopy(command: String, arguments: List[String], workingDirectory: Option[Path], environmentVariables: Map[String, String], removedEnvironmentVariables: Set[String]): ProcessImplO =
+        copy(command, arguments, workingDirectory, environmentVariables, removedEnvironmentVariables)
+    }
+
+    case class ProcessImplI(override val command: String,
+                            override val arguments: List[String],
+                            override val workingDirectory: Option[Path],
+                            override val environmentVariables: Map[String, String],
+                            override val removedEnvironmentVariables: Set[String],
+                            inputRedirection: Option[Stream[IO, Byte]])
+      extends Process with RedirectableOutput[ProcessImplIO] with ProcessConfiguration[ProcessImplI] {
+
+      override def >[O](pipe: Pipe[IO, Byte, O]): ProcessImplIO =
+        ProcessImplIO(
+          command,
+          arguments,
+          workingDirectory,
+          environmentVariables,
+          removedEnvironmentVariables,
+          Some(pipe),
+          inputRedirection
+        )
+
+      override protected def selfCopy(command: String, arguments: List[String], workingDirectory: Option[Path], environmentVariables: Map[String, String], removedEnvironmentVariables: Set[String]): ProcessImplI =
+        copy(command, arguments, workingDirectory, environmentVariables, removedEnvironmentVariables)
+    }
+
     case class ProcessImpl(override val command: String,
                            override val arguments: List[String],
                            override val workingDirectory: Option[Path],
                            override val environmentVariables: Map[String, String],
                            override val removedEnvironmentVariables: Set[String])
-      extends Process {
+      extends Process with RedirectableOutput[ProcessImplO] with RedirectableInput[ProcessImplI] with ProcessConfiguration[ProcessImpl] {
+
+      override def >[O](pipe: Pipe[IO, Byte, O]): ProcessImplO =
+        ProcessImplO(
+          command,
+          arguments,
+          workingDirectory,
+          environmentVariables,
+          removedEnvironmentVariables,
+          Some(pipe)
+        )
+
+      override def <(stream: Stream[IO, Byte]): ProcessImplI =
+        ProcessImplI(
+          command,
+          arguments,
+          workingDirectory,
+          environmentVariables,
+          removedEnvironmentVariables,
+          Some(stream)
+        )
+
+      override protected def selfCopy(command: String, arguments: List[String], workingDirectory: Option[Path], environmentVariables: Map[String, String], removedEnvironmentVariables: Set[String]): ProcessImpl =
+        copy(command, arguments, workingDirectory, environmentVariables, removedEnvironmentVariables)
     }
 
-    def apply(command: String, arguments: List[String]): Process =
-      ProcessImpl(command, arguments, None, Map.empty, Set.empty)
+    def apply(command: String, arguments: List[String]): ProcessImpl =
+      ProcessImpl(
+        command,
+        arguments,
+        workingDirectory = None,
+        environmentVariables = Map.empty,
+        removedEnvironmentVariables = Set.empty
+      )
   }
 
   trait ProcessResult {
     val exitCode: ExitCode
   }
 
-  trait RunningProcess {
-    def isAlive: IO[Boolean]
-    def kill(): IO[ProcessResult]
-    def terminate(): IO[ProcessResult]
-    def waitForExit(): IO[ProcessResult]
-  }
+  // And a process runner
 
   trait ProcessRunner {
     def start(process: Process): Resource[IO, Fiber[IO, ProcessResult]]
@@ -57,17 +172,17 @@ object TypedRedirection {
   case class SimpleProcessResult(override val exitCode: ExitCode)
     extends ProcessResult
 
-  class JVMRunningProcess(val nativeProcess: JvmProcess) extends RunningProcess {
-    override def isAlive: IO[Boolean] =
+  class JVMRunningProcess(val nativeProcess: JvmProcess) {
+    def isAlive: IO[Boolean] =
       IO.delay(nativeProcess.isAlive)
 
-    override def kill(): IO[ProcessResult] =
+    def kill(): IO[ProcessResult] =
       debugLog(s"kill ${nativeProcess.toString}") >> IO.delay(nativeProcess.destroyForcibly()) >> waitForExit()
 
-    override def terminate(): IO[ProcessResult] =
+    def terminate(): IO[ProcessResult] =
       debugLog(s"terminate ${nativeProcess.toString}") >> IO.delay(nativeProcess.destroy()) >> waitForExit()
 
-    override def waitForExit(): IO[ProcessResult] =
+    def waitForExit(): IO[ProcessResult] =
       for {
         exitCode <- IO.delay(nativeProcess.waitFor())
       } yield SimpleProcessResult(ExitCode(exitCode))
@@ -124,6 +239,7 @@ object TypedRedirection {
     def start(implicit runner: ProcessRunner): Resource[IO, Fiber[IO, ProcessResult]] =
       runner.start(process)
   }
+
 }
 
 // Trying out things
@@ -134,7 +250,9 @@ object Playground extends App {
   implicit val timer: Timer[IO] = IO.timer(ExecutionContext.global)
 
   println("--1--")
-  val process1 = Process("echo", List("Hello", " ", "world"))
+  val input = Stream("This is a test string").through(text.utf8Encode)
+  val output = text.utf8Decode[IO].andThen(text.lines[IO])
+  val process1 = (((Process("echo", List("Hello", " ", "world")) in home) > output) < input) without "TEMP"
 
   val program1 = for {
     result <- process1.start.use(_.join)
@@ -164,4 +282,20 @@ object Playground extends App {
   val result3 = program3.unsafeRunSync()
 
   println(result3)
+
+  println("--4--")
+
+  def withInput[P <: Process with ProcessConfiguration[P]](s: String)(process: Process with RedirectableInput[P]): P = {
+    val input = Stream("This is a test string").through(text.utf8Encode)
+    process < input `with` ("hello" -> "world")
+  }
+
+  val process4 = withInput("Test string")(Process("echo", List("Hello", " ", "world")))
+
+  val program4 = for {
+    result <- process4.start.use(_.join)
+  } yield result.exitCode
+
+  val result4 = program1.unsafeRunSync()
+  println(result4)
 }
