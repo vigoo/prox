@@ -187,8 +187,8 @@ object TypedRedirection {
                                    override val runErrorStream: (java.io.InputStream, Blocker, ContextShift[IO]) => IO[E],
                                    override val inputRedirection: InputRedirection)
       extends Process[O, E]
-      with RedirectableError[ProcessImplIOE[O, *]]
-      with ProcessConfiguration[ProcessImplIO[O, E]] {
+        with RedirectableError[ProcessImplIOE[O, *]]
+        with ProcessConfiguration[ProcessImplIO[O, E]] {
 
       override def connectError[R <: OutputRedirection, E](target: R)(implicit outputRedirectionType: OutputRedirectionType.Aux[R, E]): ProcessImplIOE[O, E] =
         ProcessImplIOE[O, E](
@@ -219,8 +219,8 @@ object TypedRedirection {
                                    override val runErrorStream: (java.io.InputStream, Blocker, ContextShift[IO]) => IO[E],
                                    override val inputRedirection: InputRedirection)
       extends Process[O, E]
-      with RedirectableOutput[ProcessImplIOE[*, E]]
-      with ProcessConfiguration[ProcessImplIE[O, E]] {
+        with RedirectableOutput[ProcessImplIOE[*, E]]
+        with ProcessConfiguration[ProcessImplIE[O, E]] {
 
       override def connectOutput[R <: OutputRedirection, O](target: R)(implicit outputRedirectionType: OutputRedirectionType.Aux[R, O]): ProcessImplIOE[O, E] =
         ProcessImplIOE(
@@ -251,8 +251,8 @@ object TypedRedirection {
                                    override val runErrorStream: (java.io.InputStream, Blocker, ContextShift[IO]) => IO[E],
                                    override val inputRedirection: InputRedirection)
       extends Process[O, E]
-      with RedirectableInput[ProcessImplIOE[O, E]]
-      with ProcessConfiguration[ProcessImplOE[O, E]] {
+        with RedirectableInput[ProcessImplIOE[O, E]]
+        with ProcessConfiguration[ProcessImplOE[O, E]] {
 
       override def connectInput(source: InputRedirection): ProcessImplIOE[O, E] =
         ProcessImplIOE(
@@ -267,6 +267,7 @@ object TypedRedirection {
           runErrorStream,
           source
         )
+
       override protected def selfCopy(command: String, arguments: List[String], workingDirectory: Option[Path], environmentVariables: Map[String, String], removedEnvironmentVariables: Set[String]): ProcessImplOE[O, E] =
         copy(command, arguments, workingDirectory, environmentVariables, removedEnvironmentVariables)
     }
@@ -282,9 +283,9 @@ object TypedRedirection {
                                   override val runErrorStream: (java.io.InputStream, Blocker, ContextShift[IO]) => IO[E],
                                   override val inputRedirection: InputRedirection)
       extends Process[O, E]
-      with RedirectableError[ProcessImplOE[O, *]]
-      with RedirectableInput[ProcessImplIO[O, E]]
-      with ProcessConfiguration[ProcessImplO[O, E]] {
+        with RedirectableError[ProcessImplOE[O, *]]
+        with RedirectableInput[ProcessImplIO[O, E]]
+        with ProcessConfiguration[ProcessImplO[O, E]] {
 
       override def connectInput(source: InputRedirection): ProcessImplIO[O, E] =
         ProcessImplIO(
@@ -376,9 +377,9 @@ object TypedRedirection {
                                   override val runErrorStream: (java.io.InputStream, Blocker, ContextShift[IO]) => IO[E],
                                   override val inputRedirection: InputRedirection)
       extends Process[O, E]
-      with RedirectableOutput[ProcessImplIO[*, E]]
-      with RedirectableError[ProcessImplIE[O, *]]
-      with ProcessConfiguration[ProcessImplI[O, E]] {
+        with RedirectableOutput[ProcessImplIO[*, E]]
+        with RedirectableError[ProcessImplIE[O, *]]
+        with ProcessConfiguration[ProcessImplI[O, E]] {
 
       def connectOutput[R <: OutputRedirection, RO](target: R)(implicit outputRedirectionType: OutputRedirectionType.Aux[R, RO]): ProcessImplIO[RO, E] =
         ProcessImplIO(
@@ -500,6 +501,8 @@ object TypedRedirection {
 
   trait ProcessRunner {
     def start[O, E](process: Process[O, E], blocker: Blocker): Resource[IO, Fiber[IO, ProcessResult[O, E]]]
+
+    def start[O](processGroup: ProcessGroup[O], blocker: Blocker): Resource[IO, Fiber[IO, ProcessResult[O, Unit]]]
   }
 
   // Simple JVM implementation
@@ -510,9 +513,9 @@ object TypedRedirection {
     extends ProcessResult[O, E]
 
   class JVMRunningProcess[O, E](val nativeProcess: JvmProcess,
-                                runningInput: Fiber[IO, Unit],
-                                runningOutput: Fiber[IO, O],
-                                runningError: Fiber[IO, E]) {
+                                val runningInput: Fiber[IO, Unit],
+                                val runningOutput: Fiber[IO, O],
+                                val runningError: Fiber[IO, E]) {
     def isAlive: IO[Boolean] =
       IO.delay(nativeProcess.isAlive)
 
@@ -541,60 +544,68 @@ object TypedRedirection {
 
     // TODO: make run the default and start just a +fiber convenience stuff?
     override def start[O, E](process: Process[O, E], blocker: Blocker): Resource[IO, Fiber[IO, ProcessResult[O, E]]] = {
-      val builder = withEnvironmentVariables(process,
-        withWorkingDirectory(process,
-          new ProcessBuilder((process.command :: process.arguments).asJava)))
-
-      // TODO: extract match
-      val outputRedirect = process.outputRedirection match {
-        case StdOut => ProcessBuilder.Redirect.INHERIT
-        case OutputFile(path, false) => ProcessBuilder.Redirect.to(path.toFile)
-        case OutputFile(path, true) => ProcessBuilder.Redirect.appendTo(path.toFile)
-        case OutputStream(_, _, _) => ProcessBuilder.Redirect.PIPE
-      }
-      builder.redirectOutput(outputRedirect)
-
-      val errorRedirect = process.errorRedirection match {
-        case StdOut => ProcessBuilder.Redirect.INHERIT
-        case OutputFile(path, false) => ProcessBuilder.Redirect.to(path.toFile)
-        case OutputFile(path, true) => ProcessBuilder.Redirect.appendTo(path.toFile)
-        case OutputStream(_, _, _) => ProcessBuilder.Redirect.PIPE
-      }
-      builder.redirectError(errorRedirect)
-
-      val inputRedirection = process.inputRedirection match {
-        case StdIn => ProcessBuilder.Redirect.INHERIT
-        case InputFile(path) => ProcessBuilder.Redirect.from(path.toFile)
-        case InputStream(_, _) => ProcessBuilder.Redirect.PIPE
-      }
-      builder.redirectInput(inputRedirection)
-
-      val startProcess = for {
-        nativeProcess <- IO.delay(builder.start())
-        nativeOutputStream <- IO.delay(nativeProcess.getInputStream)
-        nativeErrorStream <- IO.delay(nativeProcess.getErrorStream)
-
-        inputStream = createInputStream(process, nativeProcess, blocker) >> IO(println("input stream closed"))
-        runningInput <- inputStream.start
-        runningOutput <- process.runOutputStream(nativeOutputStream, blocker, contextShift).start
-        runningError <- process.runErrorStream(nativeErrorStream, blocker, contextShift).start
-      } yield new JVMRunningProcess(nativeProcess, runningInput, runningOutput, runningError)
-
-      val run = startProcess.bracketCase { runningProcess =>
+      val run = startProcess(process, blocker).bracketCase { runningProcess =>
         runningProcess.waitForExit()
       } {
         case (_, Completed) =>
-          IO.delay(println("completed"))
+          IO.unit
         case (_, Error(reason)) =>
-          IO.delay(println(s"error: $reason"))
+          // TODO: propagate failure?
+          IO.unit
         case (runningProcess, Canceled) =>
-          IO.delay(println("cancelling")) >> runningProcess.terminate() >> IO.unit
+          runningProcess.terminate() >> IO.unit
       }.start
 
       Resource.make(run)(_.cancel)
     }
 
-    private def createInputStream[O, E](process: Process[O, E], nativeProcess: JvmProcess, blocker: Blocker): IO[Unit] = {
+    private def startProcess[O, E](process: Process[O, E], blocker: Blocker): IO[JVMRunningProcess[O, E]] = {
+      val builder = withEnvironmentVariables(process,
+        withWorkingDirectory(process,
+          new ProcessBuilder((process.command :: process.arguments).asJava)))
+
+      builder.redirectOutput(ouptutRedirectionToNative(process.outputRedirection))
+      builder.redirectError(ouptutRedirectionToNative(process.errorRedirection))
+      builder.redirectInput(inputRedirectionToNative(process.inputRedirection))
+
+      for {
+        nativeProcess <- IO.delay(builder.start())
+        nativeOutputStream <- IO.delay(nativeProcess.getInputStream)
+        nativeErrorStream <- IO.delay(nativeProcess.getErrorStream)
+
+        inputStream = runInputStream(process, nativeProcess, blocker)
+        runningInput <- inputStream.start
+        runningOutput <- process.runOutputStream(nativeOutputStream, blocker, contextShift).start
+        runningError <- process.runErrorStream(nativeErrorStream, blocker, contextShift).start
+      } yield new JVMRunningProcess(nativeProcess, runningInput, runningOutput, runningError)
+    }
+
+    def startProcessGroup[O](processGroup: ProcessGroup[O], blocker: Blocker): IO[JVMRunningProcess[O, Unit]] =
+      // TODO: use an advanced start that does not wait
+      for {
+        first <- startProcess(processGroup.firstProcess, blocker)
+        firstOutput <- first.runningOutput.join
+        // TODO: inner
+        last <- startProcess(processGroup.lastProcess.connectInput(InputStream(firstOutput, flushChunks = false)), blocker)
+      } yield new JVMRunningProcess(last.nativeProcess, first.runningInput, last.runningOutput, last.runningError) // TODO: replace with a group thing joining/terminating everything
+
+    def start[O](processGroup: ProcessGroup[O], blocker: Blocker): Resource[IO, Fiber[IO, ProcessResult[O, Unit]]] = {
+      val run = startProcessGroup(processGroup, blocker).bracketCase { runningProcess =>
+        runningProcess.waitForExit()
+      } {
+        case (_, Completed) =>
+          IO.unit
+        case (_, Error(reason)) =>
+          // TODO: propagate failure?
+          IO.unit
+        case (runningProcess, Canceled) =>
+          runningProcess.terminate() >> IO.unit
+      }.start
+
+      Resource.make(run)(_.cancel)
+    }
+
+    private def runInputStream[O, E](process: Process[O, E], nativeProcess: JvmProcess, blocker: Blocker): IO[Unit] = {
       process.inputRedirection match {
         case StdIn => IO.unit
         case InputFile(path) => IO.unit
@@ -631,6 +642,23 @@ object TypedRedirection {
         builder.environment().remove(name)
       }
       builder
+    }
+
+    def ouptutRedirectionToNative(outputRedirection: OutputRedirection): ProcessBuilder.Redirect = {
+      outputRedirection match {
+        case StdOut => ProcessBuilder.Redirect.INHERIT
+        case OutputFile(path, false) => ProcessBuilder.Redirect.to(path.toFile)
+        case OutputFile(path, true) => ProcessBuilder.Redirect.appendTo(path.toFile)
+        case OutputStream(_, _, _) => ProcessBuilder.Redirect.PIPE
+      }
+    }
+
+    def inputRedirectionToNative(inputRedirection: InputRedirection): ProcessBuilder.Redirect = {
+      inputRedirection match {
+        case StdIn => ProcessBuilder.Redirect.INHERIT
+        case InputFile(path) => ProcessBuilder.Redirect.from(path.toFile)
+        case InputStream(_, _) => ProcessBuilder.Redirect.PIPE
+      }
     }
 
     def writeAndFlushOutputStream(stream: java.io.OutputStream,
@@ -674,7 +702,9 @@ object TypedRedirection {
 
   case class OutputFile(path: Path, append: Boolean) extends OutputRedirection
 
-  case class OutputStream[O, +OR](pipe: Pipe[IO, Byte, O], runner: Stream[IO, O] => IO[OR], chunkSize: Int = 8192) extends OutputRedirection
+  case class OutputStream[O, +OR](pipe: Pipe[IO, Byte, O],
+                                  runner: Stream[IO, O] => IO[OR],
+                                  chunkSize: Int = 8192) extends OutputRedirection
 
   sealed trait InputRedirection
 
@@ -724,10 +754,63 @@ object TypedRedirection {
     }
   }
 
-  // Syntax helpers
+  // Piping processes together
 
+  // TODO: how to bind error streams. compound error output indexed by process ids?
+
+  trait ProcessGroup[O] {
+    val firstProcess: Process[Stream[IO, Byte], Unit]
+    val innerProcesses: List[Process[_, Unit]]
+    val lastProcess: Process[O, Unit] with RedirectableInput[Process[O, Unit]]
+
+    def start(blocker: Blocker)(implicit runner: ProcessRunner): Resource[IO, Fiber[IO, ProcessResult[O, Unit]]] =
+      runner.start(this, blocker)
+  }
+
+  trait PipingSupport {
+    def |[O2, E2, P2 <: Process[O2, E2]](other: Process[O2, E2] with RedirectableInput[P2]): ProcessGroup[O2]
+  }
+
+  object ProcessGroup {
+
+    case class ProcessGroupImpl[O](override val firstProcess: Process[Stream[IO, Byte], Unit],
+                                   override val innerProcesses: List[Process[_, Unit]],
+                                   override val lastProcess: Process[O, Unit] with RedirectableInput[Process[O, Unit]])
+      extends ProcessGroup[O] {
+//        with PipingSupport {
+      // TODO: redirection support
+
+//
+//      override def |[O2, E2, P2 <: Process[O2, E2]](other: Process[O2, E2] with RedirectableInput[P2]): ProcessGroup[O2] =
+//        copy(
+//          innerProcesses = lastProcess :: innerProcesses,
+//          lastProcess = other
+//        )
+    }
+
+  }
+
+  // TODO: support any E
+  implicit class ProcessPiping[O1, P1[_] <: Process[_, _]](private val process: Process[O1, Unit] with RedirectableOutput[P1]) extends AnyVal {
+
+    // TODO: do not allow pre-redirected IO
+    def |[O2, P2 <: Process[O2, Unit]](other: Process[O2, Unit] with RedirectableInput[P2]): ProcessGroup.ProcessGroupImpl[O2] = {
+
+      val channel = identity[Stream[IO, Byte]] _ // TODO: customizable
+//      val p1 = process.drainOutput(channel)
+      val p1 = process.connectOutput(OutputStream(channel, (stream: Stream[IO, Byte]) => IO.pure(stream))).asInstanceOf[Process[Stream[IO, Byte], Unit]] // TODO: try to get rid of this
+
+      ProcessGroup.ProcessGroupImpl(
+        p1,
+        List.empty,
+        other
+      )
+    }
+  }
 
 }
+
+// TODO: add string interpolator
 
 // Trying out things
 
@@ -826,4 +909,21 @@ object Playground extends App {
   }
   val result6 = program6.unsafeRunSync()
   println(result6)
+
+  println("--7--")
+  val sink = text
+    .utf8Decode[IO]
+    .andThen(text.lines[IO])
+    .andThen(_.evalMap(s => IO(println(s))))
+  val process7 = Process("echo", List("Hello", "\n", "world")).errorToSink(sink) | Process("wc", List("-l")).errorToSink(sink)
+  val program7 = Blocker[IO].use { blocker =>
+    for {
+      result <- process7.start(blocker).use(_.join)
+    } yield result.error
+  }
+  val result7 = program7.unsafeRunSync()
+  println(result7)
+
+  println("--8--")
+//  val process8 = Process("ls", List("-hal")) | Process("sort", List.empty) | Process("uniq", List("-c"))
 }
