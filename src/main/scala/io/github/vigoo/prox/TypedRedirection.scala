@@ -190,8 +190,8 @@ object TypedRedirection {
         with RedirectableError[ProcessImplIOE[O, *]]
         with ProcessConfiguration[ProcessImplIO[O, E]] {
 
-      override def connectError[R <: OutputRedirection, E](target: R)(implicit outputRedirectionType: OutputRedirectionType.Aux[R, E]): ProcessImplIOE[O, E] =
-        ProcessImplIOE[O, E](
+      override def connectError[R <: OutputRedirection, RE](target: R)(implicit outputRedirectionType: OutputRedirectionType.Aux[R, RE]): ProcessImplIOE[O, RE] =
+        ProcessImplIOE[O, RE](
           command,
           arguments,
           workingDirectory,
@@ -222,7 +222,7 @@ object TypedRedirection {
         with RedirectableOutput[ProcessImplIOE[*, E]]
         with ProcessConfiguration[ProcessImplIE[O, E]] {
 
-      override def connectOutput[R <: OutputRedirection, O](target: R)(implicit outputRedirectionType: OutputRedirectionType.Aux[R, O]): ProcessImplIOE[O, E] =
+      override def connectOutput[R <: OutputRedirection, RO](target: R)(implicit outputRedirectionType: OutputRedirectionType.Aux[R, RO]): ProcessImplIOE[RO, E] =
         ProcessImplIOE(
           command,
           arguments,
@@ -301,8 +301,8 @@ object TypedRedirection {
           source
         )
 
-      override def connectError[R <: OutputRedirection, E](target: R)(implicit outputRedirectionType: OutputRedirectionType.Aux[R, E]): ProcessImplOE[O, E] =
-        ProcessImplOE[O, E](
+      override def connectError[R <: OutputRedirection, RE](target: R)(implicit outputRedirectionType: OutputRedirectionType.Aux[R, RE]): ProcessImplOE[O, RE] =
+        ProcessImplOE[O, RE](
           command,
           arguments,
           workingDirectory,
@@ -348,7 +348,7 @@ object TypedRedirection {
           source
         )
 
-      override def connectOutput[R <: OutputRedirection, O](target: R)(implicit outputRedirectionType: OutputRedirectionType.Aux[R, O]): ProcessImplOE[O, E] =
+      override def connectOutput[R <: OutputRedirection, RO](target: R)(implicit outputRedirectionType: OutputRedirectionType.Aux[R, RO]): ProcessImplOE[RO, E] =
         ProcessImplOE(
           command,
           arguments,
@@ -395,8 +395,8 @@ object TypedRedirection {
           inputRedirection
         )
 
-      override def connectError[R <: OutputRedirection, E](target: R)(implicit outputRedirectionType: OutputRedirectionType.Aux[R, E]): ProcessImplIE[O, E] =
-        ProcessImplIE[O, E](
+      override def connectError[R <: OutputRedirection, RE](target: R)(implicit outputRedirectionType: OutputRedirectionType.Aux[R, RE]): ProcessImplIE[O, RE] =
+        ProcessImplIE[O, RE](
           command,
           arguments,
           workingDirectory,
@@ -443,8 +443,8 @@ object TypedRedirection {
           inputRedirection
         )
 
-      override def connectError[R <: OutputRedirection, E](target: R)(implicit outputRedirectionType: OutputRedirectionType.Aux[R, E]): ProcessImplE[O, E] =
-        ProcessImplE[O, E](
+      override def connectError[R <: OutputRedirection, RE](target: R)(implicit outputRedirectionType: OutputRedirectionType.Aux[R, RE]): ProcessImplE[O, RE] =
+        ProcessImplE[O, RE](
           command,
           arguments,
           workingDirectory,
@@ -475,8 +475,8 @@ object TypedRedirection {
         copy(command, arguments, workingDirectory, environmentVariables, removedEnvironmentVariables)
     }
 
-    def apply(command: String, arguments: List[String]) =
-      ProcessImpl(
+    def apply(command: String, arguments: List[String]): ProcessImpl[Unit, Unit] =
+      ProcessImpl[Unit, Unit](
         command,
         arguments,
         workingDirectory = None,
@@ -484,9 +484,9 @@ object TypedRedirection {
         removedEnvironmentVariables = Set.empty,
 
         outputRedirection = StdOut,
-        runOutputStream = implicitly[OutputRedirectionType[StdOut.type]].runner(StdOut),
+        runOutputStream = (_, _, _) => IO.unit,
         errorRedirection = StdOut,
-        runErrorStream = implicitly[OutputRedirectionType[StdOut.type]].runner(StdOut),
+        runErrorStream = (_, _, _) => IO.unit,
         inputRedirection = StdIn
       )
   }
@@ -550,8 +550,7 @@ object TypedRedirection {
         case (_, Completed) =>
           IO.unit
         case (_, Error(reason)) =>
-          // TODO: propagate failure?
-          IO.unit
+          IO.raiseError(reason)
         case (runningProcess, Canceled) =>
           runningProcess.terminate() >> IO.unit
       }.start
@@ -581,7 +580,6 @@ object TypedRedirection {
     }
 
     def startProcessGroup[O](processGroup: ProcessGroup[O], blocker: Blocker): IO[JVMRunningProcess[O, Unit]] =
-      // TODO: use an advanced start that does not wait
       for {
         first <- startProcess(processGroup.firstProcess, blocker)
         firstOutput <- first.runningOutput.join
@@ -596,8 +594,7 @@ object TypedRedirection {
         case (_, Completed) =>
           IO.unit
         case (_, Error(reason)) =>
-          // TODO: propagate failure?
-          IO.unit
+          IO.raiseError(reason)
         case (runningProcess, Canceled) =>
           runningProcess.terminate() >> IO.unit
       }.start
@@ -608,7 +605,7 @@ object TypedRedirection {
     private def runInputStream[O, E](process: Process[O, E], nativeProcess: JvmProcess, blocker: Blocker): IO[Unit] = {
       process.inputRedirection match {
         case StdIn => IO.unit
-        case InputFile(path) => IO.unit
+        case InputFile(_) => IO.unit
         case InputStream(stream, false) =>
           stream
             .observe(
@@ -808,9 +805,25 @@ object TypedRedirection {
     }
   }
 
+  implicit class ProcessStringContext(private val ctx: StringContext) extends AnyVal {
+    def proc(args: Any*): Process.ProcessImpl[Unit, Unit] = {
+      val staticParts = ctx.parts.map(Left.apply)
+      val injectedParts = args.map(Right.apply)
+      val parts = (injectedParts zip staticParts).flatMap { case (a, b) => List(b, a) }
+      val words = parts.flatMap {
+        case Left(value) => value.trim.split(' ')
+        case Right(value) => List(value.toString)
+      }.toList
+      words match {
+        case head :: remaining =>
+          Process(head, remaining)
+        case Nil =>
+          throw new IllegalArgumentException(s"The proc interpolator needs at least a process name")
+      }
+    }
+  }
 }
 
-// TODO: add string interpolator
 
 // Trying out things
 
@@ -837,7 +850,8 @@ object Playground extends App {
   println(result1)
 
   println("--2--")
-  val process2 = Process("sh", List("-c", "sleep 500"))
+  val sleep = "sleep 500"
+  val process2 = proc"sh -c $sleep"
   val program2 = Blocker[IO].use { blocker =>
     for {
       result <- process2.start(blocker).use { runningProcess =>
