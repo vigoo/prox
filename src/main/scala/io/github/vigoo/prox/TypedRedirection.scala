@@ -5,6 +5,9 @@ import java.nio.file.Path
 
 import cats.effect.ExitCase.{Canceled, Completed, Error}
 import cats.effect._
+import cats.instances.list._
+import cats.syntax.foldable._
+import cats.syntax.traverse._
 import cats.kernel.Monoid
 import cats.syntax.flatMap._
 import io.github.vigoo.prox.TypedRedirection._
@@ -520,22 +523,36 @@ object TypedRedirection {
       IO.delay(nativeProcess.isAlive)
 
     def kill(): IO[ProcessResult[O, E]] =
-      debugLog(s"kill ${nativeProcess.toString}") >> IO.delay(nativeProcess.destroyForcibly()) >> waitForExit()
+      IO.delay(nativeProcess.destroyForcibly()) >> waitForExit()
 
     def terminate(): IO[ProcessResult[O, E]] =
-      debugLog(s"terminate ${nativeProcess.toString}") >> IO.delay(nativeProcess.destroy()) >> waitForExit()
+      IO.delay(nativeProcess.destroy()) >> waitForExit()
 
     def waitForExit(): IO[ProcessResult[O, E]] =
       for {
-        _ <- debugLog(s"waitforexit ${nativeProcess.toString}")
         exitCode <- IO.delay(nativeProcess.waitFor())
         _ <- runningInput.join
         output <- runningOutput.join
         error <- runningError.join
       } yield SimpleProcessResult(ExitCode(exitCode), output, error)
+  }
 
-    private def debugLog(line: String): IO[Unit] =
-      IO.delay(println(line))
+  class JVMRunningProcessGroup[O](runningProcesses: List[JVMRunningProcess[_, _]],
+                                  runningOutput: Fiber[IO, O]) {
+
+    def kill(): IO[ProcessResult[O, Unit]] =
+      runningProcesses.traverse_(_.kill()) >> waitForExit()
+
+    def terminate(): IO[ProcessResult[O, Unit]] =
+      runningProcesses.traverse_(_.terminate()) >> waitForExit()
+
+    def waitForExit(): IO[ProcessResult[O, Unit]] =
+      for {
+        results <- runningProcesses.traverse[IO, ProcessResult[_, _]](_.waitForExit())
+        lastOutput <- runningOutput.join
+        lastResult = results.last
+      } yield SimpleProcessResult(lastResult.exitCode, lastOutput, ()) // TODO: combined result
+
   }
 
   class JVMProcessRunner(implicit contextShift: ContextShift[IO]) extends ProcessRunner {
@@ -579,13 +596,38 @@ object TypedRedirection {
       } yield new JVMRunningProcess(nativeProcess, runningInput, runningOutput, runningError)
     }
 
-    def startProcessGroup[O](processGroup: ProcessGroup[O], blocker: Blocker): IO[JVMRunningProcess[O, Unit]] =
+    private def connectAndStartProcesses(firstProcess: Process[Stream[IO, Byte], Unit] with RedirectableInput[Process[Stream[IO, Byte], Unit]],
+                                         previousOutput: Stream[IO, Byte],
+                                         remainingProcesses: List[Process[Stream[IO, Byte], Unit] with RedirectableInput[Process[Stream[IO, Byte], Unit]]],
+                                         blocker: Blocker,
+                                         startedProcesses: List[JVMRunningProcess[_, _]]): IO[(List[JVMRunningProcess[_, _]], Stream[IO, Byte])] = {
+      startProcess(firstProcess.connectInput(InputStream(previousOutput, flushChunks = false)), blocker).flatMap { first =>
+        first.runningOutput.join.flatMap { firstOutput =>
+          remainingProcesses match {
+            case nextProcess :: rest =>
+              connectAndStartProcesses(nextProcess, firstOutput, rest, blocker, first :: startedProcesses)
+            case Nil =>
+              IO.pure((startedProcesses.reverse, firstOutput))
+          }
+        }
+      }
+    }
+
+    def startProcessGroup[O](processGroup: ProcessGroup[O], blocker: Blocker): IO[JVMRunningProcessGroup[O]] =
       for {
         first <- startProcess(processGroup.firstProcess, blocker)
         firstOutput <- first.runningOutput.join
-        // TODO: inner
-        last <- startProcess(processGroup.lastProcess.connectInput(InputStream(firstOutput, flushChunks = false)), blocker)
-      } yield new JVMRunningProcess(last.nativeProcess, first.runningInput, last.runningOutput, last.runningError) // TODO: replace with a group thing joining/terminating everything
+        innerResult <- if (processGroup.innerProcesses.isEmpty) {
+          IO.pure((List.empty, firstOutput))
+        } else {
+          val inner = processGroup.innerProcesses.reverse
+          connectAndStartProcesses(inner.head, firstOutput, inner.tail, blocker, List.empty)
+        }
+        (inner, lastInput) = innerResult
+        last <- startProcess(processGroup.lastProcess.connectInput(InputStream(lastInput, flushChunks = false)), blocker)
+      } yield new JVMRunningProcessGroup(
+        (first :: inner) :+ last,
+        last.runningOutput)
 
     def start[O](processGroup: ProcessGroup[O], blocker: Blocker): Resource[IO, Fiber[IO, ProcessResult[O, Unit]]] = {
       val run = startProcessGroup(processGroup, blocker).bracketCase { runningProcess =>
@@ -757,7 +799,7 @@ object TypedRedirection {
 
   trait ProcessGroup[O] {
     val firstProcess: Process[Stream[IO, Byte], Unit]
-    val innerProcesses: List[Process[_, Unit]]
+    val innerProcesses: List[Process[Stream[IO, Byte], Unit] with RedirectableInput[Process[Stream[IO, Byte], Unit]]]
     val lastProcess: Process[O, Unit] with RedirectableInput[Process[O, Unit]]
 
     def start(blocker: Blocker)(implicit runner: ProcessRunner): Resource[IO, Fiber[IO, ProcessResult[O, Unit]]] =
@@ -765,36 +807,38 @@ object TypedRedirection {
   }
 
   trait PipingSupport {
-    def |[O2, E2, P2 <: Process[O2, E2]](other: Process[O2, E2] with RedirectableInput[P2]): ProcessGroup[O2]
+    def |[O2, P2 <: Process[O2, Unit]](other: Process[O2, Unit] with RedirectableInput[P2] with RedirectableOutput[Process[*, Unit]]): ProcessGroup[O2]
   }
 
   object ProcessGroup {
 
     case class ProcessGroupImpl[O](override val firstProcess: Process[Stream[IO, Byte], Unit],
-                                   override val innerProcesses: List[Process[_, Unit]],
-                                   override val lastProcess: Process[O, Unit] with RedirectableInput[Process[O, Unit]])
-      extends ProcessGroup[O] {
-//        with PipingSupport {
+                                   override val innerProcesses: List[Process[Stream[IO, Byte], Unit] with RedirectableInput[Process[Stream[IO, Byte], Unit]]],
+                                   override val lastProcess: Process[O, Unit] with RedirectableInput[Process[O, Unit]] with RedirectableOutput[Process[*, Unit]])
+      extends ProcessGroup[O]
+      with PipingSupport {
       // TODO: redirection support
 
-//
-//      override def |[O2, E2, P2 <: Process[O2, E2]](other: Process[O2, E2] with RedirectableInput[P2]): ProcessGroup[O2] =
-//        copy(
-//          innerProcesses = lastProcess :: innerProcesses,
-//          lastProcess = other
-//        )
+      override def |[O2, P2 <: Process[O2, Unit]](other: Process[O2, Unit] with RedirectableInput[P2] with RedirectableOutput[Process[*, Unit]]): ProcessGroup[O2] = {
+        val channel = identity[Stream[IO, Byte]] _ // TODO: customizable
+        val pl1 = lastProcess.connectOutput(OutputStream(channel, (stream: Stream[IO, Byte]) => IO.pure(stream)))
+          .asInstanceOf[Process[Stream[IO, Byte], Unit] with RedirectableInput[Process[Stream[IO, Byte], Unit]]] // TODO: try to get rid of this
+        copy(
+          innerProcesses = pl1 :: innerProcesses,
+          lastProcess = other
+        )
+      }
     }
 
   }
 
-  // TODO: support any E
+  // TODO: support any E?
   implicit class ProcessPiping[O1, P1[_] <: Process[_, _]](private val process: Process[O1, Unit] with RedirectableOutput[P1]) extends AnyVal {
 
     // TODO: do not allow pre-redirected IO
-    def |[O2, P2 <: Process[O2, Unit]](other: Process[O2, Unit] with RedirectableInput[P2]): ProcessGroup.ProcessGroupImpl[O2] = {
+    def |[O2, P2 <: Process[O2, Unit]](other: Process[O2, Unit] with RedirectableInput[P2] with RedirectableOutput[Process[*, Unit]]): ProcessGroup.ProcessGroupImpl[O2] = {
 
       val channel = identity[Stream[IO, Byte]] _ // TODO: customizable
-//      val p1 = process.drainOutput(channel)
       val p1 = process.connectOutput(OutputStream(channel, (stream: Stream[IO, Byte]) => IO.pure(stream))).asInstanceOf[Process[Stream[IO, Byte], Unit]] // TODO: try to get rid of this
 
       ProcessGroup.ProcessGroupImpl(
@@ -933,11 +977,18 @@ object Playground extends App {
   val program7 = Blocker[IO].use { blocker =>
     for {
       result <- process7.start(blocker).use(_.join)
-    } yield result.error
+    } yield result.output
   }
   val result7 = program7.unsafeRunSync()
   println(result7)
 
   println("--8--")
-//  val process8 = Process("ls", List("-hal")) | Process("sort", List.empty) | Process("uniq", List("-c"))
+  val process8 = Process("ls", List("-hal")) | Process("sort", List.empty) | Process("uniq", List("-c"))
+  val program8 = Blocker[IO].use { blocker =>
+    for {
+      result <- process8.start(blocker).use(_.join)
+    } yield result.output
+  }
+  val result8 = program8.unsafeRunSync()
+  println(result8)
 }
