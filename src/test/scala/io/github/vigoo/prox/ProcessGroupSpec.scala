@@ -7,7 +7,6 @@ import zio.interop.catz._
 import zio.test._
 import zio.test.Assertion._
 import zio.test.environment._
-import TypedRedirection._
 import cats.effect.{Blocker, ExitCode}
 
 object ProcessGroupSpecs extends ProxSpecHelpers {
