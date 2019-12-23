@@ -7,9 +7,6 @@ import cats.effect.ExitCase.{Canceled, Completed, Error}
 import cats.effect._
 import cats.effect.syntax.all._
 import cats.implicits._
-//import cats.instances.list._
-//import cats.syntax.foldable._
-//import cats.syntax.traverse._
 import cats.kernel.Monoid
 import io.github.vigoo.prox.TypedRedirection._
 import fs2._
@@ -26,7 +23,6 @@ object TypedRedirection {
   // Let's define a process type and a process runner abstraction
 
   trait Process[F[_], O, E] {
-    implicit val sync: Sync[F]
     implicit val concurrent: Concurrent[F]
 
     val command: String
@@ -43,11 +39,14 @@ object TypedRedirection {
 
     def start(blocker: Blocker)(implicit runner: ProcessRunner[F]): Resource[F, Fiber[F, ProcessResult[O, E]]] =
       runner.start(this, blocker)
+
+    def run(blocker: Blocker)(implicit runner: ProcessRunner[F]): F[ProcessResult[O, E]] =
+      start(blocker).use(_.join)
   }
 
   // Redirection is an extra capability
   trait RedirectableOutput[F[_], +P[_] <: Process[F, _, _]] {
-    implicit val sync: Sync[F]
+    implicit val concurrent: Concurrent[F]
 
     def connectOutput[R <: OutputRedirection[F], O](target: R)(implicit outputRedirectionType: OutputRedirectionType.Aux[F, R, O]): P[O]
 
@@ -90,7 +89,7 @@ object TypedRedirection {
   }
 
   trait RedirectableError[F[_], +P[_] <: Process[F, _, _]] {
-    implicit val sync: Sync[F]
+    implicit val concurrent: Concurrent[F]
 
     def connectError[R <: OutputRedirection[F], E](target: R)(implicit outputRedirectionType: OutputRedirectionType.Aux[F, R, E]): P[E]
 
@@ -182,8 +181,7 @@ object TypedRedirection {
                                           override val errorRedirection: OutputRedirection[F],
                                           override val runErrorStream: (java.io.InputStream, Blocker, ContextShift[F]) => F[E],
                                           override val inputRedirection: InputRedirection[F])
-                                         (override implicit val sync: Sync[F],
-                                          override implicit val concurrent: Concurrent[F])
+                                         (override implicit val concurrent: Concurrent[F])
       extends Process[F, O, E] with ProcessConfiguration[F, ProcessImplIOE[F, O, E]] {
 
       override protected def selfCopy(command: String, arguments: List[String], workingDirectory: Option[Path], environmentVariables: Map[String, String], removedEnvironmentVariables: Set[String]): ProcessImplIOE[F, O, E] =
@@ -200,8 +198,7 @@ object TypedRedirection {
                                          override val errorRedirection: OutputRedirection[F],
                                          override val runErrorStream: (java.io.InputStream, Blocker, ContextShift[F]) => F[E],
                                          override val inputRedirection: InputRedirection[F])
-                                        (override implicit val sync: Sync[F],
-                                         override implicit val concurrent: Concurrent[F])
+                                        (override implicit val concurrent: Concurrent[F])
       extends Process[F, O, E]
         with RedirectableError[F, ProcessImplIOE[F, O, *]]
         with ProcessConfiguration[F, ProcessImplIO[F, O, E]] {
@@ -234,8 +231,7 @@ object TypedRedirection {
                                          override val errorRedirection: OutputRedirection[F],
                                          override val runErrorStream: (java.io.InputStream, Blocker, ContextShift[F]) => F[E],
                                          override val inputRedirection: InputRedirection[F])
-                                        (override implicit val sync: Sync[F],
-                                         override implicit val concurrent: Concurrent[F])
+                                        (override implicit val concurrent: Concurrent[F])
       extends Process[F, O, E]
         with RedirectableOutput[F, ProcessImplIOE[F, *, E]]
         with ProcessConfiguration[F, ProcessImplIE[F, O, E]] {
@@ -268,8 +264,7 @@ object TypedRedirection {
                                          override val errorRedirection: OutputRedirection[F],
                                          override val runErrorStream: (java.io.InputStream, Blocker, ContextShift[F]) => F[E],
                                          override val inputRedirection: InputRedirection[F])
-                                        (override implicit val sync: Sync[F],
-                                         override implicit val concurrent: Concurrent[F])
+                                        (override implicit val concurrent: Concurrent[F])
       extends Process[F, O, E]
         with RedirectableInput[F, ProcessImplIOE[F, O, E]]
         with ProcessConfiguration[F, ProcessImplOE[F, O, E]] {
@@ -302,8 +297,7 @@ object TypedRedirection {
                                         override val errorRedirection: OutputRedirection[F],
                                         override val runErrorStream: (java.io.InputStream, Blocker, ContextShift[F]) => F[E],
                                         override val inputRedirection: InputRedirection[F])
-                                       (override implicit val sync: Sync[F],
-                                        override implicit val concurrent: Concurrent[F])
+                                       (override implicit val concurrent: Concurrent[F])
       extends Process[F, O, E]
         with RedirectableError[F, ProcessImplOE[F, O, *]]
         with RedirectableInput[F, ProcessImplIO[F, O, E]]
@@ -351,8 +345,7 @@ object TypedRedirection {
                                         override val errorRedirection: OutputRedirection[F],
                                         override val runErrorStream: (java.io.InputStream, Blocker, ContextShift[F]) => F[E],
                                         override val inputRedirection: InputRedirection[F])
-                                       (override implicit val sync: Sync[F],
-                                        override implicit val concurrent: Concurrent[F])
+                                       (override implicit val concurrent: Concurrent[F])
       extends Process[F, O, E]
         with RedirectableInput[F, ProcessImplIO[F, O, E]]
         with RedirectableOutput[F, ProcessImplOE[F, *, E]]
@@ -400,8 +393,7 @@ object TypedRedirection {
                                         override val errorRedirection: OutputRedirection[F],
                                         override val runErrorStream: (java.io.InputStream, Blocker, ContextShift[F]) => F[E],
                                         override val inputRedirection: InputRedirection[F])
-                                       (override implicit val sync: Sync[F],
-                                        override implicit val concurrent: Concurrent[F])
+                                       (override implicit val concurrent: Concurrent[F])
       extends Process[F, O, E]
         with RedirectableOutput[F, ProcessImplIO[F, *, E]]
         with RedirectableError[F, ProcessImplIE[F, O, *]]
@@ -449,8 +441,7 @@ object TypedRedirection {
                                        override val errorRedirection: OutputRedirection[F],
                                        override val runErrorStream: (java.io.InputStream, Blocker, ContextShift[F]) => F[E],
                                        override val inputRedirection: InputRedirection[F])
-                                      (override implicit val sync: Sync[F],
-                                       override implicit val concurrent: Concurrent[F])
+                                      (override implicit val concurrent: Concurrent[F])
       extends Process[F, O, E]
         with RedirectableOutput[F, ProcessImplO[F, *, E]]
         with RedirectableError[F, ProcessImplE[F, O, *]]
@@ -814,12 +805,17 @@ object TypedRedirection {
   // TODO: how to bind error streams. compound error output indexed by process ids?
 
   trait ProcessGroup[F[_], O] {
+    implicit val concurrent: Concurrent[F]
+
     val firstProcess: Process[F, Stream[F, Byte], Unit]
     val innerProcesses: List[Process[F, Stream[F, Byte], Unit] with RedirectableInput[F, Process[F, Stream[F, Byte], Unit]]]
     val lastProcess: Process[F, O, Unit] with RedirectableInput[F, Process[F, O, Unit]]
 
     def start(blocker: Blocker)(implicit runner: ProcessRunner[F]): Resource[F, Fiber[F, ProcessResult[O, Unit]]] =
       runner.start(this, blocker)
+
+    def run(blocker: Blocker)(implicit runner: ProcessRunner[F]): F[ProcessResult[O, Unit]] =
+      start(blocker).use(_.join)
   }
 
   trait PipingSupport[F[_]] {
@@ -828,9 +824,10 @@ object TypedRedirection {
 
   object ProcessGroup {
 
-    case class ProcessGroupImpl[F[_] : Sync, O](override val firstProcess: Process[F, Stream[F, Byte], Unit],
-                                                override val innerProcesses: List[Process[F, Stream[F, Byte], Unit] with RedirectableInput[F, Process[F, Stream[F, Byte], Unit]]],
-                                                override val lastProcess: Process[F, O, Unit] with RedirectableInput[F, Process[F, O, Unit]] with RedirectableOutput[F, Process[F, *, Unit]])
+    case class ProcessGroupImpl[F[_], O](override val firstProcess: Process[F, Stream[F, Byte], Unit],
+                                         override val innerProcesses: List[Process[F, Stream[F, Byte], Unit] with RedirectableInput[F, Process[F, Stream[F, Byte], Unit]]],
+                                         override val lastProcess: Process[F, O, Unit] with RedirectableInput[F, Process[F, O, Unit]] with RedirectableOutput[F, Process[F, *, Unit]])
+                                        (implicit override val concurrent: Concurrent[F])
       extends ProcessGroup[F, O]
         with PipingSupport[F] {
       // TODO: redirection support
@@ -849,7 +846,7 @@ object TypedRedirection {
   }
 
   // TODO: support any E?
-  implicit class ProcessPiping[F[_] : Sync, O1, P1[_] <: Process[F, _, _]](process: Process[F, O1, Unit] with RedirectableOutput[F, P1]) {
+  implicit class ProcessPiping[F[_] : Concurrent, O1, P1[_] <: Process[F, _, _]](process: Process[F, O1, Unit] with RedirectableOutput[F, P1]) {
 
     // TODO: do not allow pre-redirected IO
     def |[O2, P2 <: Process[F, O2, Unit]](other: Process[F, O2, Unit] with RedirectableInput[F, P2] with RedirectableOutput[F, Process[F, *, Unit]]): ProcessGroup.ProcessGroupImpl[F, O2] = {
