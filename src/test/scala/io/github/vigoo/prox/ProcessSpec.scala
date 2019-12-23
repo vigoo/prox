@@ -1,6 +1,6 @@
 package io.github.vigoo.prox
 
-import java.io.File
+import java.nio.file.Files
 
 import cats.instances.string._
 import zio._
@@ -18,8 +18,8 @@ object ProcessSpecs extends ProxSpecHelpers {
     suite("Executing a process")(
       proxTest("returns the exit code") { blocker =>
         val program = for {
-          trueResult <- Process[Task]("true", List.empty).run(blocker)
-          falseResult <- Process[Task]("false", List.empty).run(blocker)
+          trueResult <- Process[Task]("true").run(blocker)
+          falseResult <- Process[Task]("false").run(blocker)
         } yield (trueResult.exitCode, falseResult.exitCode)
 
         assertM(program, equalTo((ExitCode(0), ExitCode(1))))
@@ -77,6 +77,15 @@ object ProcessSpecs extends ProxSpecHelpers {
         val program = process.run(blocker).map(_.output.trim)
 
         assertM(program, equalTo("5"))
+      },
+
+      proxTest("respects the working directory") { blocker =>
+        ZIO(Files.createTempDirectory("prox")).flatMap { tempDirectory =>
+          val process = (Process[Task]("pwd") in tempDirectory) ># fs2.text.utf8Decode
+          val program = process.run(blocker).map(_.output.trim)
+
+          assertM(program, equalTo(tempDirectory.toString) || equalTo(s"/private${tempDirectory}"))
+        }
       },
 
       testM("double output redirect is illegal") {

@@ -9,30 +9,40 @@ import zio.test.Assertion._
 import zio.test.environment._
 import cats.effect.{Blocker, ExitCode}
 
+import io.github.vigoo.prox.syntax._
+
 object ProcessGroupSpecs extends ProxSpecHelpers {
   implicit val runner: ProcessRunner[Task] = new JVMProcessRunner
 
   val testSuite =
     suite("Piping processes together")(
       proxTest("is possible with two") { blocker =>
-        // TODO: processgroup output redirection
+        val processGroup = (Process[Task]("echo", List("This is a test string")) | Process[Task]("wc", List("-w"))) ># fs2.text.utf8Decode
+        val program = processGroup.run(blocker).map(_.output.trim)
 
-//        val processGroup = (Process[Task]("echo", List("This is a test string")) | Process[Task]("wc", List("-w"))) // ># fs2.text.utf8Decode
-//        val program = processGroup.run(blocker).map(_.output.trim)
-//
-//        assertM(program, equalTo("5"))
-        assertM(ZIO.succeed(0), equalTo(1))
+        assertM(program, equalTo("5"))
       },
 
       proxTest("is possible with multiple") { blocker =>
-        // TODO: processgroup output redirection
+        val processGroup = (
+          Process[Task]("echo", List("cat\ncat\ndog\napple")) |
+          Process[Task]("sort") |
+          Process[Task]("uniq", List("-c"))
+        ) >? fs2.text.utf8Decode.andThen(_.through(fs2.text.lines))
 
-//        val processGroup = (Process[Task]("echo", List("cat\ncat\ndog\napple")) | Process[Task]("sort") | (Process[Task]("uniq", List("-c")) // ># fs2.text.utf8Decode
-//        val program = processGroup.run(blocker).map(_.output..map(_.trim))))
-//
-//        assertM(program, equalTo(List("1 apple", "2 cat", "1 dog")))
+        val program = processGroup.run(blocker).map(
+          r => r.output.map(_.stripLineEnd.trim).filter(_.nonEmpty)
+        )
 
-        assertM(ZIO.succeed(0), equalTo(1))
+        assertM(program, hasSameElements(List("1 apple", "2 cat", "1 dog")))
+      },
+
+      proxTest("can be fed with an input stream") { blocker =>
+        val stream = fs2.Stream("This is a test string").through(fs2.text.utf8Encode)
+        val processGroup = (Process[Task]("cat") | Process[Task]("wc", List("-w"))) < stream ># fs2.text.utf8Decode
+        val program = processGroup.run(blocker).map(_.output.trim)
+
+        assertM(program, equalTo("5"))
       },
 
       proxTest("is customizable with pipes") { blocker =>

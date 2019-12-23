@@ -18,8 +18,11 @@ case class SimpleProcessResult[+O, +E](override val exitCode: ExitCode,
                                        override val error: E)
   extends ProcessResult[O, E]
 
+trait ProcessLike[F[_]] {
 
-trait Process[F[_], O, E] {
+}
+
+trait Process[F[_], O, E] extends ProcessLike[F] {
   implicit val concurrent: Concurrent[F]
 
   val command: String
@@ -385,7 +388,7 @@ object Process {
       copy(command, arguments, workingDirectory, environmentVariables, removedEnvironmentVariables)
   }
 
-  def apply[F[_] : Sync : Concurrent](command: String, arguments: List[String]): ProcessImpl[F, Unit, Unit] =
+  def apply[F[_] : Sync : Concurrent](command: String, arguments: List[String] = List.empty): ProcessImpl[F, Unit, Unit] =
     ProcessImpl[F, Unit, Unit](
       command,
       arguments,

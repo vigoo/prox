@@ -15,7 +15,8 @@ object syntax {
     def |[O2, P2 <: Process[F, O2, Unit]](other: Process[F, O2, Unit] with RedirectableInput[F, P2] with RedirectableOutput[F, Process[F, *, Unit]]): ProcessGroup.ProcessGroupImpl[F, O2] = {
 
       val channel = identity[Stream[F, Byte]] _ // TODO: customizable
-      val p1 = process.connectOutput(OutputStream(channel, (stream: Stream[F, Byte]) => Applicative[F].pure(stream))).asInstanceOf[Process[F, Stream[F, Byte], Unit]] // TODO: try to get rid of this
+      val p1 = process.connectOutput(OutputStream(channel, (stream: Stream[F, Byte]) => Applicative[F].pure(stream)))
+        .asInstanceOf[Process[F, Stream[F, Byte], Unit] with RedirectableInput[F, Process[F, Stream[F, Byte], Unit]]]// TODO: try to get rid of this
 
       ProcessGroup.ProcessGroupImpl(
         p1,

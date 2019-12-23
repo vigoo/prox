@@ -11,7 +11,7 @@ import scala.language.higherKinds
 
 
 // Redirection is an extra capability
-trait RedirectableOutput[F[_], +P[_] <: Process[F, _, _]] {
+trait RedirectableOutput[F[_], +P[_] <: ProcessLike[F]] {
   implicit val concurrent: Concurrent[F]
 
   def connectOutput[R <: OutputRedirection[F], O](target: R)(implicit outputRedirectionType: OutputRedirectionType.Aux[F, R, O]): P[O]
