@@ -2,14 +2,10 @@ package io.github.vigoo.prox
 
 import java.io.File
 
-import cats.instances.string._
 import cats.effect.Blocker
 import zio._
-import zio.console._
 import zio.interop.catz._
 import zio.test._
-import zio.test.Assertion._
-import zio.test.environment._
 
 trait ProxSpecHelpers {
 

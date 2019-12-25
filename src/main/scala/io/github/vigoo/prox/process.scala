@@ -18,8 +18,17 @@ case class SimpleProcessResult[+O, +E](override val exitCode: ExitCode,
                                        override val error: E)
   extends ProcessResult[O, E]
 
-trait ProcessLike[F[_]] {
+trait ProcessLike[F[_]]
 
+trait RunningProcess[F[_], O, E] {
+  val runningInput: Fiber[F, Unit]
+  val runningOutput: Fiber[F, O]
+  val runningError: Fiber[F, E]
+
+  def isAlive: F[Boolean]
+  def kill(): F[ProcessResult[O, E]]
+  def terminate(): F[ProcessResult[O, E]]
+  def waitForExit(): F[ProcessResult[O, E]]
 }
 
 trait Process[F[_], O, E] extends ProcessLike[F] {
@@ -36,6 +45,9 @@ trait Process[F[_], O, E] extends ProcessLike[F] {
   val errorRedirection: OutputRedirection[F]
   val runErrorStream: (java.io.InputStream, Blocker, ContextShift[F]) => F[E]
   val inputRedirection: InputRedirection[F]
+
+  def startProcess(blocker: Blocker)(implicit runner: ProcessRunner[F]): F[RunningProcess[F, O, E]] =
+    runner.startProcess(this, blocker)
 
   def start(blocker: Blocker)(implicit runner: ProcessRunner[F]): Resource[F, Fiber[F, ProcessResult[O, E]]] =
     runner.start(this, blocker)

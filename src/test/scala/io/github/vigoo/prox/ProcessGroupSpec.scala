@@ -1,5 +1,7 @@
 package io.github.vigoo.prox
 
+import java.nio.file.Files
+
 import cats.instances.string._
 import zio._
 import zio.console._
@@ -8,7 +10,6 @@ import zio.test._
 import zio.test.Assertion._
 import zio.test.environment._
 import cats.effect.{Blocker, ExitCode}
-
 import io.github.vigoo.prox.syntax._
 
 object ProcessGroupSpecs extends ProxSpecHelpers {
@@ -43,6 +44,18 @@ object ProcessGroupSpecs extends ProxSpecHelpers {
         val program = processGroup.run(blocker).map(_.output.trim)
 
         assertM(program, equalTo("5"))
+      },
+
+      proxTest("can be fed with an input file") { blocker =>
+        withTempFile { tempFile =>
+          val program = for {
+            _ <- ZIO(Files.write(tempFile.toPath, "This is a test string".getBytes("UTF-8")))
+            processGroup = (Process[Task]("cat") | Process[Task]("wc", List("-w"))) < tempFile.toPath ># fs2.text.utf8Decode
+            result <- processGroup.run(blocker)
+          } yield result.output.trim
+
+          assertM(program, equalTo("5"))
+        }
       },
 
       proxTest("is customizable with pipes") { blocker =>

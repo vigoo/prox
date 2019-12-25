@@ -13,16 +13,54 @@ import scala.jdk.CollectionConverters._
 import scala.language.higherKinds
 
 trait ProcessRunner[F[_]] {
-  def start[O, E](process: Process[F, O, E], blocker: Blocker): Resource[F, Fiber[F, ProcessResult[O, E]]]
+  implicit val concurrent: Concurrent[F]
 
-  def start[O](processGroup: ProcessGroup[F, O], blocker: Blocker): Resource[F, Fiber[F, ProcessResult[O, Unit]]]
+  def startProcess[O, E](process: Process[F, O, E], blocker: Blocker): F[RunningProcess[F, O, E]]
+
+  def start[O, E](process: Process[F, O, E], blocker: Blocker): Resource[F, Fiber[F, ProcessResult[O, E]]] = {
+    val run = Concurrent[F].start(
+      Sync[F].bracketCase(startProcess(process, blocker)) { runningProcess =>
+        runningProcess.waitForExit()
+      } {
+        case (_, Completed) =>
+          Applicative[F].unit
+        case (_, Error(reason)) =>
+          Sync[F].raiseError(reason)
+        case (runningProcess, Canceled) =>
+          runningProcess.terminate() >> Applicative[F].unit
+      })
+
+    Resource.make(run)(_.cancel)
+  }
+
+  def startProcessGroup[O](processGroup: ProcessGroup[F, O], blocker: Blocker): F[RunningProcessGroup[F, O]]
+
+  def start[O](processGroup: ProcessGroup[F, O], blocker: Blocker): Resource[F, Fiber[F, ProcessResult[O, Unit]]] = {
+    val run =
+      Concurrent[F].start(
+        Sync[F].bracketCase(startProcessGroup(processGroup, blocker)) { runningProcess =>
+          runningProcess.waitForExit()
+        } {
+          case (_, Completed) =>
+            Applicative[F].unit
+          case (_, Error(reason)) =>
+            Sync[F].raiseError(reason)
+          case (runningProcess, Canceled) =>
+            runningProcess.terminate() >> Applicative[F].unit
+        }
+      )
+
+    Resource.make(run)(_.cancel)
+  }
 }
 
 
 class JVMRunningProcess[F[_] : Sync, O, E](val nativeProcess: JvmProcess,
-                                           val runningInput: Fiber[F, Unit],
-                                           val runningOutput: Fiber[F, O],
-                                           val runningError: Fiber[F, E]) {
+                                           override val runningInput: Fiber[F, Unit],
+                                           override val runningOutput: Fiber[F, O],
+                                           override val runningError: Fiber[F, E])
+  extends RunningProcess[F, O, E] {
+
   def isAlive: F[Boolean] =
     Sync[F].delay(nativeProcess.isAlive)
 
@@ -42,8 +80,9 @@ class JVMRunningProcess[F[_] : Sync, O, E](val nativeProcess: JvmProcess,
   }
 }
 
-class JVMRunningProcessGroup[F[_] : Sync, O](runningProcesses: List[JVMRunningProcess[F, _, _]],
-                                             runningOutput: Fiber[F, O]) {
+class JVMRunningProcessGroup[F[_] : Sync, O](runningProcesses: List[RunningProcess[F, _, _]],
+                                             override val runningOutput: Fiber[F, O])
+  extends RunningProcessGroup[F, O] {
 
   def kill(): F[ProcessResult[O, Unit]] =
     runningProcesses.traverse(_.kill() *> Sync[F].unit) >> waitForExit()
@@ -60,28 +99,13 @@ class JVMRunningProcessGroup[F[_] : Sync, O](runningProcesses: List[JVMRunningPr
 
 }
 
-class JVMProcessRunner[F[_] : Concurrent : ContextShift] extends ProcessRunner[F] {
+class JVMProcessRunner[F[_]](implicit override val concurrent: Concurrent[F],
+                             contextShift: ContextShift[F])
+  extends ProcessRunner[F] {
 
   import JVMProcessRunner._
 
-  // TODO: make run the default and start just a +fiber convenience stuff?
-  override def start[O, E](process: Process[F, O, E], blocker: Blocker): Resource[F, Fiber[F, ProcessResult[O, E]]] = {
-    val run = Concurrent[F].start(
-      Sync[F].bracketCase(startProcess(process, blocker)) { runningProcess =>
-        runningProcess.waitForExit()
-      } {
-        case (_, Completed) =>
-          Applicative[F].unit
-        case (_, Error(reason)) =>
-          Sync[F].raiseError(reason)
-        case (runningProcess, Canceled) =>
-          runningProcess.terminate() >> Applicative[F].unit
-      })
-
-    Resource.make(run)(_.cancel)
-  }
-
-  private def startProcess[O, E](process: Process[F, O, E], blocker: Blocker): F[JVMRunningProcess[F, O, E]] = {
+  override def startProcess[O, E](process: Process[F, O, E], blocker: Blocker): F[RunningProcess[F, O, E]] = {
     val builder = withEnvironmentVariables(process,
       withWorkingDirectory(process,
         new ProcessBuilder((process.command :: process.arguments).asJava)))
@@ -106,7 +130,7 @@ class JVMProcessRunner[F[_] : Concurrent : ContextShift] extends ProcessRunner[F
                                        previousOutput: Stream[F, Byte],
                                        remainingProcesses: List[Process[F, Stream[F, Byte], Unit] with RedirectableInput[F, Process[F, Stream[F, Byte], Unit]]],
                                        blocker: Blocker,
-                                       startedProcesses: List[JVMRunningProcess[F, _, _]]): F[(List[JVMRunningProcess[F, _, _]], Stream[F, Byte])] = {
+                                       startedProcesses: List[RunningProcess[F, _, _]]): F[(List[RunningProcess[F, _, _]], Stream[F, Byte])] = {
     startProcess(firstProcess.connectInput(InputStream(previousOutput, flushChunks = false)), blocker).flatMap { first =>
       first.runningOutput.join.flatMap { firstOutput =>
         remainingProcesses match {
@@ -119,7 +143,7 @@ class JVMProcessRunner[F[_] : Concurrent : ContextShift] extends ProcessRunner[F
     }
   }
 
-  def startProcessGroup[O](processGroup: ProcessGroup[F, O], blocker: Blocker): F[JVMRunningProcessGroup[F, O]] =
+  def startProcessGroup[O](processGroup: ProcessGroup[F, O], blocker: Blocker): F[RunningProcessGroup[F, O]] =
     for {
       first <- startProcess(processGroup.firstProcess, blocker)
       firstOutput <- first.runningOutput.join
@@ -134,24 +158,6 @@ class JVMProcessRunner[F[_] : Concurrent : ContextShift] extends ProcessRunner[F
     } yield new JVMRunningProcessGroup(
       (first :: inner) :+ last,
       last.runningOutput)
-
-  def start[O](processGroup: ProcessGroup[F, O], blocker: Blocker): Resource[F, Fiber[F, ProcessResult[O, Unit]]] = {
-    val run =
-      Concurrent[F].start(
-        Sync[F].bracketCase(startProcessGroup(processGroup, blocker)) { runningProcess =>
-          runningProcess.waitForExit()
-        } {
-          case (_, Completed) =>
-            Applicative[F].unit
-          case (_, Error(reason)) =>
-            Sync[F].raiseError(reason)
-          case (runningProcess, Canceled) =>
-            runningProcess.terminate() >> Applicative[F].unit
-        }
-      )
-
-    Resource.make(run)(_.cancel)
-  }
 
   private def runInputStream[O, E](process: Process[F, O, E], nativeProcess: JvmProcess, blocker: Blocker): F[Unit] = {
     process.inputRedirection match {

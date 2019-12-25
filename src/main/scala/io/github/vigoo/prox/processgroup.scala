@@ -9,6 +9,16 @@ import _root_.io.github.vigoo.prox.syntax._
 
 // TODO: how to bind error streams. compound error output indexed by process ids?
 
+trait RunningProcessGroup[F[_], O] {
+  val runningOutput: Fiber[F, O]
+
+  def kill(): F[ProcessResult[O, Unit]]
+
+  def terminate(): F[ProcessResult[O, Unit]]
+
+  def waitForExit(): F[ProcessResult[O, Unit]]
+}
+
 trait ProcessGroup[F[_], O] extends ProcessLike[F] {
   implicit val concurrent: Concurrent[F]
 
@@ -38,7 +48,7 @@ object ProcessGroup {
                                         override val lastProcess: Process[F, O, Unit] with RedirectableInput[F, Process[F, O, Unit]] with RedirectableOutput[F, Process[F, *, Unit]])
                                        (implicit override val concurrent: Concurrent[F])
     extends ProcessGroup[F, O]
-    with RedirectableOutput[F, ProcessGroupImplIO[F, *]] {
+      with RedirectableOutput[F, ProcessGroupImplIO[F, *]] {
 
     override def connectOutput[R <: OutputRedirection[F], RO](target: R)(implicit outputRedirectionType: OutputRedirectionType.Aux[F, R, RO]): ProcessGroupImplIO[F, RO] = {
       ProcessGroupImplIO(
@@ -54,7 +64,7 @@ object ProcessGroup {
                                         override val lastProcess: Process[F, O, Unit] with RedirectableInput[F, Process[F, O, Unit]])
                                        (implicit override val concurrent: Concurrent[F])
     extends ProcessGroup[F, O]
-    with RedirectableInput[F, ProcessGroupImplIO[F, O]] {
+      with RedirectableInput[F, ProcessGroupImplIO[F, O]] {
 
     override def connectInput(source: InputRedirection[F]): ProcessGroupImplIO[F, O] = {
       ProcessGroupImplIO(
@@ -74,7 +84,7 @@ object ProcessGroup {
       with RedirectableInput[F, ProcessGroupImplI[F, O]] {
 
     def pipeInto[O2, P2 <: Process[F, O2, Unit]](other: Process[F, O2, Unit] with RedirectableInput[F, P2] with RedirectableOutput[F, Process[F, *, Unit]],
-                                                          channel: Pipe[F, Byte, Byte]): ProcessGroupImpl[F, O2] = {
+                                                 channel: Pipe[F, Byte, Byte]): ProcessGroupImpl[F, O2] = {
       val pl1 = lastProcess.connectOutput(OutputStream(channel, (stream: Stream[F, Byte]) => Applicative[F].pure(stream)))
         .asInstanceOf[Process[F, Stream[F, Byte], Unit] with RedirectableInput[F, Process[F, Stream[F, Byte], Unit]]] // TODO: try to get rid of this
       copy(

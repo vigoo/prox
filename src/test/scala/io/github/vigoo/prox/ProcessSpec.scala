@@ -10,6 +10,8 @@ import zio.test._
 import zio.test.Assertion._
 import zio.test.environment._
 import cats.effect.{Blocker, ExitCode}
+import zio.clock.Clock
+import zio.duration._
 
 object ProcessSpecs extends ProxSpecHelpers {
   implicit val runner: ProcessRunner[Task] = new JVMProcessRunner
@@ -46,7 +48,9 @@ object ProcessSpecs extends ProxSpecHelpers {
 
       proxTest("can redirect output to a sink") { blocker =>
         val builder = new StringBuilder
-        val target: fs2.Pipe[Task, Byte, Unit] = _.evalMap(byte => IO { builder.append(byte.toChar) }.unit)
+        val target: fs2.Pipe[Task, Byte, Unit] = _.evalMap(byte => IO {
+          builder.append(byte.toChar)
+        }.unit)
 
         val process = Process[Task]("echo", List("Hello world!")) > target
         val program = process.run(blocker).map(_ => builder.toString)
@@ -63,7 +67,9 @@ object ProcessSpecs extends ProxSpecHelpers {
 
       proxTest("can redirect error to a sink") { blocker =>
         val builder = new StringBuilder
-        val target: fs2.Pipe[Task, Byte, Unit] = _.evalMap(byte => IO { builder.append(byte.toChar) }.unit)
+        val target: fs2.Pipe[Task, Byte, Unit] = _.evalMap(byte => IO {
+          builder.append(byte.toChar)
+        }.unit)
 
         val process = Process[Task]("perl", List("-e", """print STDERR "Hello"""")) !> target
         val program = process.run(blocker).map(_ => builder.toString)
@@ -79,6 +85,14 @@ object ProcessSpecs extends ProxSpecHelpers {
         assertM(program, equalTo("5"))
       },
 
+      proxTest("can use stream as input flushing after each chunk") { blocker =>
+        val source = fs2.Stream("This ", "is a test", " string").through(fs2.text.utf8Encode)
+        val process = (Process[Task]("wc", List("-w")) !< source) ># fs2.text.utf8Decode
+        val program = process.run(blocker).map(_.output.trim)
+
+        assertM(program, equalTo("5"))
+      },
+
       proxTest("respects the working directory") { blocker =>
         ZIO(Files.createTempDirectory("prox")).flatMap { tempDirectory =>
           val process = (Process[Task]("pwd") in tempDirectory) ># fs2.text.utf8Decode
@@ -86,6 +100,54 @@ object ProcessSpecs extends ProxSpecHelpers {
 
           assertM(program, equalTo(tempDirectory.toString) || equalTo(s"/private${tempDirectory}"))
         }
+      },
+
+      proxTest("can be terminated with cancellation") { blocker =>
+        val process = Process[Task]("perl", List("-e", """$SIG{TERM} = sub { exit 1 }; sleep 30; exit 0"""))
+        val program = process.start(blocker).use { fiber => fiber.cancel }
+
+         assertM(program, equalTo(()))
+      },
+
+      proxTest[Clock, Throwable, String]("can be terminated") { blocker =>
+        val process = Process[Task]("perl", List("-e", """$SIG{TERM} = sub { exit 1 }; sleep 30; exit 0"""))
+        val program = for {
+          runningProcess <- process.startProcess(blocker)
+          _ <- ZIO(Thread.sleep(250))
+          result <- runningProcess.terminate()
+        } yield result.exitCode
+
+        assertM(program, equalTo(ExitCode(1)))
+      },
+
+      proxTest("can be killed") { blocker =>
+        val process = Process[Task]("perl", List("-e", """$SIG{TERM} = 'IGNORE'; sleep 30; exit 2"""))
+        val program = for {
+          runningProcess <- process.startProcess(blocker)
+          _ <- ZIO(Thread.sleep(250))
+          result <- runningProcess.kill()
+        } yield result.exitCode
+
+        assertM(program, equalTo(ExitCode(137)))
+      },
+
+      proxTest("can be checked if is alive") { blocker =>
+        val process = Process[Task]("sleep", List("10"))
+        val program = for {
+          runningProcess <- process.startProcess(blocker)
+          isAliveBefore <- runningProcess.isAlive
+          _ <- runningProcess.terminate()
+          isAliveAfter <- runningProcess.isAlive
+        } yield (isAliveBefore, isAliveAfter)
+
+        assertM(program, equalTo((true, false)))
+      },
+
+      proxTest("is customizable with environment variables") { blocker =>
+        val process = (Process[Task]("sh", List("-c", "echo \"Hello $TEST1! I am $TEST2!\"")) `with` ("TEST1" -> "world") `with` ("TEST2" -> "prox")) ># fs2.text.utf8Decode
+        val program = process.run(blocker).map(_.output)
+
+        assertM(program, equalTo("Hello world! I am prox!\n"))
       },
 
       testM("double output redirect is illegal") {
@@ -107,7 +169,7 @@ object ProcessSpecs extends ProxSpecHelpers {
         )
       }
 
-  )
+    )
 }
 
 object ProcessSpec extends DefaultRunnableSpec(ProcessSpecs.testSuite)
