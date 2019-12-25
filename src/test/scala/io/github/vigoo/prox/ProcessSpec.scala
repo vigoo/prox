@@ -46,6 +46,43 @@ object ProcessSpecs extends ProxSpecHelpers {
         assertM(program, equalTo("Hello world!\n"))
       },
 
+      proxTest("can redirect output to stream folding monoid") { blocker =>
+        val process = Process[Task]("echo", List("Hello\nworld!")) ># fs2.text.utf8Decode.andThen(fs2.text.lines)
+        val program = process.run(blocker).map(_.output)
+
+        assertM(program, equalTo("Helloworld!"))
+      },
+
+      proxTest("can redirect output to stream collected to vector") { blocker =>
+        case class StringLength(value: Int)
+
+        val stream = fs2.text.utf8Decode[Task]
+          .andThen(fs2.text.lines)
+          .andThen(_.map(s => StringLength(s.length)))
+        val process = Process[Task]("echo", List("Hello\nworld!")) >? stream
+        val program = process.run(blocker).map(_.output)
+
+        assertM(program, hasSameElements(List(StringLength(5), StringLength(6), StringLength(0))))
+      },
+
+      proxTest("can redirect output to stream and ignore it's result") { blocker =>
+        val process = Process[Task]("echo", List("Hello\nworld!")).drainOutput(fs2.text.utf8Decode.andThen(fs2.text.lines))
+        val program = process.run(blocker).map(_.output)
+
+        assertM(program, equalTo(()))
+      },
+
+      proxTest("can redirect output to stream and fold it") { blocker =>
+        val process = Process[Task]("echo", List("Hello\nworld!")).foldOutput(
+          fs2.text.utf8Decode.andThen(fs2.text.lines),
+          Vector.empty,
+          (l: Vector[Option[Char]], s: String) => l :+ s.headOption
+        )
+        val program = process.run(blocker).map(_.output)
+
+        assertM(program, equalTo(Vector(Some('H'), Some('w'), None)))
+      },
+
       proxTest("can redirect output to a sink") { blocker =>
         val builder = new StringBuilder
         val target: fs2.Pipe[Task, Byte, Unit] = _.evalMap(byte => IO {
@@ -63,6 +100,43 @@ object ProcessSpecs extends ProxSpecHelpers {
         val program = process.run(blocker).map(_.error)
 
         assertM(program, equalTo("Hello"))
+      },
+
+      proxTest("can redirect error to stream folding monoid") { blocker =>
+        val process = Process[Task]("perl", List("-e", "print STDERR 'Hello\nworld!'")) !># fs2.text.utf8Decode.andThen(fs2.text.lines)
+        val program = process.run(blocker).map(_.error)
+
+        assertM(program, equalTo("Helloworld!"))
+      },
+
+      proxTest("can redirect error to stream collected to vector") { blocker =>
+        case class StringLength(value: Int)
+
+        val stream = fs2.text.utf8Decode[Task]
+          .andThen(fs2.text.lines)
+          .andThen(_.map(s => StringLength(s.length)))
+        val process = Process[Task]("perl", List("-e", "print STDERR 'Hello\nworld!'")) !>? stream
+        val program = process.run(blocker).map(_.error)
+
+        assertM(program, hasSameElements(List(StringLength(5), StringLength(6))))
+      },
+
+      proxTest("can redirect error to stream and ignore it's result") { blocker =>
+        val process = Process[Task]("perl", List("-e", "print STDERR 'Hello\nworld!'")).drainError(fs2.text.utf8Decode.andThen(fs2.text.lines))
+        val program = process.run(blocker).map(_.error)
+
+        assertM(program, equalTo(()))
+      },
+
+      proxTest("can redirect error to stream and fold it") { blocker =>
+        val process = Process[Task]("perl", List("-e", "print STDERR 'Hello\nworld!'")).foldError(
+          fs2.text.utf8Decode.andThen(fs2.text.lines),
+          Vector.empty,
+          (l: Vector[Option[Char]], s: String) => l :+ s.headOption
+        )
+        val program = process.run(blocker).map(_.error)
+
+        assertM(program, equalTo(Vector(Some('H'), Some('w'))))
       },
 
       proxTest("can redirect error to a sink") { blocker =>
