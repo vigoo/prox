@@ -5,13 +5,9 @@ import cats.effect._
 import fs2._
 
 import scala.language.higherKinds
-
+import _root_.io.github.vigoo.prox.syntax._
 
 // TODO: how to bind error streams. compound error output indexed by process ids?
-
-trait PipingSupport[F[_]] {
-  def |[O2, P2 <: Process[F, O2, Unit]](other: Process[F, O2, Unit] with RedirectableInput[F, P2] with RedirectableOutput[F, Process[F, *, Unit]]): ProcessGroup[F, O2]
-}
 
 trait ProcessGroup[F[_], O] extends ProcessLike[F] {
   implicit val concurrent: Concurrent[F]
@@ -74,12 +70,11 @@ object ProcessGroup {
                                        override val lastProcess: Process[F, O, Unit] with RedirectableInput[F, Process[F, O, Unit]] with RedirectableOutput[F, Process[F, *, Unit]])
                                       (implicit override val concurrent: Concurrent[F])
     extends ProcessGroup[F, O]
-      with PipingSupport[F]
       with RedirectableOutput[F, ProcessGroupImplO[F, *]]
       with RedirectableInput[F, ProcessGroupImplI[F, O]] {
 
-    override def |[O2, P2 <: Process[F, O2, Unit]](other: Process[F, O2, Unit] with RedirectableInput[F, P2] with RedirectableOutput[F, Process[F, *, Unit]]): ProcessGroupImpl[F, O2] = {
-      val channel = identity[Stream[F, Byte]] _ // TODO: customizable
+    def pipeInto[O2, P2 <: Process[F, O2, Unit]](other: Process[F, O2, Unit] with RedirectableInput[F, P2] with RedirectableOutput[F, Process[F, *, Unit]],
+                                                          channel: Pipe[F, Byte, Byte]): ProcessGroupImpl[F, O2] = {
       val pl1 = lastProcess.connectOutput(OutputStream(channel, (stream: Stream[F, Byte]) => Applicative[F].pure(stream)))
         .asInstanceOf[Process[F, Stream[F, Byte], Unit] with RedirectableInput[F, Process[F, Stream[F, Byte], Unit]]] // TODO: try to get rid of this
       copy(
@@ -87,6 +82,16 @@ object ProcessGroup {
         lastProcess = other
       )
     }
+
+    def |[O2, P2 <: Process[F, O2, Unit]](other: Process[F, O2, Unit] with RedirectableInput[F, P2] with RedirectableOutput[F, Process[F, *, Unit]]): ProcessGroupImpl[F, O2] =
+      pipeInto(other, identity)
+
+
+    def via(channel: Pipe[F, Byte, Byte]): PipeBuilderSyntax[F, ProcessGroupImpl[F, *]] =
+      new PipeBuilderSyntax(new PipeBuilder[F, ProcessGroupImpl[F, *]] {
+        override def build[O2, P2 <: Process[F, O2, Unit]](other: Process[F, O2, Unit] with RedirectableInput[F, P2] with RedirectableOutput[F, Process[F, *, Unit]], channel: Pipe[F, Byte, Byte]): ProcessGroupImpl[F, O2] =
+          ProcessGroupImpl.this.pipeInto(other, channel)
+      }, channel)
 
     override def connectInput(source: InputRedirection[F]): ProcessGroupImplI[F, O] =
       ProcessGroupImplI(

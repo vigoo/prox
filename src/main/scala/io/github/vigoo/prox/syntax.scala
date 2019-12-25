@@ -12,9 +12,9 @@ object syntax {
   implicit class ProcessPiping[F[_] : Concurrent, O1, P1[_] <: Process[F, _, _]](process: Process[F, O1, Unit] with RedirectableOutput[F, P1]) {
 
     // TODO: do not allow pre-redirected IO
-    def |[O2, P2 <: Process[F, O2, Unit]](other: Process[F, O2, Unit] with RedirectableInput[F, P2] with RedirectableOutput[F, Process[F, *, Unit]]): ProcessGroup.ProcessGroupImpl[F, O2] = {
+    def pipeInto[O2, P2 <: Process[F, O2, Unit]](other: Process[F, O2, Unit] with RedirectableInput[F, P2] with RedirectableOutput[F, Process[F, *, Unit]],
+                                                 channel: Pipe[F, Byte, Byte]): ProcessGroup.ProcessGroupImpl[F, O2] = {
 
-      val channel = identity[Stream[F, Byte]] _ // TODO: customizable
       val p1 = process.connectOutput(OutputStream(channel, (stream: Stream[F, Byte]) => Applicative[F].pure(stream)))
         .asInstanceOf[Process[F, Stream[F, Byte], Unit] with RedirectableInput[F, Process[F, Stream[F, Byte], Unit]]]// TODO: try to get rid of this
 
@@ -24,8 +24,27 @@ object syntax {
         other
       )
     }
+
+    def |[O2, P2 <: Process[F, O2, Unit]](other: Process[F, O2, Unit] with RedirectableInput[F, P2] with RedirectableOutput[F, Process[F, *, Unit]]): ProcessGroup.ProcessGroupImpl[F, O2] =
+      pipeInto(other, identity)
+
+    def via(channel: Pipe[F, Byte, Byte]): PipeBuilderSyntax[F, ProcessGroup.ProcessGroupImpl[F, *]] =
+      new PipeBuilderSyntax(new PipeBuilder[F, ProcessGroup.ProcessGroupImpl[F, *]] {
+        override def build[O2, P2 <: Process[F, O2, Unit]](other: Process[F, O2, Unit] with RedirectableInput[F, P2] with RedirectableOutput[F, Process[F, *, Unit]], channel: Pipe[F, Byte, Byte]): ProcessGroup.ProcessGroupImpl[F, O2] =
+          process.pipeInto(other, channel)
+      }, channel)
   }
 
+  trait PipeBuilder[F[_], P[_]] {
+    def build[O2, P2 <: Process[F, O2, Unit]](other: Process[F, O2, Unit] with RedirectableInput[F, P2] with RedirectableOutput[F, Process[F, *, Unit]],
+                                              channel: Pipe[F, Byte, Byte]): P[O2]
+  }
+
+  class PipeBuilderSyntax[F[_], P[_]](builder: PipeBuilder[F, P], channel: Pipe[F, Byte, Byte]) {
+    def to[O2, P2 <: Process[F, O2, Unit]](other: Process[F, O2, Unit] with RedirectableInput[F, P2] with RedirectableOutput[F, Process[F, *, Unit]]): P[O2] =
+      builder.build(other, channel)
+
+  }
 
   object cats {
     implicit class ProcessStringContextIO(ctx: StringContext)
