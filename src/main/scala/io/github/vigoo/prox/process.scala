@@ -76,6 +76,10 @@ trait ProcessConfiguration[F[_], +P <: Process[F, _, _]] {
 }
 
 object Process {
+  type UnboundProcess[F[_]] = Process[F, Unit, Unit]
+    with RedirectableInput[F, Process[F, Unit, Unit]]
+    with RedirectableOutput[F, Lambda[O => Process[F, O, Unit] with RedirectableInput[F, Process[F, O, Unit]]]]
+    with RedirectableError[F, Process[F, Unit, *]]
 
   case class ProcessImplIOE[F[_], O, E](override val command: String,
                                         override val arguments: List[String],

@@ -45,7 +45,7 @@ object ProcessGroup {
 
   case class ProcessGroupImplI[F[_], O](override val firstProcess: Process[F, Stream[F, Byte], Unit],
                                         override val innerProcesses: List[Process[F, Stream[F, Byte], Unit] with RedirectableInput[F, Process[F, Stream[F, Byte], Unit]]],
-                                        override val lastProcess: Process[F, O, Unit] with RedirectableInput[F, Process[F, O, Unit]] with RedirectableOutput[F, Process[F, *, Unit]])
+                                        override val lastProcess: Process[F, O, Unit] with RedirectableInput[F, Process[F, O, Unit]] with RedirectableOutput[F, Lambda[O2 => Process[F, O2, Unit] with RedirectableInput[F, Process[F, O2, Unit]]]])
                                        (implicit override val concurrent: Concurrent[F])
     extends ProcessGroup[F, O]
       with RedirectableOutput[F, ProcessGroupImplIO[F, *]] {
@@ -54,7 +54,7 @@ object ProcessGroup {
       ProcessGroupImplIO(
         firstProcess,
         innerProcesses,
-        lastProcess.connectOutput(target).asInstanceOf[Process[F, RO, Unit] with RedirectableInput[F, Process[F, RO, Unit]]] // TODO: try to get rid of this.
+        lastProcess.connectOutput(target)
       )
     }
   }
@@ -77,29 +77,29 @@ object ProcessGroup {
 
   case class ProcessGroupImpl[F[_], O](override val firstProcess: Process[F, Stream[F, Byte], Unit] with RedirectableInput[F, Process[F, Stream[F, Byte], Unit]],
                                        override val innerProcesses: List[Process[F, Stream[F, Byte], Unit] with RedirectableInput[F, Process[F, Stream[F, Byte], Unit]]],
-                                       override val lastProcess: Process[F, O, Unit] with RedirectableInput[F, Process[F, O, Unit]] with RedirectableOutput[F, Process[F, *, Unit]])
+                                       override val lastProcess: Process[F, O, Unit] with RedirectableInput[F, Process[F, O, Unit]] with RedirectableOutput[F, Lambda[O2 => Process[F, O2, Unit] with RedirectableInput[F, Process[F, O2, Unit]]]])
                                       (implicit override val concurrent: Concurrent[F])
     extends ProcessGroup[F, O]
       with RedirectableOutput[F, ProcessGroupImplO[F, *]]
       with RedirectableInput[F, ProcessGroupImplI[F, O]] {
 
-    def pipeInto[O2, P2 <: Process[F, O2, Unit]](other: Process[F, O2, Unit] with RedirectableInput[F, P2] with RedirectableOutput[F, Process[F, *, Unit]],
-                                                 channel: Pipe[F, Byte, Byte]): ProcessGroupImpl[F, O2] = {
+    def pipeInto(other: Process.UnboundProcess[F],
+                 channel: Pipe[F, Byte, Byte]): ProcessGroupImpl[F, Unit] = {
       val pl1 = lastProcess.connectOutput(OutputStream(channel, (stream: Stream[F, Byte]) => Applicative[F].pure(stream)))
-        .asInstanceOf[Process[F, Stream[F, Byte], Unit] with RedirectableInput[F, Process[F, Stream[F, Byte], Unit]]] // TODO: try to get rid of this
+
       copy(
         innerProcesses = pl1 :: innerProcesses,
         lastProcess = other
       )
     }
 
-    def |[O2, P2 <: Process[F, O2, Unit]](other: Process[F, O2, Unit] with RedirectableInput[F, P2] with RedirectableOutput[F, Process[F, *, Unit]]): ProcessGroupImpl[F, O2] =
+    def |(other: Process.UnboundProcess[F]): ProcessGroupImpl[F, Unit] =
       pipeInto(other, identity)
 
 
     def via(channel: Pipe[F, Byte, Byte]): PipeBuilderSyntax[F, ProcessGroupImpl[F, *]] =
       new PipeBuilderSyntax(new PipeBuilder[F, ProcessGroupImpl[F, *]] {
-        override def build[O2, P2 <: Process[F, O2, Unit]](other: Process[F, O2, Unit] with RedirectableInput[F, P2] with RedirectableOutput[F, Process[F, *, Unit]], channel: Pipe[F, Byte, Byte]): ProcessGroupImpl[F, O2] =
+        override def build(other: Process.UnboundProcess[F], channel: Pipe[F, Byte, Byte]): ProcessGroupImpl[F, Unit] =
           ProcessGroupImpl.this.pipeInto(other, channel)
       }, channel)
 
@@ -114,7 +114,8 @@ object ProcessGroup {
       ProcessGroupImplO(
         firstProcess,
         innerProcesses,
-        lastProcess.connectOutput(target).asInstanceOf[Process[F, RO, Unit] with RedirectableInput[F, Process[F, RO, Unit]]]) // TODO: try to get rid of this
+        lastProcess.connectOutput(target)
+      )
     }
   }
 

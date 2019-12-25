@@ -27,9 +27,9 @@ object ProcessGroupSpecs extends ProxSpecHelpers {
       proxTest("is possible with multiple") { blocker =>
         val processGroup = (
           Process[Task]("echo", List("cat\ncat\ndog\napple")) |
-          Process[Task]("sort") |
-          Process[Task]("uniq", List("-c"))
-        ) >? fs2.text.utf8Decode.andThen(_.through(fs2.text.lines))
+            Process[Task]("sort") |
+            Process[Task]("uniq", List("-c"))
+          ) >? fs2.text.utf8Decode.andThen(_.through(fs2.text.lines))
 
         val program = processGroup.run(blocker).map(
           r => r.output.map(_.stripLineEnd.trim).filter(_.nonEmpty)
@@ -73,6 +73,13 @@ object ProcessGroupSpecs extends ProxSpecHelpers {
         val program = processGroup.run(blocker).map(_.output.trim)
 
         assertM(program, equalTo("11"))
+      },
+
+      testM("bound process is not pipeable") {
+        assertM(
+          typeCheck("""val bad = (Process[Task]("echo", List("Hello world")) ># fs2.text.utf8Decode) | Process[Task]("wc", List("-w"))"""),
+          isLeft(anything)
+        )
       }
     )
 }
