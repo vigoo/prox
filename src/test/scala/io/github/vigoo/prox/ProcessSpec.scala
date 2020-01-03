@@ -4,14 +4,14 @@ import java.nio.file.Files
 
 import cats.instances.string._
 import zio._
+import zio.clock.Clock
 import zio.console._
+import zio.duration._
 import zio.interop.catz._
 import zio.test._
 import zio.test.Assertion._
 import zio.test.environment._
 import cats.effect.{Blocker, ExitCode}
-import zio.clock.Clock
-import zio.duration._
 
 object ProcessSpecs extends ProxSpecHelpers {
   implicit val runner: ProcessRunner[Task] = new JVMProcessRunner
@@ -242,8 +242,13 @@ object ProcessSpecs extends ProxSpecHelpers {
           isLeft(anything)
         )
       }
-
     )
 }
 
-object ProcessSpec extends DefaultRunnableSpec(ProcessSpecs.testSuite)
+object ProcessSpec extends DefaultRunnableSpec(
+  ProcessSpecs.testSuite,
+  defaultTestAspects = List(
+    TestAspect.timeoutWarning(60.seconds),
+    TestAspect.sequential
+  )
+)

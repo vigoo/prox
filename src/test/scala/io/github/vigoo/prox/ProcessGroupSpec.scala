@@ -5,6 +5,7 @@ import java.nio.file.Files
 import cats.instances.string._
 import zio._
 import zio.console._
+import zio.duration._
 import zio.interop.catz._
 import zio.test._
 import zio.test.Assertion._
@@ -99,4 +100,10 @@ object ProcessGroupSpecs extends ProxSpecHelpers {
     )
 }
 
-object ProcessGroupSpec extends DefaultRunnableSpec(ProcessGroupSpecs.testSuite)
+object ProcessGroupSpec extends DefaultRunnableSpec(
+  ProcessGroupSpecs.testSuite,
+  defaultTestAspects = List(
+    TestAspect.timeoutWarning(60.seconds),
+    TestAspect.sequential
+  )
+)
