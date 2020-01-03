@@ -38,8 +38,6 @@ scalacOptions ++= (CrossVersion.partialVersion(scalaVersion.value) match {
   case _ => Nil
 })
 
-scalacOptions in Test ++= Seq("-Yrangepos")
-
 // Publishing
 
 publishMavenStyle := true
