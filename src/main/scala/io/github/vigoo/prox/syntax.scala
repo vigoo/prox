@@ -11,7 +11,7 @@ object syntax {
   implicit class ProcessPiping[F[_] : Concurrent](process: Process.UnboundProcess[F]) {
 
     def pipeInto(other: Process.UnboundProcess[F],
-                 channel: Pipe[F, Byte, Byte]): ProcessGroup.ProcessGroupImpl[F, Unit] = {
+                 channel: Pipe[F, Byte, Byte]): ProcessGroup.ProcessGroupImpl[F] = {
 
       val p1 = process.connectOutput(OutputStream(channel, (stream: Stream[F, Byte]) => Applicative[F].pure(stream)))
 
@@ -22,23 +22,23 @@ object syntax {
       )
     }
 
-    def |(other: Process.UnboundProcess[F]): ProcessGroup.ProcessGroupImpl[F, Unit] =
+    def |(other: Process.UnboundProcess[F]): ProcessGroup.ProcessGroupImpl[F] =
       pipeInto(other, identity)
 
-    def via(channel: Pipe[F, Byte, Byte]): PipeBuilderSyntax[F, ProcessGroup.ProcessGroupImpl[F, *]] =
-      new PipeBuilderSyntax(new PipeBuilder[F, ProcessGroup.ProcessGroupImpl[F, *]] {
-        override def build(other: Process.UnboundProcess[F], channel: Pipe[F, Byte, Byte]): ProcessGroup.ProcessGroupImpl[F, Unit] =
+    def via(channel: Pipe[F, Byte, Byte]): PipeBuilderSyntax[F, ProcessGroup.ProcessGroupImpl[F]] =
+      new PipeBuilderSyntax(new PipeBuilder[F, ProcessGroup.ProcessGroupImpl[F]] {
+        override def build(other: Process.UnboundProcess[F], channel: Pipe[F, Byte, Byte]): ProcessGroup.ProcessGroupImpl[F] =
           process.pipeInto(other, channel)
       }, channel)
   }
 
-  trait PipeBuilder[F[_], P[_]] {
+  trait PipeBuilder[F[_], P] {
     def build(other: Process.UnboundProcess[F],
-              channel: Pipe[F, Byte, Byte]): P[Unit]
+              channel: Pipe[F, Byte, Byte]): P
   }
 
-  class PipeBuilderSyntax[F[_], P[_]](builder: PipeBuilder[F, P], channel: Pipe[F, Byte, Byte]) {
-    def to(other: Process.UnboundProcess[F]): P[Unit] =
+  class PipeBuilderSyntax[F[_], P](builder: PipeBuilder[F, P], channel: Pipe[F, Byte, Byte]) {
+    def to(other: Process.UnboundProcess[F]): P =
       builder.build(other, channel)
 
   }
@@ -47,7 +47,7 @@ object syntax {
 
     implicit class ProcessStringContextIO(ctx: StringContext)
                                          (implicit contextShift: ContextShift[IO]) {
-      def proc(args: Any*): Process.ProcessImpl[IO, Unit, Unit] = {
+      def proc(args: Any*): Process.ProcessImpl[IO] = {
         val staticParts = ctx.parts.map(Left.apply)
         val injectedParts = args.map(Right.apply)
         val parts = (injectedParts zip staticParts).flatMap { case (a, b) => List(b, a) }

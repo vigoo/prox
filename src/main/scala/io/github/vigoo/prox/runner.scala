@@ -33,9 +33,9 @@ trait ProcessRunner[F[_]] {
     Resource.make(run)(_.cancel)
   }
 
-  def startProcessGroup[O](processGroup: ProcessGroup[F, O], blocker: Blocker): F[RunningProcessGroup[F, O]]
+  def startProcessGroup[O, E](processGroup: ProcessGroup[F, O, E], blocker: Blocker): F[RunningProcessGroup[F, O, E]]
 
-  def start[O](processGroup: ProcessGroup[F, O], blocker: Blocker): Resource[F, Fiber[F, ProcessResult[O, Unit]]] = {
+  def start[O, E](processGroup: ProcessGroup[F, O, E], blocker: Blocker): Resource[F, Fiber[F, ProcessResult[O, Unit]]] = {
     val run =
       Concurrent[F].start(
         Sync[F].bracketCase(startProcessGroup(processGroup, blocker)) { runningProcess =>
@@ -80,9 +80,9 @@ class JVMRunningProcess[F[_] : Sync, O, E](val nativeProcess: JvmProcess,
   }
 }
 
-class JVMRunningProcessGroup[F[_] : Sync, O](runningProcesses: List[RunningProcess[F, _, _]],
-                                             override val runningOutput: Fiber[F, O])
-  extends RunningProcessGroup[F, O] {
+class JVMRunningProcessGroup[F[_] : Sync, O, E](runningProcesses: List[RunningProcess[F, _, _]],
+                                                override val runningOutput: Fiber[F, O])
+  extends RunningProcessGroup[F, O, E] {
 
   def kill(): F[ProcessResult[O, Unit]] =
     runningProcesses.traverse(_.kill() *> Sync[F].unit) >> waitForExit()
@@ -126,11 +126,11 @@ class JVMProcessRunner[F[_]](implicit override val concurrent: Concurrent[F],
     } yield new JVMRunningProcess(nativeProcess, runningInput, runningOutput, runningError)
   }
 
-  private def connectAndStartProcesses(firstProcess: Process[F, Stream[F, Byte], Unit] with RedirectableInput[F, Process[F, Stream[F, Byte], Unit]],
-                                       previousOutput: Stream[F, Byte],
-                                       remainingProcesses: List[Process[F, Stream[F, Byte], Unit] with RedirectableInput[F, Process[F, Stream[F, Byte], Unit]]],
-                                       blocker: Blocker,
-                                       startedProcesses: List[RunningProcess[F, _, _]]): F[(List[RunningProcess[F, _, _]], Stream[F, Byte])] = {
+  private def connectAndStartProcesses[E](firstProcess: Process[F, Stream[F, Byte], E] with RedirectableInput[F, Process[F, Stream[F, Byte], E]],
+                                          previousOutput: Stream[F, Byte],
+                                          remainingProcesses: List[Process[F, Stream[F, Byte], E] with RedirectableInput[F, Process[F, Stream[F, Byte], E]]],
+                                          blocker: Blocker,
+                                          startedProcesses: List[RunningProcess[F, _, _]]): F[(List[RunningProcess[F, _, _]], Stream[F, Byte])] = {
     startProcess(firstProcess.connectInput(InputStream(previousOutput, flushChunks = false)), blocker).flatMap { first =>
       first.runningOutput.join.flatMap { firstOutput =>
         remainingProcesses match {
@@ -143,7 +143,7 @@ class JVMProcessRunner[F[_]](implicit override val concurrent: Concurrent[F],
     }
   }
 
-  def startProcessGroup[O](processGroup: ProcessGroup[F, O], blocker: Blocker): F[RunningProcessGroup[F, O]] =
+  def startProcessGroup[O, E](processGroup: ProcessGroup[F, O, E], blocker: Blocker): F[RunningProcessGroup[F, O, E]] =
     for {
       first <- startProcess(processGroup.firstProcess, blocker)
       firstOutput <- first.runningOutput.join
