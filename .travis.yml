@@ -3,7 +3,7 @@ scala:
 - 2.12.8
 - 2.13.0
 script:
-- sbt ++$TRAVIS_SCALA_VERSION clean coverage test coverageReport
+- sbt --debug ++$TRAVIS_SCALA_VERSION clean coverage test coverageReport
 after_success:
 - bash <(curl -s https://codecov.io/bash)
 - "[[ $TRAVIS_BRANCH == \"master\" ]] && { sbt ++$TRAVIS_SCALA_VERSION clean coverageOff compile publish; };"
