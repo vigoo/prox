@@ -18,7 +18,8 @@ object syntax {
       ProcessGroup.ProcessGroupImpl(
         p1,
         List.empty,
-        other
+        other,
+        List(other, process)
       )
     }
 

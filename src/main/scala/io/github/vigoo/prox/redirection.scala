@@ -10,7 +10,6 @@ import fs2._
 import scala.language.higherKinds
 
 
-// Redirection is an extra capability
 trait RedirectableOutput[F[_], +P[_] <: ProcessLike[F]] {
   implicit val concurrent: Concurrent[F]
 
@@ -22,7 +21,6 @@ trait RedirectableOutput[F[_], +P[_] <: ProcessLike[F]] {
   def toSink(sink: Pipe[F, Byte, Unit]): P[Unit] =
     connectOutput(OutputStream(sink, (s: Stream[F, Unit]) => s.compile.drain))
 
-  // Note: these operators can be merged with > with further type classes and implicit prioritization
   def >#[O: Monoid](pipe: Pipe[F, Byte, O]): P[O] =
     toFoldMonoid(pipe)
 
@@ -65,7 +63,6 @@ trait RedirectableError[F[_], +P[_] <: Process[F, _, _]] {
   def errorToSink(sink: Pipe[F, Byte, Unit]): P[Unit] =
     connectError(OutputStream(sink, (s: Stream[F, Unit]) => s.compile.drain))
 
-  // Note: these operators can be merged with > with further type classes and implicit prioritization
   def !>#[O: Monoid](pipe: Pipe[F, Byte, O]): P[O] =
     errorToFoldMonoid(pipe)
 
@@ -98,9 +95,78 @@ trait RedirectableError[F[_], +P[_] <: Process[F, _, _]] {
 }
 
 trait RedirectableErrors[F[_], +P[_] <: ProcessGroup[F, _, _]] {
+  implicit val concurrent: Concurrent[F]
+
+  lazy val customizedPerProcess: RedirectableErrors.CustomizedPerProcess[F, P] =
+    new RedirectableErrors.CustomizedPerProcess[F, P] {
+      override implicit val concurrent: Concurrent[F] = RedirectableErrors.this.concurrent
+
+      override def connectErrors[R <: GroupErrorRedirection[F], OR <: OutputRedirection[F], E](target: R)
+                                                                                              (implicit groupErrorRedirectionType: GroupErrorRedirectionType.Aux[F, R, OR, E],
+                                                                                               outputRedirectionType: OutputRedirectionType.Aux[F, OR, E]): P[E] =
+        RedirectableErrors.this.connectErrors(target)
+    }
+
   def connectErrors[R <: GroupErrorRedirection[F], OR <: OutputRedirection[F], E](target: R)
-                                                     (implicit groupErrorRedirectionType: GroupErrorRedirectionType.Aux[F, R, OR, E],
-                                                      outputRedirectionType: OutputRedirectionType.Aux[F, OR, E]): P[E]
+                                                                                 (implicit groupErrorRedirectionType: GroupErrorRedirectionType.Aux[F, R, OR, E],
+                                                                                  outputRedirectionType: OutputRedirectionType.Aux[F, OR, E]): P[E]
+
+  def !>(sink: Pipe[F, Byte, Unit]): P[Unit] =
+    errorsToSink(sink)
+
+  def errorsToSink(sink: Pipe[F, Byte, Unit]): P[Unit] =
+    customizedPerProcess.errorsToSink(_ => sink)
+
+  def !>#[O: Monoid](pipe: Pipe[F, Byte, O]): P[O] =
+    errorsToFoldMonoid(pipe)
+
+  def errorsToFoldMonoid[O: Monoid](pipe: Pipe[F, Byte, O]): P[O] =
+    customizedPerProcess.errorsToFoldMonoid(_ => pipe)
+
+  def !>?[O](pipe: Pipe[F, Byte, O]): P[Vector[O]] =
+    errorsToVector(pipe)
+
+  def errorsToVector[O](pipe: Pipe[F, Byte, O]): P[Vector[O]] =
+    customizedPerProcess.errorsToVector(_ => pipe)
+
+  def drainErrors[O](pipe: Pipe[F, Byte, O]): P[Unit] =
+    customizedPerProcess.drainErrors(_ => pipe)
+
+  def foldErrors[O, R](pipe: Pipe[F, Byte, O], init: R, fn: (R, O) => R): P[R] =
+    customizedPerProcess.foldErrors(_ => pipe, init, fn)
+}
+
+object RedirectableErrors {
+
+  trait CustomizedPerProcess[F[_], +P[_] <: ProcessGroup[F, _, _]] {
+    implicit val concurrent: Concurrent[F]
+
+    def connectErrors[R <: GroupErrorRedirection[F], OR <: OutputRedirection[F], E](target: R)
+                                                                                   (implicit groupErrorRedirectionType: GroupErrorRedirectionType.Aux[F, R, OR, E],
+                                                                                    outputRedirectionType: OutputRedirectionType.Aux[F, OR, E]): P[E]
+
+    def errorsToSink(sinkFn: Process[F, _, _] => Pipe[F, Byte, Unit]): P[Unit] =
+      connectErrors(AllCaptured(sinkFn, (s: Stream[F, Unit]) => s.compile.drain))
+
+    def errorsToFoldMonoid[O: Monoid](pipeFn: Process[F, _, _] => Pipe[F, Byte, O]): P[O] =
+      connectErrors(AllCaptured(pipeFn, (s: Stream[F, O]) => s.compile.foldMonoid))
+
+    def errorsToVector[O](pipeFn: Process[F, _, _] => Pipe[F, Byte, O]): P[Vector[O]] =
+      connectErrors(AllCaptured(pipeFn, (s: Stream[F, O]) => s.compile.toVector))
+
+    def drainErrors[O](pipeFn: Process[F, _, _] => Pipe[F, Byte, O]): P[Unit] =
+      connectErrors(AllCaptured(pipeFn, (s: Stream[F, O]) => s.compile.drain))
+    
+    def foldErrors[O, R](pipeFn: Process[F, _, _] => Pipe[F, Byte, O], init: R, fn: (R, O) => R): P[R] =
+      connectErrors(AllCaptured(pipeFn, (s: Stream[F, O]) => s.compile.fold(init)(fn)))
+
+    def errorsToFile(pathFn: Process[F, _, _] => Path): P[Unit] =
+      connectErrors(AllToFile[F](pathFn, append = false))
+
+    def appendErrorsToFile(pathFn: Process[F, _, _] => Path): P[Unit] =
+      connectErrors(AllToFile[F](pathFn, append = true))
+  }
+
 }
 
 trait RedirectableInput[F[_], +P <: ProcessLike[F]] {

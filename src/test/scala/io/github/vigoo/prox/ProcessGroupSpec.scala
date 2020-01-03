@@ -75,6 +75,21 @@ object ProcessGroupSpecs extends ProxSpecHelpers {
         assertM(program, equalTo("11"))
       },
 
+      proxTest("can redirect each error output to a stream") { blocker =>
+        val p1 = Process[Task]("perl", List("-e", """print STDERR "Hello""""))
+        val p2 = Process[Task]("perl", List("-e", """print STDERR "world""""))
+        val processGroup = (p1 | p2) !># fs2.text.utf8Decode
+        val program = processGroup.run(blocker)
+
+        program.map { result =>
+          assert(result.errors.get(p1), isSome(equalTo("Hello"))) &&
+          assert(result.errors.get(p2), isSome(equalTo("world"))) &&
+          assert(result.output, equalTo(())) &&
+          assert(result.exitCodes.get(p1), isSome(equalTo(ExitCode(0)))) &&
+          assert(result.exitCodes.get(p2), isSome(equalTo(ExitCode(0))))
+        }
+      },
+
       testM("bound process is not pipeable") {
         assertM(
           typeCheck("""val bad = (Process[Task]("echo", List("Hello world")) ># fs2.text.utf8Decode) | Process[Task]("wc", List("-w"))"""),

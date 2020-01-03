@@ -7,16 +7,25 @@ import fs2._
 import scala.language.higherKinds
 import _root_.io.github.vigoo.prox.syntax._
 
-// TODO: how to bind error streams. compound error output indexed by process ids?
+trait ProcessGroupResult[F[_], +O, +E] {
+  val exitCodes: Map[Process[F, Unit, Unit], ExitCode]
+  val output: O
+  val errors: Map[Process[F, Unit, Unit], E]
+}
+
+case class SimpleProcessGroupResult[F[_], +O, +E](override val exitCodes: Map[Process[F, Unit, Unit], ExitCode],
+                                                  override val output: O,
+                                                  override val errors: Map[Process[F, Unit, Unit], E])
+  extends ProcessGroupResult[F, O, E]
 
 trait RunningProcessGroup[F[_], O, E] {
   val runningOutput: Fiber[F, O]
 
-  def kill(): F[ProcessResult[O, Unit]]
+  def kill(): F[ProcessGroupResult[F, O, E]]
 
-  def terminate(): F[ProcessResult[O, Unit]]
+  def terminate(): F[ProcessGroupResult[F, O, E]]
 
-  def waitForExit(): F[ProcessResult[O, Unit]]
+  def waitForExit(): F[ProcessGroupResult[F, O, E]]
 }
 
 trait ProcessGroup[F[_], O, E] extends ProcessLike[F] {
@@ -26,10 +35,12 @@ trait ProcessGroup[F[_], O, E] extends ProcessLike[F] {
   val innerProcesses: List[Process.UnboundIProcess[F, Stream[F, Byte], E]]
   val lastProcess: Process.UnboundIProcess[F, O, E]
 
-  def start(blocker: Blocker)(implicit runner: ProcessRunner[F]): Resource[F, Fiber[F, ProcessResult[O, Unit]]] =
+  val originalProcesses: List[Process[F, Unit, Unit]]
+
+  def start(blocker: Blocker)(implicit runner: ProcessRunner[F]): Resource[F, Fiber[F, ProcessGroupResult[F, O, E]]] =
     runner.start(this, blocker)
 
-  def run(blocker: Blocker)(implicit runner: ProcessRunner[F]): F[ProcessResult[O, Unit]] =
+  def run(blocker: Blocker)(implicit runner: ProcessRunner[F]): F[ProcessGroupResult[F, O, E]] =
     start(blocker).use(_.join)
 }
 
@@ -37,14 +48,16 @@ object ProcessGroup {
 
   case class ProcessGroupImplIOE[F[_], O, E](override val firstProcess: Process[F, Stream[F, Byte], E],
                                              override val innerProcesses: List[Process.UnboundIProcess[F, Stream[F, Byte], E]],
-                                             override val lastProcess: Process.UnboundIProcess[F, O, E])
+                                             override val lastProcess: Process.UnboundIProcess[F, O, E],
+                                             override val originalProcesses: List[Process[F, Unit, Unit]])
                                             (implicit override val concurrent: Concurrent[F])
     extends ProcessGroup[F, O, E] {
   }
 
   case class ProcessGroupImplIO[F[_], O](override val firstProcess: Process.UnboundEProcess[F, Stream[F, Byte]],
                                          override val innerProcesses: List[Process.UnboundIEProcess[F, Stream[F, Byte]]],
-                                         override val lastProcess: Process.UnboundIEProcess[F, O])
+                                         override val lastProcess: Process.UnboundIEProcess[F, O],
+                                         override val originalProcesses: List[Process[F, Unit, Unit]])
                                         (implicit override val concurrent: Concurrent[F])
     extends ProcessGroup[F, O, Unit]
       with RedirectableErrors[F, ProcessGroupImplIOE[F, O, *]] {
@@ -56,12 +69,14 @@ object ProcessGroup {
         firstProcess.connectError(groupErrorRedirectionType.toOuptutRedirectionType(target, firstProcess)),
         innerProcesses.map(p => p.connectError(groupErrorRedirectionType.toOuptutRedirectionType(target, p))),
         lastProcess.connectError(groupErrorRedirectionType.toOuptutRedirectionType(target, lastProcess)),
+        originalProcesses
       )
   }
 
   case class ProcessGroupImplIE[F[_], E](override val firstProcess: Process[F, Stream[F, Byte], E],
                                          override val innerProcesses: List[Process.UnboundIProcess[F, Stream[F, Byte], E]],
-                                         override val lastProcess: Process.UnboundIOProcess[F, E])
+                                         override val lastProcess: Process.UnboundIOProcess[F, E],
+                                         override val originalProcesses: List[Process[F, Unit, Unit]])
                                         (implicit override val concurrent: Concurrent[F])
     extends ProcessGroup[F, Unit, E]
       with RedirectableOutput[F, ProcessGroupImplIOE[F, *, E]] {
@@ -70,14 +85,16 @@ object ProcessGroup {
       ProcessGroupImplIOE(
         firstProcess,
         innerProcesses,
-        lastProcess.connectOutput(target)
+        lastProcess.connectOutput(target),
+        originalProcesses
       )
     }
   }
 
   case class ProcessGroupImplOE[F[_], O, E](override val firstProcess: Process.UnboundIProcess[F, Stream[F, Byte], E],
                                             override val innerProcesses: List[Process.UnboundIProcess[F, Stream[F, Byte], E]],
-                                            override val lastProcess: Process.UnboundIProcess[F, O, E])
+                                            override val lastProcess: Process.UnboundIProcess[F, O, E],
+                                            override val originalProcesses: List[Process[F, Unit, Unit]])
                                            (implicit override val concurrent: Concurrent[F])
     extends ProcessGroup[F, O, E]
       with RedirectableInput[F, ProcessGroupImplIOE[F, O, E]] {
@@ -86,14 +103,16 @@ object ProcessGroup {
       ProcessGroupImplIOE(
         firstProcess.connectInput(source),
         innerProcesses,
-        lastProcess
+        lastProcess,
+        originalProcesses
       )
     }
   }
 
   case class ProcessGroupImplI[F[_]](override val firstProcess: Process.UnboundEProcess[F, Stream[F, Byte]],
                                      override val innerProcesses: List[Process.UnboundIEProcess[F, Stream[F, Byte]]],
-                                     override val lastProcess: Process.UnboundProcess[F])
+                                     override val lastProcess: Process.UnboundProcess[F],
+                                     override val originalProcesses: List[Process[F, Unit, Unit]])
                                     (implicit override val concurrent: Concurrent[F])
     extends ProcessGroup[F, Unit, Unit]
       with RedirectableOutput[F, ProcessGroupImplIO[F, *]]
@@ -103,7 +122,8 @@ object ProcessGroup {
       ProcessGroupImplIO(
         firstProcess,
         innerProcesses,
-        lastProcess.connectOutput(target)
+        lastProcess.connectOutput(target),
+        originalProcesses
       )
     }
 
@@ -114,12 +134,14 @@ object ProcessGroup {
         firstProcess.connectError(groupErrorRedirectionType.toOuptutRedirectionType(target, firstProcess)),
         innerProcesses.map(p => p.connectError(groupErrorRedirectionType.toOuptutRedirectionType(target, p))),
         lastProcess.connectError(groupErrorRedirectionType.toOuptutRedirectionType(target, lastProcess)),
+        originalProcesses
       )
   }
 
   case class ProcessGroupImplO[F[_], O](override val firstProcess: Process.UnboundIEProcess[F, Stream[F, Byte]],
                                         override val innerProcesses: List[Process.UnboundIEProcess[F, Stream[F, Byte]]],
-                                        override val lastProcess: Process.UnboundIEProcess[F, O])
+                                        override val lastProcess: Process.UnboundIEProcess[F, O],
+                                        override val originalProcesses: List[Process[F, Unit, Unit]])
                                        (implicit override val concurrent: Concurrent[F])
     extends ProcessGroup[F, O, Unit]
       with RedirectableInput[F, ProcessGroupImplIO[F, O]]
@@ -129,7 +151,8 @@ object ProcessGroup {
       ProcessGroupImplIO(
         firstProcess.connectInput(source),
         innerProcesses,
-        lastProcess
+        lastProcess,
+        originalProcesses
       )
     }
 
@@ -140,12 +163,14 @@ object ProcessGroup {
         firstProcess.connectError(groupErrorRedirectionType.toOuptutRedirectionType(target, firstProcess)),
         innerProcesses.map(p => p.connectError(groupErrorRedirectionType.toOuptutRedirectionType(target, p))),
         lastProcess.connectError(groupErrorRedirectionType.toOuptutRedirectionType(target, lastProcess)),
+        originalProcesses
       )
   }
 
   case class ProcessGroupImplE[F[_], E](override val firstProcess: Process.UnboundIProcess[F, Stream[F, Byte], E],
                                         override val innerProcesses: List[Process.UnboundIProcess[F, Stream[F, Byte], E]],
-                                        override val lastProcess: Process.UnboundIOProcess[F, E])
+                                        override val lastProcess: Process.UnboundIOProcess[F, E],
+                                        override val originalProcesses: List[Process[F, Unit, Unit]])
                                        (implicit override val concurrent: Concurrent[F])
     extends ProcessGroup[F, Unit, E]
       with RedirectableOutput[F, ProcessGroupImplOE[F, *, E]]
@@ -155,7 +180,8 @@ object ProcessGroup {
       ProcessGroupImplOE(
         firstProcess,
         innerProcesses,
-        lastProcess.connectOutput(target)
+        lastProcess.connectOutput(target),
+        originalProcesses
       )
     }
 
@@ -163,14 +189,16 @@ object ProcessGroup {
       ProcessGroupImplIE(
         firstProcess.connectInput(source),
         innerProcesses,
-        lastProcess
+        lastProcess,
+        originalProcesses
       )
     }
   }
 
   case class ProcessGroupImpl[F[_]](override val firstProcess: Process.UnboundIEProcess[F, Stream[F, Byte]],
                                     override val innerProcesses: List[Process.UnboundIEProcess[F, Stream[F, Byte]]],
-                                    override val lastProcess: Process.UnboundProcess[F])
+                                    override val lastProcess: Process.UnboundProcess[F],
+                                    override val originalProcesses: List[Process[F, Unit, Unit]])
                                    (implicit override val concurrent: Concurrent[F])
     extends ProcessGroup[F, Unit, Unit]
       with RedirectableOutput[F, ProcessGroupImplO[F, *]]
@@ -183,7 +211,8 @@ object ProcessGroup {
 
       copy(
         innerProcesses = pl1 :: innerProcesses,
-        lastProcess = other
+        lastProcess = other,
+        originalProcesses = other :: originalProcesses
       )
     }
 
@@ -201,7 +230,8 @@ object ProcessGroup {
       ProcessGroupImplI(
         firstProcess.connectInput(source),
         innerProcesses,
-        lastProcess
+        lastProcess,
+        originalProcesses
       )
 
     override def connectErrors[R <: GroupErrorRedirection[F], OR <: OutputRedirection[F], E](target: R)
@@ -211,6 +241,7 @@ object ProcessGroup {
         firstProcess.connectError(groupErrorRedirectionType.toOuptutRedirectionType(target, firstProcess)),
         innerProcesses.map(p => p.connectError(groupErrorRedirectionType.toOuptutRedirectionType(target, p))),
         lastProcess.connectError(groupErrorRedirectionType.toOuptutRedirectionType(target, lastProcess)),
+        originalProcesses
       )
     }
 
@@ -218,7 +249,8 @@ object ProcessGroup {
       ProcessGroupImplO(
         firstProcess,
         innerProcesses,
-        lastProcess.connectOutput(target)
+        lastProcess.connectOutput(target),
+        originalProcesses
       )
     }
   }

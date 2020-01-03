@@ -35,7 +35,7 @@ trait ProcessRunner[F[_]] {
 
   def startProcessGroup[O, E](processGroup: ProcessGroup[F, O, E], blocker: Blocker): F[RunningProcessGroup[F, O, E]]
 
-  def start[O, E](processGroup: ProcessGroup[F, O, E], blocker: Blocker): Resource[F, Fiber[F, ProcessResult[O, Unit]]] = {
+  def start[O, E](processGroup: ProcessGroup[F, O, E], blocker: Blocker): Resource[F, Fiber[F, ProcessGroupResult[F, O, E]]] = {
     val run =
       Concurrent[F].start(
         Sync[F].bracketCase(startProcessGroup(processGroup, blocker)) { runningProcess =>
@@ -80,23 +80,25 @@ class JVMRunningProcess[F[_] : Sync, O, E](val nativeProcess: JvmProcess,
   }
 }
 
-class JVMRunningProcessGroup[F[_] : Sync, O, E](runningProcesses: List[RunningProcess[F, _, _]],
+class JVMRunningProcessGroup[F[_] : Sync, O, E](runningProcesses: Map[Process[F, Unit, Unit], RunningProcess[F, _, E]],
                                                 override val runningOutput: Fiber[F, O])
   extends RunningProcessGroup[F, O, E] {
 
-  def kill(): F[ProcessResult[O, Unit]] =
-    runningProcesses.traverse(_.kill() *> Sync[F].unit) >> waitForExit()
+  def kill(): F[ProcessGroupResult[F, O, E]] =
+    runningProcesses.values.toList.traverse(_.kill() *> Sync[F].unit) >> waitForExit()
 
-  def terminate(): F[ProcessResult[O, Unit]] =
-    runningProcesses.traverse(_.terminate() *> Sync[F].unit) >> waitForExit()
+  def terminate(): F[ProcessGroupResult[F, O, E]] =
+    runningProcesses.values.toList.traverse(_.terminate() *> Sync[F].unit) >> waitForExit()
 
-  def waitForExit(): F[ProcessResult[O, Unit]] =
+  def waitForExit(): F[ProcessGroupResult[F, O, E]] =
     for {
-      results <- runningProcesses.traverse(_.waitForExit().map(_.exitCode))
+      results <- runningProcesses.toList.traverse { case (spec, rp) =>
+        rp.waitForExit().map((result: ProcessResult[_, E]) => spec -> result)
+      }
       lastOutput <- runningOutput.join
-      lastExitCode = results.last
-    } yield SimpleProcessResult(lastExitCode, lastOutput, ()) // TODO: combined result
-
+      exitCodes = results.map { case (proc, result) => proc -> result.exitCode }.toMap
+      errors = results.map { case (proc, result) => proc -> result.error }.toMap
+    } yield SimpleProcessGroupResult(exitCodes, lastOutput, errors)
 }
 
 class JVMProcessRunner[F[_]](implicit override val concurrent: Concurrent[F],
@@ -130,7 +132,7 @@ class JVMProcessRunner[F[_]](implicit override val concurrent: Concurrent[F],
                                           previousOutput: Stream[F, Byte],
                                           remainingProcesses: List[Process[F, Stream[F, Byte], E] with RedirectableInput[F, Process[F, Stream[F, Byte], E]]],
                                           blocker: Blocker,
-                                          startedProcesses: List[RunningProcess[F, _, _]]): F[(List[RunningProcess[F, _, _]], Stream[F, Byte])] = {
+                                          startedProcesses: List[RunningProcess[F, _, E]]): F[(List[RunningProcess[F, _, E]], Stream[F, Byte])] = {
     startProcess(firstProcess.connectInput(InputStream(previousOutput, flushChunks = false)), blocker).flatMap { first =>
       first.runningOutput.join.flatMap { firstOutput =>
         remainingProcesses match {
@@ -155,8 +157,9 @@ class JVMProcessRunner[F[_]](implicit override val concurrent: Concurrent[F],
       }
       (inner, lastInput) = innerResult
       last <- startProcess(processGroup.lastProcess.connectInput(InputStream(lastInput, flushChunks = false)), blocker)
-    } yield new JVMRunningProcessGroup(
-      (first :: inner) :+ last,
+      runningProcesses = processGroup.originalProcesses.reverse.zip((first :: inner) :+ last).toMap
+    } yield new JVMRunningProcessGroup[F, O, E](
+      runningProcesses,
       last.runningOutput)
 
   private def runInputStream[O, E](process: Process[F, O, E], nativeProcess: JvmProcess, blocker: Blocker): F[Unit] = {
