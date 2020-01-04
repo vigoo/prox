@@ -261,7 +261,7 @@ trait GroupErrorRedirectionType[F[_], R] {
   type Out
   type OutputR <: OutputRedirection[F]
 
-  def toOuptutRedirectionType(redir: R, process: Process[F, _, _]): OutputR
+  def toOutputRedirectionType(redir: R, process: Process[F, _, _]): OutputR
 }
 
 object GroupErrorRedirectionType {
@@ -274,20 +274,20 @@ object GroupErrorRedirectionType {
     override type Out = Unit
     override type OutputR = StdOut[F]
 
-    override def toOuptutRedirectionType(redir: AllToStdErr[F], process: Process[F, _, _]): StdOut[F] = StdOut[F]()
+    override def toOutputRedirectionType(redir: AllToStdErr[F], process: Process[F, _, _]): StdOut[F] = StdOut[F]()
   }
 
   implicit def groupErrorRedirectionTypeOfFile[F[_] : Applicative]: Aux[F, AllToFile[F], OutputFile[F], Unit] = new GroupErrorRedirectionType[F, AllToFile[F]] {
     override type Out = Unit
     override type OutputR = OutputFile[F]
 
-    override def toOuptutRedirectionType(redir: AllToFile[F], process: Process[F, _, _]): OutputFile[F] = OutputFile[F](redir.pathFn(process), redir.append)
+    override def toOutputRedirectionType(redir: AllToFile[F], process: Process[F, _, _]): OutputFile[F] = OutputFile[F](redir.pathFn(process), redir.append)
   }
 
   implicit def groupErrorRedirectionTypeOfStream[F[_] : Applicative : Sync, O, OR]: Aux[F, AllCaptured[F, O, OR], OutputStream[F, O, OR], OR] = new GroupErrorRedirectionType[F, AllCaptured[F, O, OR]] {
     override type Out = OR
     override type OutputR = OutputStream[F, O, OR]
 
-    override def toOuptutRedirectionType(redir: AllCaptured[F, O, OR], process: Process[F, _, _]): OutputStream[F, O, OR] = OutputStream(redir.pipeFn(process), redir.runner, redir.chunkSize)
+    override def toOutputRedirectionType(redir: AllCaptured[F, O, OR], process: Process[F, _, _]): OutputStream[F, O, OR] = OutputStream(redir.pipeFn(process), redir.runner, redir.chunkSize)
   }
 }

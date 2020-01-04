@@ -135,11 +135,12 @@ class JVMProcessRunner[F[_]](implicit override val concurrent: Concurrent[F],
                                           startedProcesses: List[RunningProcess[F, _, E]]): F[(List[RunningProcess[F, _, E]], Stream[F, Byte])] = {
     startProcess(firstProcess.connectInput(InputStream(previousOutput, flushChunks = false)), blocker).flatMap { first =>
       first.runningOutput.join.flatMap { firstOutput =>
+        val updatedStartedProcesses = first :: startedProcesses
         remainingProcesses match {
           case nextProcess :: rest =>
-            connectAndStartProcesses(nextProcess, firstOutput, rest, blocker, first :: startedProcesses)
+            connectAndStartProcesses(nextProcess, firstOutput, rest, blocker, updatedStartedProcesses)
           case Nil =>
-            Applicative[F].pure((startedProcesses.reverse, firstOutput))
+            Applicative[F].pure((updatedStartedProcesses.reverse, firstOutput))
         }
       }
     }

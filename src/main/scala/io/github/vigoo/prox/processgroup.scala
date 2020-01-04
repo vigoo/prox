@@ -37,6 +37,9 @@ trait ProcessGroup[F[_], O, E] extends ProcessLike[F] {
 
   val originalProcesses: List[Process[F, Unit, Unit]]
 
+  def startProcessGroup(blocker: Blocker)(implicit runner: ProcessRunner[F]): F[RunningProcessGroup[F, O, E]] =
+    runner.startProcessGroup(this, blocker)
+
   def start(blocker: Blocker)(implicit runner: ProcessRunner[F]): Resource[F, Fiber[F, ProcessGroupResult[F, O, E]]] =
     runner.start(this, blocker)
 
@@ -64,13 +67,15 @@ object ProcessGroup {
 
     override def connectErrors[R <: GroupErrorRedirection[F], OR <: OutputRedirection[F], E](target: R)
                                                                                             (implicit groupErrorRedirectionType: GroupErrorRedirectionType.Aux[F, R, OR, E],
-                                                                                             outputRedirectionType: OutputRedirectionType.Aux[F, OR, E]): ProcessGroupImplIOE[F, O, E] =
+                                                                                             outputRedirectionType: OutputRedirectionType.Aux[F, OR, E]): ProcessGroupImplIOE[F, O, E] = {
+      val origs = originalProcesses.reverse.toVector
       ProcessGroupImplIOE(
-        firstProcess.connectError(groupErrorRedirectionType.toOuptutRedirectionType(target, firstProcess)),
-        innerProcesses.map(p => p.connectError(groupErrorRedirectionType.toOuptutRedirectionType(target, p))),
-        lastProcess.connectError(groupErrorRedirectionType.toOuptutRedirectionType(target, lastProcess)),
+        firstProcess.connectError(groupErrorRedirectionType.toOutputRedirectionType(target, origs.head)),
+        innerProcesses.zipWithIndex.map { case (p, idx) => p.connectError(groupErrorRedirectionType.toOutputRedirectionType(target, origs(idx + 1))) },
+        lastProcess.connectError(groupErrorRedirectionType.toOutputRedirectionType(target, origs.last)),
         originalProcesses
       )
+    }
   }
 
   case class ProcessGroupImplIE[F[_], E](override val firstProcess: Process[F, Stream[F, Byte], E],
@@ -129,13 +134,15 @@ object ProcessGroup {
 
     override def connectErrors[R <: GroupErrorRedirection[F], OR <: OutputRedirection[F], E](target: R)
                                                                                             (implicit groupErrorRedirectionType: GroupErrorRedirectionType.Aux[F, R, OR, E],
-                                                                                             outputRedirectionType: OutputRedirectionType.Aux[F, OR, E]): ProcessGroupImplIE[F, E] =
+                                                                                             outputRedirectionType: OutputRedirectionType.Aux[F, OR, E]): ProcessGroupImplIE[F, E] = {
+      val origs = originalProcesses.reverse.toVector
       ProcessGroupImplIE(
-        firstProcess.connectError(groupErrorRedirectionType.toOuptutRedirectionType(target, firstProcess)),
-        innerProcesses.map(p => p.connectError(groupErrorRedirectionType.toOuptutRedirectionType(target, p))),
-        lastProcess.connectError(groupErrorRedirectionType.toOuptutRedirectionType(target, lastProcess)),
+        firstProcess.connectError(groupErrorRedirectionType.toOutputRedirectionType(target, origs.head)),
+        innerProcesses.zipWithIndex.map { case (p, idx) => p.connectError(groupErrorRedirectionType.toOutputRedirectionType(target, origs(idx + 1))) },
+        lastProcess.connectError(groupErrorRedirectionType.toOutputRedirectionType(target, origs.last)),
         originalProcesses
       )
+    }
   }
 
   case class ProcessGroupImplO[F[_], O](override val firstProcess: Process.UnboundIEProcess[F, Stream[F, Byte]],
@@ -158,13 +165,15 @@ object ProcessGroup {
 
     override def connectErrors[R <: GroupErrorRedirection[F], OR <: OutputRedirection[F], E](target: R)
                                                                                             (implicit groupErrorRedirectionType: GroupErrorRedirectionType.Aux[F, R, OR, E],
-                                                                                             outputRedirectionType: OutputRedirectionType.Aux[F, OR, E]): ProcessGroupImplOE[F, O, E] =
+                                                                                             outputRedirectionType: OutputRedirectionType.Aux[F, OR, E]): ProcessGroupImplOE[F, O, E] = {
+      val origs = originalProcesses.reverse.toVector
       ProcessGroupImplOE(
-        firstProcess.connectError(groupErrorRedirectionType.toOuptutRedirectionType(target, firstProcess)),
-        innerProcesses.map(p => p.connectError(groupErrorRedirectionType.toOuptutRedirectionType(target, p))),
-        lastProcess.connectError(groupErrorRedirectionType.toOuptutRedirectionType(target, lastProcess)),
+        firstProcess.connectError(groupErrorRedirectionType.toOutputRedirectionType(target, origs.head)),
+        innerProcesses.zipWithIndex.map { case (p, idx) => p.connectError(groupErrorRedirectionType.toOutputRedirectionType(target, origs(idx + 1))) },
+        lastProcess.connectError(groupErrorRedirectionType.toOutputRedirectionType(target, origs.last)),
         originalProcesses
       )
+    }
   }
 
   case class ProcessGroupImplE[F[_], E](override val firstProcess: Process.UnboundIProcess[F, Stream[F, Byte], E],
@@ -237,10 +246,11 @@ object ProcessGroup {
     override def connectErrors[R <: GroupErrorRedirection[F], OR <: OutputRedirection[F], E](target: R)
                                                                                             (implicit groupErrorRedirectionType: GroupErrorRedirectionType.Aux[F, R, OR, E],
                                                                                              outputRedirectionType: OutputRedirectionType.Aux[F, OR, E]): ProcessGroupImplE[F, E] = {
+      val origs = originalProcesses.reverse.toVector
       ProcessGroupImplE(
-        firstProcess.connectError(groupErrorRedirectionType.toOuptutRedirectionType(target, firstProcess)),
-        innerProcesses.map(p => p.connectError(groupErrorRedirectionType.toOuptutRedirectionType(target, p))),
-        lastProcess.connectError(groupErrorRedirectionType.toOuptutRedirectionType(target, lastProcess)),
+        firstProcess.connectError(groupErrorRedirectionType.toOutputRedirectionType(target, origs.head)),
+        innerProcesses.zipWithIndex.map { case (p, idx) => p.connectError(groupErrorRedirectionType.toOutputRedirectionType(target, origs(idx + 1))) },
+        lastProcess.connectError(groupErrorRedirectionType.toOutputRedirectionType(target, origs.last)),
         originalProcesses
       )
     }
