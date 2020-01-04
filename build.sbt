@@ -66,7 +66,7 @@ credentials ++=
       password)).toSeq
 
 enablePlugins(GhpagesPlugin)
-//enablePlugins(SiteScaladocPlugin)
+enablePlugins(SiteScaladocPlugin)
 enablePlugins(MicrositesPlugin)
 
 git.remoteRepo := "git@github.com:vigoo/prox.git"

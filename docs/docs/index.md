@@ -31,6 +31,10 @@ The type parameters have the following meaning:
 - `O` is the type of the output value after the system process has finished running
 - `E` is the type of the error output value after the system process has finished running
 
+> :bulb: Why does it need the `F` in the process type and not just for running? 
+> The reason is that it describes the stream _execution_ as well in case the output is 
+> redirected. 
+
 We require `F` to implement the `Concurrent` type class, and for that we have to have an implicit
 _context shifter_ in scope (this should be already available in an application using cats-effect):
 

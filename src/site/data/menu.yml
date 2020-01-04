@@ -13,3 +13,5 @@ options:
     url: docs/running
   - title: Custom runners
     url: docs/custom-runners
+  - title: API reference
+    url: latest/api/io/github/vigoo/prox/
