@@ -1,13 +1,24 @@
 language: scala
 scala:
-- 2.12.8
-- 2.13.0
+  - 2.12.8
+  - 2.13.0
+
+before_install:
+  - export PATH=${PATH}:./vendor/bundle
+install:
+  - rvm use 2.6.0 --install --fuzzy
+  - gem update --system
+  - gem install sass
+  - gem install jekyll -v 4.0.0
+
 script:
-- sbt --debug ++$TRAVIS_SCALA_VERSION clean coverage test coverageReport
+  - sbt ++$TRAVIS_SCALA_VERSION clean coverage test coverageReport
+
 after_success:
-- bash <(curl -s https://codecov.io/bash)
-- "[[ $TRAVIS_BRANCH == \"master\" ]] && { sbt ++$TRAVIS_SCALA_VERSION clean coverageOff compile publish; };"
+  - bash <(curl -s https://codecov.io/bash)
+  - "[[ $TRAVIS_BRANCH == \"master\" ]] && { sbt ++$TRAVIS_SCALA_VERSION clean coverageOff compile publish; };"
+
 env:
   global:
-  - secure: msl3heebF3k3zdMKrjzefj0u+HAbZDf8vS2UC6poFv5OcNatVK73ZYApayq5otU80PTaJZaDdnsuyrMXggeWC/X+tnMZH781h7ckev+22+qOUNs6ZL1RS2cQ4OFuaNFhmr+eteShgGI26p4PmnRATV7IrUnw5s66BZJdFTBwvVtTpQ4d7WY0X/16YzXbZbXiYfAn/3txphJE8Lbh4/PqsySoIRdhIGWNiOoK8db/DrY3tQ2lHHuU1hme6FeBzFMJxjvrdCg+RPP+LKpTZdkzBHKvoa8DiTM96Z1Iqw5cjCLABq44KMlC5tZ3fj0mtxuPMdcbWYVTHmdMaE5pgrcckbIvtwbp9C8GgfNoJuuVmftazoZvXYVmk/7hZ+GrD7WoJrt72ijO8JOwGgUjqs3Vche6dXccDKe0c3fXhF7Y7W58yjF0bNrzYfez6BKELkrR3GObf7k/vVdsGAT4B6YeLIRtE/+xtiLqf7YZUP6+fC488pAZRrYlj2JW+8duzR4XLa5E+z08hw9OxNglFWMgkoav0dTaR93PFc01EpjonlV2nDbEl/LHuW463efow1/2dwqFBRbOhramaf56sfB0pAZjFx1nIiuHhDZm6UDjLH4v9lXWoRR9IaCPEpeWDvhj5kp5W6MvUJhwlyY83PNSwJPTWGkViJvWGrcPUTRb1vg=
-  - secure: I1wRMh1eoxX7+uVVTQBjoTMLpzVaWH3ur9cob8A3ZL3DGXFTCo4JoJrQ45hm7WOKjl/OaGhu4mvVIwJ2woIWOPqISn7uzXIpMq6cQ0CNdka1575E2hP0JmvRVP1N9K4tmAKS7e9rN5Tf/YBCgaMKXHxml0PPjQH7sltr9e6yBvM2Qx1Psn1Wmgo+ZvsSWV6wnDbVgUDL5BwKGX83VcdKMd5XAiX/7aRvXo8iW+UBEqCxxhRHxc/ndjTjC0tuWlhTF/BU6nxJNRruwLMLhd1oIIOJWSEcq88g7u2QZnnDovNHI6iqPdp0lE+hggVJ/594h5WDIsaDBAQeZvYCmTIXsQPAYXN5MKs1GUBEf6MfB39A2/kA6CHWbaXD+dX+RSj7VfHJV9NWMbBx/7UBcRBJck8aUYSLN6th7AAHMtk5ulVWIBXRvKaA6ATgGnWH9fFrkHJ7c05wI/RsuSIrR7sD6ZaGUWT+pit/pSKHKIQVxur9mN3sEg80/tp9+A8TV9TwB2v1N2Klu9J9msg4ujps7QGtTlrVbRavB9QbFzCBKUbfvGyoEB7wNL6AtQCud6G4FPcqGCouHMOjXyodnS16HxdqAL6nzyHTIh8s/5RGQQ83d9S46zFHBa4Q23WB/toH+YylI7rMWMVjYM1VQWGbKHTiyVlpJMJOmpDBtFoyvZs=
+    - secure: msl3heebF3k3zdMKrjzefj0u+HAbZDf8vS2UC6poFv5OcNatVK73ZYApayq5otU80PTaJZaDdnsuyrMXggeWC/X+tnMZH781h7ckev+22+qOUNs6ZL1RS2cQ4OFuaNFhmr+eteShgGI26p4PmnRATV7IrUnw5s66BZJdFTBwvVtTpQ4d7WY0X/16YzXbZbXiYfAn/3txphJE8Lbh4/PqsySoIRdhIGWNiOoK8db/DrY3tQ2lHHuU1hme6FeBzFMJxjvrdCg+RPP+LKpTZdkzBHKvoa8DiTM96Z1Iqw5cjCLABq44KMlC5tZ3fj0mtxuPMdcbWYVTHmdMaE5pgrcckbIvtwbp9C8GgfNoJuuVmftazoZvXYVmk/7hZ+GrD7WoJrt72ijO8JOwGgUjqs3Vche6dXccDKe0c3fXhF7Y7W58yjF0bNrzYfez6BKELkrR3GObf7k/vVdsGAT4B6YeLIRtE/+xtiLqf7YZUP6+fC488pAZRrYlj2JW+8duzR4XLa5E+z08hw9OxNglFWMgkoav0dTaR93PFc01EpjonlV2nDbEl/LHuW463efow1/2dwqFBRbOhramaf56sfB0pAZjFx1nIiuHhDZm6UDjLH4v9lXWoRR9IaCPEpeWDvhj5kp5W6MvUJhwlyY83PNSwJPTWGkViJvWGrcPUTRb1vg=
+    - secure: I1wRMh1eoxX7+uVVTQBjoTMLpzVaWH3ur9cob8A3ZL3DGXFTCo4JoJrQ45hm7WOKjl/OaGhu4mvVIwJ2woIWOPqISn7uzXIpMq6cQ0CNdka1575E2hP0JmvRVP1N9K4tmAKS7e9rN5Tf/YBCgaMKXHxml0PPjQH7sltr9e6yBvM2Qx1Psn1Wmgo+ZvsSWV6wnDbVgUDL5BwKGX83VcdKMd5XAiX/7aRvXo8iW+UBEqCxxhRHxc/ndjTjC0tuWlhTF/BU6nxJNRruwLMLhd1oIIOJWSEcq88g7u2QZnnDovNHI6iqPdp0lE+hggVJ/594h5WDIsaDBAQeZvYCmTIXsQPAYXN5MKs1GUBEf6MfB39A2/kA6CHWbaXD+dX+RSj7VfHJV9NWMbBx/7UBcRBJck8aUYSLN6th7AAHMtk5ulVWIBXRvKaA6ATgGnWH9fFrkHJ7c05wI/RsuSIrR7sD6ZaGUWT+pit/pSKHKIQVxur9mN3sEg80/tp9+A8TV9TwB2v1N2Klu9J9msg4ujps7QGtTlrVbRavB9QbFzCBKUbfvGyoEB7wNL6AtQCud6G4FPcqGCouHMOjXyodnS16HxdqAL6nzyHTIh8s/5RGQQ83d9S46zFHBa4Q23WB/toH+YylI7rMWMVjYM1VQWGbKHTiyVlpJMJOmpDBtFoyvZs=

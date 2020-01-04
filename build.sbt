@@ -1,10 +1,11 @@
 name := "prox"
+description := "A Scala library for working with system processes"
 organization := "io.github.vigoo"
 
 dynverSonatypeSnapshots in ThisBuild := true
 
 val scala212 = "2.12.8"
-val scala213 = "2.13.0"
+val scala213 = "2.13.1"
 
 scalaVersion := scala213
 crossScalaVersions := List(scala212, scala213)
@@ -65,6 +66,25 @@ credentials ++=
       password)).toSeq
 
 enablePlugins(GhpagesPlugin)
-enablePlugins(SiteScaladocPlugin)
+//enablePlugins(SiteScaladocPlugin)
+enablePlugins(MicrositesPlugin)
 
 git.remoteRepo := "git@github.com:vigoo/prox.git"
+
+micrositeUrl := "https://vigoo.github.io"
+micrositeBaseUrl := "/prox"
+micrositeHomepage := "https://vigoo.github.io/prox/"
+micrositeDocumentationUrl := "/prox/docs"
+micrositeAuthor := "Daniel Vigovszky"
+micrositeTwitterCreator := "@dvigovszky"
+micrositeGithubOwner := "vigoo"
+micrositeGithubRepo := "prox"
+micrositeGitterChannel := false
+micrositeDataDirectory := file("src/site/data")
+micrositeStaticDirectory := file("src/site/static")
+micrositeImgDirectory := file("src/site/img")
+micrositeCssDirectory := file("src/site/styles")
+micrositeSassDirectory := file("src/site/partials")
+micrositeJsDirectory := file("src/site/scripts")
+micrositeTheme := "light"
+micrositeHighlightLanguages ++= Seq("scala", "sbt")

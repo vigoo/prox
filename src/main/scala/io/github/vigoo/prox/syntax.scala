@@ -44,18 +44,18 @@ object syntax {
 
   }
 
-  object cats {
+  object catsInterpolation {
 
     implicit class ProcessStringContextIO(ctx: StringContext)
                                          (implicit contextShift: ContextShift[IO]) {
       def proc(args: Any*): Process.ProcessImpl[IO] = {
         val staticParts = ctx.parts.map(Left.apply)
         val injectedParts = args.map(Right.apply)
-        val parts = (injectedParts zip staticParts).flatMap { case (a, b) => List(b, a) }
+        val parts = staticParts.zipAll(injectedParts, Left(""), Right("")).flatMap { case (a, b) => List(a, b) }
         val words = parts.flatMap {
           case Left(value) => value.trim.split(' ')
           case Right(value) => List(value.toString)
-        }.toList
+        }.filter(_.nonEmpty).toList
         words match {
           case head :: remaining =>
             Process[IO](head, remaining)(Sync[IO], Concurrent[IO])
