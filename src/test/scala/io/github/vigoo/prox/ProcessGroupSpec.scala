@@ -11,6 +11,7 @@ import zio.test._
 import zio.test.Assertion._
 import zio.test.environment._
 import cats.effect.{Blocker, ExitCode}
+import io.github.vigoo.prox.Process.UnboundIProcess
 import io.github.vigoo.prox.syntax._
 import zio.clock.Clock
 
@@ -58,6 +59,19 @@ object ProcessGroupSpecs extends ProxSpecHelpers {
 
           assertM(program, equalTo("11"))
         },
+
+        proxTest("can be mapped") { blocker =>
+          val processGroup1 = (Process[Task]("!echo", List("This is a test string")) | Process[Task]("!wc", List("-w"))) ># fs2.text.utf8Decode
+          val processGroup2 = processGroup1.map(new ProcessGroup.Mapper[Task, String, Unit] {
+            override def mapFirst[P <: Process[Task, fs2.Stream[Task, Byte], Unit]](process: P): P = process.withCommand(process.command.tail).asInstanceOf[P]
+            override def mapInner[P <: UnboundIProcess[Task, fs2.Stream[Task, Byte], Unit]](process: P): P = process.withCommand(process.command.tail).asInstanceOf[P]
+            override def mapLast[P <: UnboundIProcess[Task, String, Unit]](process: P): P = process.withCommand(process.command.tail).asInstanceOf[P]
+          })
+
+          val program = processGroup2.run(blocker).map(_.output.trim)
+
+          assertM(program, equalTo("5"))
+        }
       ),
 
       suite("Termination")(

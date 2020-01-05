@@ -310,6 +310,22 @@ object ProcessSpecs extends ProxSpecHelpers {
       ),
 
       suite("Customization")(
+        proxTest("can change the command") { blocker =>
+          val p1 = Process[Task]("something", List("Hello", "world")) ># fs2.text.utf8Decode
+          val p2 = p1.withCommand("echo")
+          val program = p2.run(blocker).map(_.output)
+
+          assertM(program, equalTo("Hello world\n"))
+        },
+
+        proxTest("can change the arguments") { blocker =>
+          val p1 = Process[Task]("echo") ># fs2.text.utf8Decode
+          val p2 = p1.withArguments(List("Hello", "world"))
+          val program = p2.run(blocker).map(_.output)
+
+          assertM(program, equalTo("Hello world\n"))
+        },
+
         proxTest("respects the working directory") { blocker =>
           ZIO(Files.createTempDirectory("prox")).flatMap { tempDirectory =>
             val process = (Process[Task]("pwd") in tempDirectory) ># fs2.text.utf8Decode
