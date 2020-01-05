@@ -349,7 +349,7 @@ object ProcessSpecs extends ProxSpecHelpers {
 
         proxTest("is customizable with environment variables if input is bound") { blocker =>
           val source = fs2.Stream("This is a test string").through(fs2.text.utf8Encode)
-          val process = ((Process[Task]("sh", List("-c", "read; echo \"Hello $TEST1! I am $TEST2!\"")) < source)
+          val process = ((Process[Task]("sh", List("-c", "cat > /dev/null; echo \"Hello $TEST1! I am $TEST2!\"")) < source)
             `with` ("TEST1" -> "world")
             `with` ("TEST2" -> "prox")) ># fs2.text.utf8Decode
           val program = process.run(blocker).map(_.output)
@@ -369,7 +369,7 @@ object ProcessSpecs extends ProxSpecHelpers {
 
         proxTest("is customizable with environment variables if input and output are bound") { blocker =>
           val source = fs2.Stream("This is a test string").through(fs2.text.utf8Encode)
-          val process = (((Process[Task]("sh", List("-c", "read; echo \"Hello $TEST1! I am $TEST2!\"")) < source) ># fs2.text.utf8Decode)
+          val process = (((Process[Task]("sh", List("-c", "cat > /dev/null; echo \"Hello $TEST1! I am $TEST2!\"")) < source) ># fs2.text.utf8Decode)
             `with` ("TEST1" -> "world")
             `with` ("TEST2" -> "prox"))
           val program = process.run(blocker).map(_.output)
@@ -380,7 +380,7 @@ object ProcessSpecs extends ProxSpecHelpers {
 
         proxTest("is customizable with environment variables if input and error are bound") { blocker =>
           val source = fs2.Stream("This is a test string").through(fs2.text.utf8Encode)
-          val process = (((Process[Task]("sh", List("-c", "read; echo \"Hello $TEST1! I am $TEST2!\"")) < source) !># fs2.text.utf8Decode)
+          val process = (((Process[Task]("sh", List("-c", "cat > /dev/null; echo \"Hello $TEST1! I am $TEST2!\"")) < source) !># fs2.text.utf8Decode)
             `with` ("TEST1" -> "world")
             `with` ("TEST2" -> "prox")) ># fs2.text.utf8Decode
           val program = process.run(blocker).map(_.output)
@@ -399,7 +399,7 @@ object ProcessSpecs extends ProxSpecHelpers {
 
         proxTest("is customizable with environment variables if everything is bound") { blocker =>
           val source = fs2.Stream("This is a test string").through(fs2.text.utf8Encode)
-          val process = ((((Process[Task]("sh", List("-c", "read; echo \"Hello $TEST1! I am $TEST2!\"")) < source) !># fs2.text.utf8Decode) ># fs2.text.utf8Decode)
+          val process = ((((Process[Task]("sh", List("-c", "cat > /dev/null; echo \"Hello $TEST1! I am $TEST2!\"")) < source) !># fs2.text.utf8Decode) ># fs2.text.utf8Decode)
             `with` ("TEST1" -> "world")
             `with` ("TEST2" -> "prox"))
           val program = process.run(blocker).map(_.output)
