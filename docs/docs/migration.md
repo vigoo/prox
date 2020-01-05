@@ -24,4 +24,4 @@ constructing and running the processes directly the main differences are:
 
 - Different operators / methods for different source and target types, see [the page about redirection](redirection)
 - The need of an implicit [process runner](running) in scope
-- New ways to start and wait for the process, see[the page about runnning processes](running)
+- New ways to start and wait for the process, see [the page about runnning processes](running)
