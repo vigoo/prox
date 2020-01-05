@@ -71,7 +71,6 @@ object ProcessGroupSpecs extends ProxSpecHelpers {
         } @@ TestAspect.timeout(5.seconds),
 
         proxTest[Clock, Throwable, String]("can be terminated") { blocker =>
-
           val p1 = Process[Task]("perl", List("-e", """$SIG{TERM} = sub { exit 1 }; sleep 30; exit 0"""))
           val p2 = Process[Task]("sort")
           val processGroup = p1 | p2
@@ -82,10 +81,7 @@ object ProcessGroupSpecs extends ProxSpecHelpers {
             result <- runningProcesses.terminate()
           } yield result.exitCodes
 
-          assertM(program, equalTo(Map(
-            p1 -> ExitCode(1),
-            p2 -> ExitCode(255)
-          )))
+          assertM(program, contains(p1 -> ExitCode(1)))
         },
 
         proxTest("can be killed") { blocker =>
