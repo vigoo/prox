@@ -99,7 +99,8 @@ object ProcessGroupSpecs extends ProxSpecHelpers {
             p1 -> ExitCode(137),
             p2 -> ExitCode(137)
           )))
-        }),
+        } @@ TestAspect.flaky(10)
+      ),
 
       suite("Input redirection")(
         proxTest("can be fed with an input stream") { blocker =>
