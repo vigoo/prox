@@ -10,13 +10,40 @@ import fs2._
 
 import scala.concurrent.blocking
 import scala.jdk.CollectionConverters._
-import scala.language.higherKinds
 
+/**
+  * Interface for running processes and process groups
+  *
+  * The default implementation is [[JVMProcessRunner]]
+  *
+  * @tparam F Effect type
+  */
 trait ProcessRunner[F[_]] {
   implicit val concurrent: Concurrent[F]
 
+  /**
+    * Starts the process asynchronously and returns the [[RunningProcess]] interface for it
+    *
+    * @param process The process to be started
+    * @param blocker Execution context for blocking operations
+    * @tparam O Output type
+    * @tparam E Error output type
+    * @return interface for handling the running process
+    */
   def startProcess[O, E](process: Process[F, O, E], blocker: Blocker): F[RunningProcess[F, O, E]]
 
+  /**
+    * Starts the process asynchronously and returns a managed fiber representing it
+    *
+    * Joining the fiber means waiting until the process gets terminated.
+    * Cancelling the fiber terminates the process.
+    *
+    * @param process The process to be started
+    * @param blocker Execution context for blocking operations
+    * @tparam O Output type
+    * @tparam E Error output type
+    * @return interface for handling the running process
+    */
   def start[O, E](process: Process[F, O, E], blocker: Blocker): Resource[F, Fiber[F, ProcessResult[O, E]]] = {
     val run = Concurrent[F].start(
       Sync[F].bracketCase(startProcess(process, blocker)) { runningProcess =>
@@ -33,8 +60,29 @@ trait ProcessRunner[F[_]] {
     Resource.make(run)(_.cancel)
   }
 
+  /**
+    * Starts a process group asynchronously and returns an interface for them
+    *
+    * @param processGroup The process group to start
+    * @param blocker Execution context for blocking operations
+    * @tparam O Output type
+    * @tparam E Error output type
+    * @return interface for handling the running process group
+    */
   def startProcessGroup[O, E](processGroup: ProcessGroup[F, O, E], blocker: Blocker): F[RunningProcessGroup[F, O, E]]
 
+  /**
+    * Starts the process group asynchronously and returns a managed fiber representing it
+    *
+    * Joining the fiber means waiting until the process gets terminated.
+    * Cancelling the fiber terminates the process.
+    *
+    * @param processGroup The process group to be started
+    * @param blocker Execution context for blocking operations
+    * @tparam O Output type
+    * @tparam E Error output type
+    * @return interface for handling the running process
+    */
   def start[O, E](processGroup: ProcessGroup[F, O, E], blocker: Blocker): Resource[F, Fiber[F, ProcessGroupResult[F, O, E]]] = {
     val run =
       Concurrent[F].start(
@@ -55,6 +103,7 @@ trait ProcessRunner[F[_]] {
 }
 
 
+/** Default implementation of [[RunningProcess]] using the Java process API */
 class JVMRunningProcess[F[_] : Sync, O, E](val nativeProcess: JvmProcess,
                                            override val runningInput: Fiber[F, Unit],
                                            override val runningOutput: Fiber[F, O],
@@ -80,6 +129,7 @@ class JVMRunningProcess[F[_] : Sync, O, E](val nativeProcess: JvmProcess,
   }
 }
 
+/** Default implementation of [[RunningProcessGroup]] using the Java process API */
 class JVMRunningProcessGroup[F[_] : Sync, O, E](runningProcesses: Map[Process[F, Unit, Unit], RunningProcess[F, _, E]],
                                                 override val runningOutput: Fiber[F, O])
   extends RunningProcessGroup[F, O, E] {
@@ -101,6 +151,7 @@ class JVMRunningProcessGroup[F[_] : Sync, O, E](runningProcesses: Map[Process[F,
     } yield SimpleProcessGroupResult(exitCodes, lastOutput, errors)
 }
 
+/** Default implementation of [[ProcessRunner]] using the Java process API */
 class JVMProcessRunner[F[_]](implicit override val concurrent: Concurrent[F],
                              contextShift: ContextShift[F])
   extends ProcessRunner[F] {

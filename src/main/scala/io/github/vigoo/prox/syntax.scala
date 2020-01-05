@@ -8,8 +8,18 @@ import scala.language.higherKinds
 
 object syntax {
 
+  /** Extension methods for unbound processes enabling the creation of process groups */
   implicit class ProcessPiping[F[_] : Concurrent](process: Process.UnboundProcess[F]) {
 
+    /**
+      * Attaches the output of this process to an other process' input
+      *
+      * Use the [[|]] or the [[via]] methods instead for more readability.
+      *
+      * @param other The other process
+      * @param channel Pipe between the two processes
+      * @return Returns a [[ProcessGroup]]
+      */
     def pipeInto(other: Process.UnboundProcess[F],
                  channel: Pipe[F, Byte, Byte]): ProcessGroup.ProcessGroupImpl[F] = {
 
@@ -23,9 +33,26 @@ object syntax {
       )
     }
 
+    /**
+      * Attaches the output of this process to an other process' input
+      *
+      * @param other The other process
+      * @return Returns a [[ProcessGroup]]
+      */
     def |(other: Process.UnboundProcess[F]): ProcessGroup.ProcessGroupImpl[F] =
       pipeInto(other, identity)
 
+    /**
+      * Attaches the output of this process to an other process' input with a custom channel
+      *
+      * There is a syntax helper step to allow the following syntax:
+      * {{{
+      *   val processGroup = process1.via(channel).to(process2)
+      * }}}
+      *
+      * @param channel Pipe between the two processes
+      * @return Returns a syntax helper trait that has a [[PipeBuilderSyntax.to]] method to finish the construction
+      */
     def via(channel: Pipe[F, Byte, Byte]): PipeBuilderSyntax[F, ProcessGroup.ProcessGroupImpl[F]] =
       new PipeBuilderSyntax(new PipeBuilder[F, ProcessGroup.ProcessGroupImpl[F]] {
         override def build(other: Process.UnboundProcess[F], channel: Pipe[F, Byte, Byte]): ProcessGroup.ProcessGroupImpl[F] =
@@ -44,6 +71,15 @@ object syntax {
 
   }
 
+  /**
+    * String interpolator for an alternative of [[Process.apply]]
+    *
+    * {{{
+    * val process = proc"ls -hal $dir"
+    * }}}
+    *
+    * As it cannot be parametric in the effect type, it is bound to cats-effect [[IO]]
+    */
   object catsInterpolation {
 
     implicit class ProcessStringContextIO(ctx: StringContext)
