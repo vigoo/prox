@@ -4,6 +4,7 @@ scala:
   - 2.13.1
 
 before_install:
+  - if [ "$TRAVIS_BRANCH" = "master" -a "$TRAVIS_PULL_REQUEST" = "false" ]; then bash scripts/decrypt_keys.sh; fi
   - export PATH=${PATH}:./vendor/bundle
 install:
   - rvm use 2.6.0 --install --fuzzy
@@ -17,7 +18,7 @@ script:
 after_success:
   - bash <(curl -s https://codecov.io/bash)
   - "[[ $TRAVIS_BRANCH == \"master\" ]] && { sbt ++$TRAVIS_SCALA_VERSION clean coverageOff compile publish; };"
-
+  - "[[ $TRAVIS_BRANCH == \"master\" ]] && [[ $TRAVIS_PULL_REQUEST == \"false\" ]] && { bash scripts/publish_microsite.sh; };"
 env:
   global:
     - secure: msl3heebF3k3zdMKrjzefj0u+HAbZDf8vS2UC6poFv5OcNatVK73ZYApayq5otU80PTaJZaDdnsuyrMXggeWC/X+tnMZH781h7ckev+22+qOUNs6ZL1RS2cQ4OFuaNFhmr+eteShgGI26p4PmnRATV7IrUnw5s66BZJdFTBwvVtTpQ4d7WY0X/16YzXbZbXiYfAn/3txphJE8Lbh4/PqsySoIRdhIGWNiOoK8db/DrY3tQ2lHHuU1hme6FeBzFMJxjvrdCg+RPP+LKpTZdkzBHKvoa8DiTM96Z1Iqw5cjCLABq44KMlC5tZ3fj0mtxuPMdcbWYVTHmdMaE5pgrcckbIvtwbp9C8GgfNoJuuVmftazoZvXYVmk/7hZ+GrD7WoJrt72ijO8JOwGgUjqs3Vche6dXccDKe0c3fXhF7Y7W58yjF0bNrzYfez6BKELkrR3GObf7k/vVdsGAT4B6YeLIRtE/+xtiLqf7YZUP6+fC488pAZRrYlj2JW+8duzR4XLa5E+z08hw9OxNglFWMgkoav0dTaR93PFc01EpjonlV2nDbEl/LHuW463efow1/2dwqFBRbOhramaf56sfB0pAZjFx1nIiuHhDZm6UDjLH4v9lXWoRR9IaCPEpeWDvhj5kp5W6MvUJhwlyY83PNSwJPTWGkViJvWGrcPUTRb1vg=
