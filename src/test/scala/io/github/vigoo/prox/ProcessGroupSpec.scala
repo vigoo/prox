@@ -79,9 +79,9 @@ object ProcessGroupSpecs extends ProxSpecHelpers {
             runningProcesses <- processGroup.startProcessGroup(blocker)
             _ <- ZIO(Thread.sleep(250))
             result <- runningProcesses.terminate()
-          } yield result.exitCodes
+          } yield result.exitCodes.toList
 
-          assertM(program, contains(p1 -> ExitCode(1)))
+          assertM(program, contains[(Process[Task, Unit, Unit], ExitCode)](p1 -> ExitCode(1)))
         },
 
         proxTest("can be killed") { blocker =>
