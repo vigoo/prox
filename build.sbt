@@ -1,10 +1,11 @@
 name := "prox"
+description := "A Scala library for working with system processes"
 organization := "io.github.vigoo"
 
 dynverSonatypeSnapshots in ThisBuild := true
 
-val scala212 = "2.12.8"
-val scala213 = "2.13.0"
+val scala212 = "2.12.10"
+val scala213 = "2.13.1"
 
 scalaVersion := scala213
 crossScalaVersions := List(scala212, scala213)
@@ -18,10 +19,13 @@ libraryDependencies ++= Seq(
   "com.chuusai" %% "shapeless" % "2.3.3",
   "org.scala-lang.modules" %% "scala-collection-compat" % "2.1.3",
 
-  "org.specs2" %% "specs2-core" % "4.8.1" % "test",
   "dev.zio" %% "zio" % "1.0.0-RC17" % "test",
+  "dev.zio" %% "zio-test"     % "1.0.0-RC17" % "test",
+  "dev.zio" %% "zio-test-sbt" % "1.0.0-RC17" % "test",
   "dev.zio" %% "zio-interop-cats" % "2.0.0.0-RC10" % "test",
 )
+
+testFrameworks += new TestFramework("zio.test.sbt.ZTestFramework")
 
 coverageEnabled in(Test, compile) := true
 coverageEnabled in(Compile, compile) := false
@@ -34,8 +38,6 @@ scalacOptions ++= (CrossVersion.partialVersion(scalaVersion.value) match {
   case Some((2, 13)) => scalacOptions213
   case _ => Nil
 })
-
-scalacOptions in Test ++= Seq("-Yrangepos")
 
 // Publishing
 
@@ -65,5 +67,24 @@ credentials ++=
 
 enablePlugins(GhpagesPlugin)
 enablePlugins(SiteScaladocPlugin)
+enablePlugins(MicrositesPlugin)
 
 git.remoteRepo := "git@github.com:vigoo/prox.git"
+
+micrositeUrl := "https://vigoo.github.io"
+micrositeBaseUrl := "/prox"
+micrositeHomepage := "https://vigoo.github.io/prox/"
+micrositeDocumentationUrl := "/prox/docs"
+micrositeAuthor := "Daniel Vigovszky"
+micrositeTwitterCreator := "@dvigovszky"
+micrositeGithubOwner := "vigoo"
+micrositeGithubRepo := "prox"
+micrositeGitterChannel := false
+micrositeDataDirectory := file("src/microsite/data")
+micrositeStaticDirectory := file("src/microsite/static")
+micrositeImgDirectory := file("src/microsite/img")
+micrositeCssDirectory := file("src/microsite/styles")
+micrositeSassDirectory := file("src/microsite/partials")
+micrositeJsDirectory := file("src/microsite/scripts")
+micrositeTheme := "light"
+micrositeHighlightLanguages ++= Seq("scala", "sbt")
