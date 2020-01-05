@@ -5,8 +5,6 @@ import java.nio.file.Path
 import cats.Applicative
 import cats.effect._
 
-import scala.language.higherKinds
-
 trait ProcessResult[+O, +E] {
   val exitCode: ExitCode
   val output: O
@@ -46,6 +44,9 @@ trait Process[F[_], O, E] extends ProcessLike[F] {
   val runErrorStream: (java.io.InputStream, Blocker, ContextShift[F]) => F[E]
   val inputRedirection: InputRedirection[F]
 
+  def withCommand(newCommand: String): Process[F, O, E]
+  def withArguments(newArguments: List[String]): Process[F, O, E]
+
   def startProcess(blocker: Blocker)(implicit runner: ProcessRunner[F]): F[RunningProcess[F, O, E]] =
     runner.startProcess(this, blocker)
 
@@ -73,6 +74,12 @@ trait ProcessConfiguration[F[_], +P <: Process[F, _, _]] {
 
   def without(name: String): P =
     selfCopy(command, arguments, workingDirectory, environmentVariables, removedEnvironmentVariables = removedEnvironmentVariables + name)
+
+  def withCommand(newCommand: String): P =
+    selfCopy(newCommand, arguments, workingDirectory, environmentVariables, removedEnvironmentVariables)
+
+  def withArguments(newArguments: List[String]): P =
+    selfCopy(command, newArguments, workingDirectory, environmentVariables, removedEnvironmentVariables)
 }
 
 object Process {

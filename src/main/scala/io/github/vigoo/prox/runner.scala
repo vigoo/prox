@@ -146,7 +146,7 @@ class JVMProcessRunner[F[_]](implicit override val concurrent: Concurrent[F],
     }
   }
 
-  def startProcessGroup[O, E](processGroup: ProcessGroup[F, O, E], blocker: Blocker): F[RunningProcessGroup[F, O, E]] =
+  override def startProcessGroup[O, E](processGroup: ProcessGroup[F, O, E], blocker: Blocker): F[RunningProcessGroup[F, O, E]] =
     for {
       first <- startProcess(processGroup.firstProcess, blocker)
       firstOutput <- first.runningOutput.join

@@ -45,9 +45,16 @@ trait ProcessGroup[F[_], O, E] extends ProcessLike[F] {
 
   def run(blocker: Blocker)(implicit runner: ProcessRunner[F]): F[ProcessGroupResult[F, O, E]] =
     start(blocker).use(_.join)
+
+  def map(f: ProcessGroup.Mapper[F, O, E]): ProcessGroup[F, O, E]
 }
 
 object ProcessGroup {
+  trait Mapper[F[_], O, E] {
+    def mapFirst[P <: Process[F, Stream[F, Byte], E]](process: P): P
+    def mapInner[P <: Process.UnboundIProcess[F, Stream[F, Byte], E]](process: P): P
+    def mapLast[P <: Process.UnboundIProcess[F, O, E]](process: P): P
+  }
 
   case class ProcessGroupImplIOE[F[_], O, E](override val firstProcess: Process[F, Stream[F, Byte], E],
                                              override val innerProcesses: List[Process.UnboundIProcess[F, Stream[F, Byte], E]],
@@ -55,6 +62,15 @@ object ProcessGroup {
                                              override val originalProcesses: List[Process[F, Unit, Unit]])
                                             (implicit override val concurrent: Concurrent[F])
     extends ProcessGroup[F, O, E] {
+
+    def map(f: ProcessGroup.Mapper[F, O, E]): ProcessGroupImplIOE[F, O, E] = {
+      copy(
+        firstProcess = f.mapFirst(this.firstProcess),
+        innerProcesses = this.innerProcesses.map(f.mapInner),
+        lastProcess = f.mapLast(this.lastProcess),
+        originalProcesses
+      )
+    }
   }
 
   case class ProcessGroupImplIO[F[_], O](override val firstProcess: Process.UnboundEProcess[F, Stream[F, Byte]],
@@ -63,7 +79,16 @@ object ProcessGroup {
                                          override val originalProcesses: List[Process[F, Unit, Unit]])
                                         (implicit override val concurrent: Concurrent[F])
     extends ProcessGroup[F, O, Unit]
-      with RedirectableErrors[F, ProcessGroupImplIOE[F, O, *]] {
+      with RedirectableErrors[F, ProcessGroupImplIOE[F, O, *]]{
+
+    def map(f: ProcessGroup.Mapper[F, O, Unit]): ProcessGroupImplIO[F, O] = {
+      copy(
+        firstProcess = f.mapFirst(this.firstProcess),
+        innerProcesses = this.innerProcesses.map(f.mapInner),
+        lastProcess = f.mapLast(this.lastProcess),
+        originalProcesses
+      )
+    }
 
     override def connectErrors[R <: GroupErrorRedirection[F], OR <: OutputRedirection[F], E](target: R)
                                                                                             (implicit groupErrorRedirectionType: GroupErrorRedirectionType.Aux[F, R, OR, E],
@@ -86,6 +111,15 @@ object ProcessGroup {
     extends ProcessGroup[F, Unit, E]
       with RedirectableOutput[F, ProcessGroupImplIOE[F, *, E]] {
 
+    def map(f: ProcessGroup.Mapper[F, Unit, E]): ProcessGroupImplIE[F, E] = {
+      copy(
+        firstProcess = f.mapFirst(this.firstProcess),
+        innerProcesses = this.innerProcesses.map(f.mapInner),
+        lastProcess = f.mapLast(this.lastProcess),
+        originalProcesses
+      )
+    }
+
     override def connectOutput[R <: OutputRedirection[F], RO](target: R)(implicit outputRedirectionType: OutputRedirectionType.Aux[F, R, RO]): ProcessGroupImplIOE[F, RO, E] = {
       ProcessGroupImplIOE(
         firstProcess,
@@ -103,6 +137,15 @@ object ProcessGroup {
                                            (implicit override val concurrent: Concurrent[F])
     extends ProcessGroup[F, O, E]
       with RedirectableInput[F, ProcessGroupImplIOE[F, O, E]] {
+
+    def map(f: ProcessGroup.Mapper[F, O, E]): ProcessGroupImplOE[F, O, E] = {
+      copy(
+        firstProcess = f.mapFirst(this.firstProcess),
+        innerProcesses = this.innerProcesses.map(f.mapInner),
+        lastProcess = f.mapLast(this.lastProcess),
+        originalProcesses
+      )
+    }
 
     override def connectInput(source: InputRedirection[F]): ProcessGroupImplIOE[F, O, E] = {
       ProcessGroupImplIOE(
@@ -122,6 +165,15 @@ object ProcessGroup {
     extends ProcessGroup[F, Unit, Unit]
       with RedirectableOutput[F, ProcessGroupImplIO[F, *]]
       with RedirectableErrors[F, ProcessGroupImplIE[F, *]] {
+
+    def map(f: ProcessGroup.Mapper[F, Unit, Unit]): ProcessGroupImplI[F] = {
+      copy(
+        firstProcess = f.mapFirst(this.firstProcess),
+        innerProcesses = this.innerProcesses.map(f.mapInner),
+        lastProcess = f.mapLast(this.lastProcess),
+        originalProcesses
+      )
+    }
 
     override def connectOutput[R <: OutputRedirection[F], RO](target: R)(implicit outputRedirectionType: OutputRedirectionType.Aux[F, R, RO]): ProcessGroupImplIO[F, RO] = {
       ProcessGroupImplIO(
@@ -154,6 +206,15 @@ object ProcessGroup {
       with RedirectableInput[F, ProcessGroupImplIO[F, O]]
       with RedirectableErrors[F, ProcessGroupImplOE[F, O, *]] {
 
+    def map(f: ProcessGroup.Mapper[F, O, Unit]): ProcessGroupImplO[F, O] = {
+      copy(
+        firstProcess = f.mapFirst(this.firstProcess),
+        innerProcesses = this.innerProcesses.map(f.mapInner),
+        lastProcess = f.mapLast(this.lastProcess),
+        originalProcesses
+      )
+    }
+
     override def connectInput(source: InputRedirection[F]): ProcessGroupImplIO[F, O] = {
       ProcessGroupImplIO(
         firstProcess.connectInput(source),
@@ -184,6 +245,15 @@ object ProcessGroup {
     extends ProcessGroup[F, Unit, E]
       with RedirectableOutput[F, ProcessGroupImplOE[F, *, E]]
       with RedirectableInput[F, ProcessGroupImplIE[F, E]] {
+
+    def map(f: ProcessGroup.Mapper[F, Unit, E]): ProcessGroupImplE[F, E] = {
+      copy(
+        firstProcess = f.mapFirst(this.firstProcess),
+        innerProcesses = this.innerProcesses.map(f.mapInner),
+        lastProcess = f.mapLast(this.lastProcess),
+        originalProcesses
+      )
+    }
 
     override def connectOutput[R <: OutputRedirection[F], RO](target: R)(implicit outputRedirectionType: OutputRedirectionType.Aux[F, R, RO]): ProcessGroupImplOE[F, RO, E] = {
       ProcessGroupImplOE(
@@ -234,6 +304,15 @@ object ProcessGroup {
         override def build(other: Process.UnboundProcess[F], channel: Pipe[F, Byte, Byte]): ProcessGroupImpl[F] =
           ProcessGroupImpl.this.pipeInto(other, channel)
       }, channel)
+
+    def map(f: ProcessGroup.Mapper[F, Unit, Unit]): ProcessGroupImpl[F] = {
+      copy(
+        firstProcess = f.mapFirst(this.firstProcess),
+        innerProcesses = this.innerProcesses.map(f.mapInner),
+        lastProcess = f.mapLast(this.lastProcess),
+        originalProcesses
+      )
+    }
 
     override def connectInput(source: InputRedirection[F]): ProcessGroupImplI[F] =
       ProcessGroupImplI(
