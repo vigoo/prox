@@ -47,6 +47,7 @@ licenses := Seq("APL2" -> url("http://www.apache.org/licenses/LICENSE-2.0.txt"))
 
 publishTo := sonatypePublishTo.value
 
+import microsites.ConfigYml
 import xerial.sbt.Sonatype._
 sonatypeProjectHosting := Some(GitHubHosting("vigoo", "prox", "daniel.vigovszky@gmail.com"))
 
@@ -88,3 +89,6 @@ micrositeSassDirectory := file("src/microsite/partials")
 micrositeJsDirectory := file("src/microsite/scripts")
 micrositeTheme := "light"
 micrositeHighlightLanguages ++= Seq("scala", "sbt")
+micrositeConfigYaml := ConfigYml(
+  yamlCustomProperties = Map("plugins" -> List("jemoji"))
+)
