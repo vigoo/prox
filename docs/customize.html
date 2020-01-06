@@ -10,18 +10,18 @@ adding three methods that can be used to customize the working environment of th
 <div class="language-scala highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="k">import</span> <span class="nn">io.github.vigoo.prox.path._</span>
 
 <span class="k">val</span> <span class="nv">dir</span> <span class="k">=</span> <span class="n">home</span> <span class="o">/</span> <span class="s">"tmp"</span>
-<span class="c1">// dir: java.nio.file.Path = /Users/vigoo/tmp</span>
+<span class="c1">// dir: java.nio.file.Path = /home/travis/tmp</span>
 <span class="k">val</span> <span class="nv">proc1</span> <span class="k">=</span> <span class="nc">Process</span><span class="o">[</span><span class="kt">IO</span><span class="o">](</span><span class="s">"ls"</span><span class="o">)</span> <span class="n">in</span> <span class="n">dir</span> 
 <span class="c1">// proc1: Process.ProcessImpl[IO] = ProcessImpl(</span>
 <span class="c1">//   "ls",</span>
 <span class="c1">//   List(),</span>
-<span class="c1">//   Some(/Users/vigoo/tmp),</span>
+<span class="c1">//   Some(/home/travis/tmp),</span>
 <span class="c1">//   Map(),</span>
 <span class="c1">//   Set(),</span>
 <span class="c1">//   StdOut(),</span>
-<span class="c1">//   io.github.vigoo.prox.Process$$$Lambda$7561/1264175813@14d6d393,</span>
+<span class="c1">//   io.github.vigoo.prox.Process$$$Lambda$7503/0x00000001023c3040@3eb546f5,</span>
 <span class="c1">//   StdOut(),</span>
-<span class="c1">//   io.github.vigoo.prox.Process$$$Lambda$7562/622294887@73ca1358,</span>
+<span class="c1">//   io.github.vigoo.prox.Process$$$Lambda$7504/0x00000001023c3440@169325b,</span>
 <span class="c1">//   StdIn()</span>
 <span class="c1">// )</span>
 </code></pre></div></div>
@@ -42,9 +42,9 @@ way:</p>
 <span class="c1">//   Map("TEST" -&gt; "Hello world"),</span>
 <span class="c1">//   Set(),</span>
 <span class="c1">//   StdOut(),</span>
-<span class="c1">//   io.github.vigoo.prox.Process$$$Lambda$7561/1264175813@2bfe7b53,</span>
+<span class="c1">//   io.github.vigoo.prox.Process$$$Lambda$7503/0x00000001023c3040@56ef168d,</span>
 <span class="c1">//   StdOut(),</span>
-<span class="c1">//   io.github.vigoo.prox.Process$$$Lambda$7562/622294887@38786c1d,</span>
+<span class="c1">//   io.github.vigoo.prox.Process$$$Lambda$7504/0x00000001023c3440@52931e1a,</span>
 <span class="c1">//   StdIn()</span>
 <span class="c1">// )</span>
 </code></pre></div></div>
@@ -62,9 +62,9 @@ way:</p>
 <span class="c1">//   Map(),</span>
 <span class="c1">//   Set("PATH"),</span>
 <span class="c1">//   StdOut(),</span>
-<span class="c1">//   io.github.vigoo.prox.Process$$$Lambda$7561/1264175813@7925d8c2,</span>
+<span class="c1">//   io.github.vigoo.prox.Process$$$Lambda$7503/0x00000001023c3040@32d3b057,</span>
 <span class="c1">//   StdOut(),</span>
-<span class="c1">//   io.github.vigoo.prox.Process$$$Lambda$7562/622294887@21d91056,</span>
+<span class="c1">//   io.github.vigoo.prox.Process$$$Lambda$7504/0x00000001023c3440@e1226f8,</span>
 <span class="c1">//   StdIn()</span>
 <span class="c1">// )</span>
 </code></pre></div></div>
@@ -98,9 +98,9 @@ why there are multiple concrete process types):</p>
 <span class="c1">//   Map(),</span>
 <span class="c1">//   Set(),</span>
 <span class="c1">//   StdOut(),</span>
-<span class="c1">//   io.github.vigoo.prox.Process$$$Lambda$7561/1264175813@204a35be,</span>
+<span class="c1">//   io.github.vigoo.prox.Process$$$Lambda$7503/0x00000001023c3040@20e702c9,</span>
 <span class="c1">//   StdOut(),</span>
-<span class="c1">//   io.github.vigoo.prox.Process$$$Lambda$7562/622294887@77fe1abd,</span>
+<span class="c1">//   io.github.vigoo.prox.Process$$$Lambda$7504/0x00000001023c3440@6a4ebb01,</span>
 <span class="c1">//   StdIn()</span>
 <span class="c1">// )</span>
 <span class="k">val</span> <span class="nv">proc5</span> <span class="k">=</span> <span class="nc">Decorators</span><span class="o">[</span><span class="kt">IO</span><span class="o">].</span><span class="py">withHome</span><span class="o">(</span><span class="n">home</span><span class="o">,</span> <span class="n">proc4</span><span class="o">)</span>
@@ -108,12 +108,12 @@ why there are multiple concrete process types):</p>
 <span class="c1">//   "echo",</span>
 <span class="c1">//   List("$HOME"),</span>
 <span class="c1">//   None,</span>
-<span class="c1">//   Map("HOME" -&gt; "/Users/vigoo"),</span>
+<span class="c1">//   Map("HOME" -&gt; "/home/travis"),</span>
 <span class="c1">//   Set(),</span>
 <span class="c1">//   StdOut(),</span>
-<span class="c1">//   io.github.vigoo.prox.Process$$$Lambda$7561/1264175813@204a35be,</span>
+<span class="c1">//   io.github.vigoo.prox.Process$$$Lambda$7503/0x00000001023c3040@20e702c9,</span>
 <span class="c1">//   StdOut(),</span>
-<span class="c1">//   io.github.vigoo.prox.Process$$$Lambda$7562/622294887@77fe1abd,</span>
+<span class="c1">//   io.github.vigoo.prox.Process$$$Lambda$7504/0x00000001023c3440@6a4ebb01,</span>
 <span class="c1">//   StdIn()</span>
 <span class="c1">// )</span>
 </code></pre></div></div>
