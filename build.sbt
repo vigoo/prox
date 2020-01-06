@@ -66,6 +66,8 @@ credentials ++=
       username,
       password)).toSeq
 
+usePgpKeyHex("2EE41B349B2FEC81194CEB226B4C91F63271AE2B")
+
 enablePlugins(GhpagesPlugin)
 enablePlugins(SiteScaladocPlugin)
 enablePlugins(MicrositesPlugin)
