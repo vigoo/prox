@@ -19,9 +19,9 @@ adding three methods that can be used to customize the working environment of th
 <span class="c1">//   Map(),</span>
 <span class="c1">//   Set(),</span>
 <span class="c1">//   StdOut(),</span>
-<span class="c1">//   io.github.vigoo.prox.Process$$$Lambda$7200/0x0000000102285c40@18e9bb15,</span>
+<span class="c1">//   io.github.vigoo.prox.Process$$$Lambda$7187/0x0000000102264040@6fd4a792,</span>
 <span class="c1">//   StdOut(),</span>
-<span class="c1">//   io.github.vigoo.prox.Process$$$Lambda$7201/0x0000000102284840@164337d2,</span>
+<span class="c1">//   io.github.vigoo.prox.Process$$$Lambda$7188/0x0000000102264440@c91cd33,</span>
 <span class="c1">//   StdIn()</span>
 <span class="c1">// )</span>
 </code></pre></div></div>
@@ -42,9 +42,9 @@ way:</p>
 <span class="c1">//   Map("TEST" -&gt; "Hello world"),</span>
 <span class="c1">//   Set(),</span>
 <span class="c1">//   StdOut(),</span>
-<span class="c1">//   io.github.vigoo.prox.Process$$$Lambda$7200/0x0000000102285c40@4f719ac3,</span>
+<span class="c1">//   io.github.vigoo.prox.Process$$$Lambda$7187/0x0000000102264040@49d24fa3,</span>
 <span class="c1">//   StdOut(),</span>
-<span class="c1">//   io.github.vigoo.prox.Process$$$Lambda$7201/0x0000000102284840@6a43e6c5,</span>
+<span class="c1">//   io.github.vigoo.prox.Process$$$Lambda$7188/0x0000000102264440@3eb9c575,</span>
 <span class="c1">//   StdIn()</span>
 <span class="c1">// )</span>
 </code></pre></div></div>
@@ -62,9 +62,9 @@ way:</p>
 <span class="c1">//   Map(),</span>
 <span class="c1">//   Set("PATH"),</span>
 <span class="c1">//   StdOut(),</span>
-<span class="c1">//   io.github.vigoo.prox.Process$$$Lambda$7200/0x0000000102285c40@49ca93b2,</span>
+<span class="c1">//   io.github.vigoo.prox.Process$$$Lambda$7187/0x0000000102264040@4c1f7fb2,</span>
 <span class="c1">//   StdOut(),</span>
-<span class="c1">//   io.github.vigoo.prox.Process$$$Lambda$7201/0x0000000102284840@2a45d23f,</span>
+<span class="c1">//   io.github.vigoo.prox.Process$$$Lambda$7188/0x0000000102264440@6662b9ef,</span>
 <span class="c1">//   StdIn()</span>
 <span class="c1">// )</span>
 </code></pre></div></div>
@@ -98,9 +98,9 @@ why there are multiple concrete process types):</p>
 <span class="c1">//   Map(),</span>
 <span class="c1">//   Set(),</span>
 <span class="c1">//   StdOut(),</span>
-<span class="c1">//   io.github.vigoo.prox.Process$$$Lambda$7200/0x0000000102285c40@6921e236,</span>
+<span class="c1">//   io.github.vigoo.prox.Process$$$Lambda$7187/0x0000000102264040@3d164dd7,</span>
 <span class="c1">//   StdOut(),</span>
-<span class="c1">//   io.github.vigoo.prox.Process$$$Lambda$7201/0x0000000102284840@1ca15419,</span>
+<span class="c1">//   io.github.vigoo.prox.Process$$$Lambda$7188/0x0000000102264440@4df4a56d,</span>
 <span class="c1">//   StdIn()</span>
 <span class="c1">// )</span>
 <span class="k">val</span> <span class="nv">proc5</span> <span class="k">=</span> <span class="nc">Decorators</span><span class="o">[</span><span class="kt">IO</span><span class="o">].</span><span class="py">withHome</span><span class="o">(</span><span class="n">home</span><span class="o">,</span> <span class="n">proc4</span><span class="o">)</span>
@@ -111,12 +111,27 @@ why there are multiple concrete process types):</p>
 <span class="c1">//   Map("HOME" -&gt; "/home/travis"),</span>
 <span class="c1">//   Set(),</span>
 <span class="c1">//   StdOut(),</span>
-<span class="c1">//   io.github.vigoo.prox.Process$$$Lambda$7200/0x0000000102285c40@6921e236,</span>
+<span class="c1">//   io.github.vigoo.prox.Process$$$Lambda$7187/0x0000000102264040@3d164dd7,</span>
 <span class="c1">//   StdOut(),</span>
-<span class="c1">//   io.github.vigoo.prox.Process$$$Lambda$7201/0x0000000102284840@1ca15419,</span>
+<span class="c1">//   io.github.vigoo.prox.Process$$$Lambda$7188/0x0000000102264440@4df4a56d,</span>
 <span class="c1">//   StdIn()</span>
 <span class="c1">// )</span>
 </code></pre></div></div>
-</section></div></div></div></div><script src="/prox/highlight/highlight.pack.js"></script><script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/9.15.10/languages/sbt.min.js"></script><script>hljs.configure({languages:['scala','java','bash','scala','sbt']});
+</section></div></div></div></div><script src="/prox/highlight/highlight.pack.js"></script><script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/9.15.10/languages/sbt.min.js"></script><script>
+// For all code blocks, copy the language from the containing div
+// to the inner code tag (where hljs expects it to be)
+const langPrefix = 'language-';
+document.querySelectorAll(`div[class^='${langPrefix}']`).forEach(function(div) {
+  div.classList.forEach(function(cssClass) {
+    if (cssClass.startsWith(langPrefix)) {
+      const lang = cssClass.substring(langPrefix.length);
+      div.querySelectorAll('pre code').forEach(function(code) {
+        code.classList.add(lang);
+      });
+    }
+  });
+});
+
+hljs.configure({languages:['scala','java','bash','scala','sbt']});
 hljs.initHighlightingOnLoad();
-              </script><script>console.info('\x57\x65\x62\x73\x69\x74\x65\x20\x62\x75\x69\x6c\x74\x20\x77\x69\x74\x68\x3a\x0a\x20\x20\x20\x20\x20\x20\x20\x20\x20\x5f\x5f\x20\x20\x20\x20\x5f\x5f\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x5f\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x5f\x20\x5f\x5f\x0a\x20\x20\x20\x5f\x5f\x5f\x5f\x5f\x2f\x20\x2f\x5f\x20\x20\x2f\x20\x2f\x5f\x20\x20\x20\x20\x20\x20\x5f\x5f\x5f\x5f\x20\x5f\x5f\x5f\x20\x20\x28\x5f\x29\x5f\x5f\x5f\x5f\x5f\x5f\x5f\x5f\x5f\x5f\x5f\x5f\x5f\x20\x20\x5f\x5f\x5f\x5f\x5f\x28\x5f\x29\x20\x2f\x5f\x5f\x5f\x5f\x20\x20\x5f\x5f\x5f\x5f\x5f\x0a\x20\x20\x2f\x20\x5f\x5f\x5f\x2f\x20\x5f\x5f\x20\x5c\x2f\x20\x5f\x5f\x2f\x5f\x5f\x5f\x5f\x5f\x2f\x20\x5f\x5f\x20\x60\x5f\x5f\x20\x5c\x2f\x20\x2f\x20\x5f\x5f\x5f\x2f\x20\x5f\x5f\x5f\x2f\x20\x5f\x5f\x20\x5c\x2f\x20\x5f\x5f\x5f\x2f\x20\x2f\x20\x5f\x5f\x2f\x20\x5f\x20\x5c\x2f\x20\x5f\x5f\x5f\x2f\x0a\x20\x28\x5f\x5f\x20\x20\x29\x20\x2f\x5f\x2f\x20\x2f\x20\x2f\x5f\x2f\x5f\x5f\x5f\x5f\x5f\x2f\x20\x2f\x20\x2f\x20\x2f\x20\x2f\x20\x2f\x20\x2f\x20\x2f\x5f\x5f\x2f\x20\x2f\x20\x20\x2f\x20\x2f\x5f\x2f\x20\x28\x5f\x5f\x20\x20\x29\x20\x2f\x20\x2f\x5f\x2f\x20\x20\x5f\x5f\x28\x5f\x5f\x20\x20\x29\x0a\x2f\x5f\x5f\x5f\x5f\x2f\x5f\x2e\x5f\x5f\x5f\x2f\x5c\x5f\x5f\x2f\x20\x20\x20\x20\x20\x2f\x5f\x2f\x20\x2f\x5f\x2f\x20\x2f\x5f\x2f\x5f\x2f\x5c\x5f\x5f\x5f\x2f\x5f\x2f\x20\x20\x20\x5c\x5f\x5f\x5f\x5f\x2f\x5f\x5f\x5f\x5f\x2f\x5f\x2f\x5c\x5f\x5f\x2f\x5c\x5f\x5f\x5f\x2f\x5f\x5f\x5f\x5f\x2f\x0a\x0a\x68\x74\x74\x70\x73\x3a\x2f\x2f\x34\x37\x64\x65\x67\x2e\x67\x69\x74\x68\x75\x62\x2e\x69\x6f\x2f\x73\x62\x74\x2d\x6d\x69\x63\x72\x6f\x73\x69\x74\x65\x73')</script><script src="/prox/js/docs.js"></script></body></html>
+      </script><script>console.info('\x57\x65\x62\x73\x69\x74\x65\x20\x62\x75\x69\x6c\x74\x20\x77\x69\x74\x68\x3a\x0a\x20\x20\x20\x20\x20\x20\x20\x20\x20\x5f\x5f\x20\x20\x20\x20\x5f\x5f\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x5f\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x5f\x20\x5f\x5f\x0a\x20\x20\x20\x5f\x5f\x5f\x5f\x5f\x2f\x20\x2f\x5f\x20\x20\x2f\x20\x2f\x5f\x20\x20\x20\x20\x20\x20\x5f\x5f\x5f\x5f\x20\x5f\x5f\x5f\x20\x20\x28\x5f\x29\x5f\x5f\x5f\x5f\x5f\x5f\x5f\x5f\x5f\x5f\x5f\x5f\x5f\x20\x20\x5f\x5f\x5f\x5f\x5f\x28\x5f\x29\x20\x2f\x5f\x5f\x5f\x5f\x20\x20\x5f\x5f\x5f\x5f\x5f\x0a\x20\x20\x2f\x20\x5f\x5f\x5f\x2f\x20\x5f\x5f\x20\x5c\x2f\x20\x5f\x5f\x2f\x5f\x5f\x5f\x5f\x5f\x2f\x20\x5f\x5f\x20\x60\x5f\x5f\x20\x5c\x2f\x20\x2f\x20\x5f\x5f\x5f\x2f\x20\x5f\x5f\x5f\x2f\x20\x5f\x5f\x20\x5c\x2f\x20\x5f\x5f\x5f\x2f\x20\x2f\x20\x5f\x5f\x2f\x20\x5f\x20\x5c\x2f\x20\x5f\x5f\x5f\x2f\x0a\x20\x28\x5f\x5f\x20\x20\x29\x20\x2f\x5f\x2f\x20\x2f\x20\x2f\x5f\x2f\x5f\x5f\x5f\x5f\x5f\x2f\x20\x2f\x20\x2f\x20\x2f\x20\x2f\x20\x2f\x20\x2f\x20\x2f\x5f\x5f\x2f\x20\x2f\x20\x20\x2f\x20\x2f\x5f\x2f\x20\x28\x5f\x5f\x20\x20\x29\x20\x2f\x20\x2f\x5f\x2f\x20\x20\x5f\x5f\x28\x5f\x5f\x20\x20\x29\x0a\x2f\x5f\x5f\x5f\x5f\x2f\x5f\x2e\x5f\x5f\x5f\x2f\x5c\x5f\x5f\x2f\x20\x20\x20\x20\x20\x2f\x5f\x2f\x20\x2f\x5f\x2f\x20\x2f\x5f\x2f\x5f\x2f\x5c\x5f\x5f\x5f\x2f\x5f\x2f\x20\x20\x20\x5c\x5f\x5f\x5f\x5f\x2f\x5f\x5f\x5f\x5f\x2f\x5f\x2f\x5c\x5f\x5f\x2f\x5c\x5f\x5f\x5f\x2f\x5f\x5f\x5f\x5f\x2f\x0a\x0a\x68\x74\x74\x70\x73\x3a\x2f\x2f\x34\x37\x64\x65\x67\x2e\x67\x69\x74\x68\x75\x62\x2e\x69\x6f\x2f\x73\x62\x74\x2d\x6d\x69\x63\x72\x6f\x73\x69\x74\x65\x73')</script><script src="/prox/js/docs.js"></script></body></html>
