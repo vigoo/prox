@@ -14,8 +14,8 @@ addCompilerPlugin("org.typelevel" %% "kind-projector" % "0.10.3")
 
 libraryDependencies ++= Seq(
   "org.typelevel" %% "cats-effect" % "2.0.0",
-  "co.fs2" %% "fs2-core" % "2.2.0",
-  "co.fs2" %% "fs2-io" % "2.2.0",
+  "co.fs2" %% "fs2-core" % "2.2.1",
+  "co.fs2" %% "fs2-io" % "2.2.1",
   "com.chuusai" %% "shapeless" % "2.3.3",
   "org.scala-lang.modules" %% "scala-collection-compat" % "2.1.3",
 
