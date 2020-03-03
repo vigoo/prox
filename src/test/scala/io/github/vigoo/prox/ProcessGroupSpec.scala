@@ -25,7 +25,7 @@ object ProcessGroupSpecs extends ProxSpecHelpers {
           val processGroup = (Process[Task]("echo", List("This is a test string")) | Process[Task]("wc", List("-w"))) ># fs2.text.utf8Decode
           val program = processGroup.run(blocker).map(_.output.trim)
 
-          assertM(program, equalTo("5"))
+          assertM(program)(equalTo("5"))
         },
 
         proxTest("is possible with multiple") { blocker =>
@@ -40,7 +40,7 @@ object ProcessGroupSpecs extends ProxSpecHelpers {
             r => r.output.map(_.stripLineEnd.trim).filter(_.nonEmpty)
           )
 
-          assertM(program, hasSameElements(List("1 apple")))
+          assertM(program)(hasSameElements(List("1 apple")))
         },
 
         proxTest("is customizable with pipes") { blocker =>
@@ -57,7 +57,7 @@ object ProcessGroupSpecs extends ProxSpecHelpers {
           val processGroup = (Process[Task]("echo", List("This is a test string")).via(customPipe).to(Process[Task]("wc", List("-w")))) ># fs2.text.utf8Decode
           val program = processGroup.run(blocker).map(_.output.trim)
 
-          assertM(program, equalTo("11"))
+          assertM(program)(equalTo("11"))
         },
 
         proxTest("can be mapped") { blocker =>
@@ -70,7 +70,7 @@ object ProcessGroupSpecs extends ProxSpecHelpers {
 
           val program = processGroup2.run(blocker).map(_.output.trim)
 
-          assertM(program, equalTo("5"))
+          assertM(program)(equalTo("5"))
         }
       ),
 
@@ -81,7 +81,7 @@ object ProcessGroupSpecs extends ProxSpecHelpers {
               Process[Task]("sort")
           val program = processGroup.start(blocker).use { fiber => fiber.cancel }
 
-          assertM(program, equalTo(()))
+          assertM(program)(equalTo(()))
         } @@ TestAspect.timeout(5.seconds),
 
         proxTest[Clock, Throwable, String]("can be terminated") { blocker =>
@@ -95,7 +95,7 @@ object ProcessGroupSpecs extends ProxSpecHelpers {
             result <- runningProcesses.terminate()
           } yield result.exitCodes.toList
 
-          assertM(program, contains[(Process[Task, Unit, Unit], ExitCode)](p1 -> ExitCode(1)))
+          assertM(program)(contains[(Process[Task, Unit, Unit], ExitCode)](p1 -> ExitCode(1)))
         },
 
         proxTest("can be killed") { blocker =>
@@ -109,7 +109,7 @@ object ProcessGroupSpecs extends ProxSpecHelpers {
             result <- runningProcesses.kill()
           } yield result.exitCodes
 
-          assertM(program, equalTo(Map(
+          assertM(program)(equalTo(Map(
             p1 -> ExitCode(137),
             p2 -> ExitCode(137)
           )))
@@ -122,7 +122,7 @@ object ProcessGroupSpecs extends ProxSpecHelpers {
           val processGroup = (Process[Task]("cat") | Process[Task]("wc", List("-w"))) < stream ># fs2.text.utf8Decode
           val program = processGroup.run(blocker).map(_.output.trim)
 
-          assertM(program, equalTo("5"))
+          assertM(program)(equalTo("5"))
         },
 
         proxTest("can be fed with an input file") { blocker =>
@@ -133,7 +133,7 @@ object ProcessGroupSpecs extends ProxSpecHelpers {
               result <- processGroup.run(blocker)
             } yield result.output.trim
 
-            assertM(program, equalTo("5"))
+            assertM(program)(equalTo("5"))
           }
         }
       ),
@@ -146,7 +146,7 @@ object ProcessGroupSpecs extends ProxSpecHelpers {
               contents <- fs2.io.file.readAll[Task](tempFile.toPath, blocker, 1024).through(fs2.text.utf8Decode).compile.foldMonoid
             } yield contents.trim
 
-            assertM(program, equalTo("5"))
+            assertM(program)(equalTo("5"))
           }
         },
       ),
@@ -159,11 +159,11 @@ object ProcessGroupSpecs extends ProxSpecHelpers {
           val program = processGroup.run(blocker)
 
           program.map { result =>
-            assert(result.errors.get(p1), isSome(equalTo("Hello"))) &&
-              assert(result.errors.get(p2), isSome(equalTo("world"))) &&
-              assert(result.output, equalTo(())) &&
-              assert(result.exitCodes.get(p1), isSome(equalTo(ExitCode(0)))) &&
-              assert(result.exitCodes.get(p2), isSome(equalTo(ExitCode(0))))
+            assert(result.errors.get(p1))(isSome(equalTo("Hello"))) &&
+              assert(result.errors.get(p2))(isSome(equalTo("world"))) &&
+              assert(result.output)(equalTo(())) &&
+              assert(result.exitCodes.get(p1))(isSome(equalTo(ExitCode(0)))) &&
+              assert(result.exitCodes.get(p2))(isSome(equalTo(ExitCode(0))))
           }
         },
 
@@ -180,12 +180,12 @@ object ProcessGroupSpecs extends ProxSpecHelpers {
           val program = processGroup.run(blocker)
 
           program.map { result =>
-            assert(result.errors.get(p1), isSome(equalTo(()))) &&
-              assert(result.errors.get(p2), isSome(equalTo(()))) &&
-              assert(result.output, equalTo(())) &&
-              assert(builder.toString.toSeq.sorted, equalTo("Helloworld".toSeq.sorted)) &&
-              assert(result.exitCodes.get(p1), isSome(equalTo(ExitCode(0)))) &&
-              assert(result.exitCodes.get(p2), isSome(equalTo(ExitCode(0))))
+            assert(result.errors.get(p1))(isSome(equalTo(()))) &&
+              assert(result.errors.get(p2))(isSome(equalTo(()))) &&
+              assert(result.output)(equalTo(())) &&
+              assert(builder.toString.toSeq.sorted)(equalTo("Helloworld".toSeq.sorted)) &&
+              assert(result.exitCodes.get(p1))(isSome(equalTo(ExitCode(0)))) &&
+              assert(result.exitCodes.get(p2))(isSome(equalTo(ExitCode(0))))
           }
         },
 
@@ -201,11 +201,11 @@ object ProcessGroupSpecs extends ProxSpecHelpers {
           val program = processGroup.run(blocker)
 
           program.map { result =>
-            assert(result.errors.get(p1), isSome(hasSameElements(List(5)))) &&
-              assert(result.errors.get(p2), isSome(hasSameElements(List(6)))) &&
-              assert(result.output, equalTo(())) &&
-              assert(result.exitCodes.get(p1), isSome(equalTo(ExitCode(0)))) &&
-              assert(result.exitCodes.get(p2), isSome(equalTo(ExitCode(0))))
+            assert(result.errors.get(p1))(isSome(hasSameElements(List(5)))) &&
+              assert(result.errors.get(p2))(isSome(hasSameElements(List(6)))) &&
+              assert(result.output)(equalTo(())) &&
+              assert(result.exitCodes.get(p1))(isSome(equalTo(ExitCode(0)))) &&
+              assert(result.exitCodes.get(p2))(isSome(equalTo(ExitCode(0))))
           }
         },
 
@@ -216,11 +216,11 @@ object ProcessGroupSpecs extends ProxSpecHelpers {
           val program = processGroup.run(blocker)
 
           program.map { result =>
-            assert(result.errors.get(p1), isSome(equalTo(()))) &&
-              assert(result.errors.get(p2), isSome(equalTo(()))) &&
-              assert(result.output, equalTo(())) &&
-              assert(result.exitCodes.get(p1), isSome(equalTo(ExitCode(0)))) &&
-              assert(result.exitCodes.get(p2), isSome(equalTo(ExitCode(0))))
+            assert(result.errors.get(p1))(isSome(equalTo(()))) &&
+              assert(result.errors.get(p2))(isSome(equalTo(()))) &&
+              assert(result.output)(equalTo(())) &&
+              assert(result.exitCodes.get(p1))(isSome(equalTo(ExitCode(0)))) &&
+              assert(result.exitCodes.get(p2))(isSome(equalTo(ExitCode(0))))
           }
         },
 
@@ -235,11 +235,11 @@ object ProcessGroupSpecs extends ProxSpecHelpers {
           val program = processGroup.run(blocker)
 
           program.map { result =>
-            assert(result.errors.get(p1), isSome(equalTo(Vector(Some('H'), Some('w'))))) &&
-              assert(result.errors.get(p2), isSome(equalTo(Vector(Some('D'), Some('i'), Some('w'))))) &&
-              assert(result.output, equalTo(())) &&
-              assert(result.exitCodes.get(p1), isSome(equalTo(ExitCode(0)))) &&
-              assert(result.exitCodes.get(p2), isSome(equalTo(ExitCode(0))))
+            assert(result.errors.get(p1))(isSome(equalTo(Vector(Some('H'), Some('w'))))) &&
+              assert(result.errors.get(p2))(isSome(equalTo(Vector(Some('D'), Some('i'), Some('w'))))) &&
+              assert(result.output)(equalTo(())) &&
+              assert(result.exitCodes.get(p1))(isSome(equalTo(ExitCode(0)))) &&
+              assert(result.exitCodes.get(p2))(isSome(equalTo(ExitCode(0))))
           }
         },
       ),
@@ -254,11 +254,11 @@ object ProcessGroupSpecs extends ProxSpecHelpers {
           val program = processGroup.run(blocker)
 
           program.map { result =>
-            assert(result.errors.get(p1), isSome(equalTo("P1: Hello"))) &&
-              assert(result.errors.get(p2), isSome(equalTo("P2: world"))) &&
-              assert(result.output, equalTo(())) &&
-              assert(result.exitCodes.get(p1), isSome(equalTo(ExitCode(0)))) &&
-              assert(result.exitCodes.get(p2), isSome(equalTo(ExitCode(0))))
+            assert(result.errors.get(p1))(isSome(equalTo("P1: Hello"))) &&
+              assert(result.errors.get(p2))(isSome(equalTo("P2: world"))) &&
+              assert(result.output)(equalTo(())) &&
+              assert(result.exitCodes.get(p1))(isSome(equalTo(ExitCode(0)))) &&
+              assert(result.exitCodes.get(p2))(isSome(equalTo(ExitCode(0))))
           }
         },
 
@@ -281,13 +281,13 @@ object ProcessGroupSpecs extends ProxSpecHelpers {
           val program = processGroup.run(blocker)
 
           program.map { result =>
-            assert(result.errors.get(p1), isSome(equalTo(()))) &&
-              assert(result.errors.get(p2), isSome(equalTo(()))) &&
-              assert(result.output, equalTo(())) &&
-              assert(builder1.toString, equalTo("Hello")) &&
-              assert(builder2.toString, equalTo("world")) &&
-              assert(result.exitCodes.get(p1), isSome(equalTo(ExitCode(0)))) &&
-              assert(result.exitCodes.get(p2), isSome(equalTo(ExitCode(0))))
+            assert(result.errors.get(p1))(isSome(equalTo(()))) &&
+              assert(result.errors.get(p2))(isSome(equalTo(()))) &&
+              assert(result.output)(equalTo(())) &&
+              assert(builder1.toString)(equalTo("Hello")) &&
+              assert(builder2.toString)(equalTo("world")) &&
+              assert(result.exitCodes.get(p1))(isSome(equalTo(ExitCode(0)))) &&
+              assert(result.exitCodes.get(p2))(isSome(equalTo(ExitCode(0))))
           }
         },
 
@@ -306,11 +306,11 @@ object ProcessGroupSpecs extends ProxSpecHelpers {
           val program = processGroup.run(blocker)
 
           program.map { result =>
-            assert(result.errors.get(p1), isSome(hasSameElements(List((1, 5))))) &&
-              assert(result.errors.get(p2), isSome(hasSameElements(List((2, 6))))) &&
-              assert(result.output, equalTo(())) &&
-              assert(result.exitCodes.get(p1), isSome(equalTo(ExitCode(0)))) &&
-              assert(result.exitCodes.get(p2), isSome(equalTo(ExitCode(0))))
+            assert(result.errors.get(p1))(isSome(hasSameElements(List((1, 5))))) &&
+              assert(result.errors.get(p2))(isSome(hasSameElements(List((2, 6))))) &&
+              assert(result.output)(equalTo(())) &&
+              assert(result.exitCodes.get(p1))(isSome(equalTo(ExitCode(0)))) &&
+              assert(result.exitCodes.get(p2))(isSome(equalTo(ExitCode(0))))
           }
         },
 
@@ -321,11 +321,11 @@ object ProcessGroupSpecs extends ProxSpecHelpers {
           val program = processGroup.run(blocker)
 
           program.map { result =>
-            assert(result.errors.get(p1), isSome(equalTo(()))) &&
-              assert(result.errors.get(p2), isSome(equalTo(()))) &&
-              assert(result.output, equalTo(())) &&
-              assert(result.exitCodes.get(p1), isSome(equalTo(ExitCode(0)))) &&
-              assert(result.exitCodes.get(p2), isSome(equalTo(ExitCode(0))))
+            assert(result.errors.get(p1))(isSome(equalTo(()))) &&
+              assert(result.errors.get(p2))(isSome(equalTo(()))) &&
+              assert(result.output)(equalTo(())) &&
+              assert(result.exitCodes.get(p1))(isSome(equalTo(ExitCode(0)))) &&
+              assert(result.exitCodes.get(p2))(isSome(equalTo(ExitCode(0))))
           }
         },
 
@@ -346,11 +346,11 @@ object ProcessGroupSpecs extends ProxSpecHelpers {
           val program = processGroup.run(blocker)
 
           program.map { result =>
-            assert(result.errors.get(p1), isSome(equalTo(Vector(Some('H'), Some('w'))))) &&
-              assert(result.errors.get(p2), isSome(equalTo(Vector(Some('s'), Some('t'), Some('?'))))) &&
-              assert(result.output, equalTo(())) &&
-              assert(result.exitCodes.get(p1), isSome(equalTo(ExitCode(0)))) &&
-              assert(result.exitCodes.get(p2), isSome(equalTo(ExitCode(0))))
+            assert(result.errors.get(p1))(isSome(equalTo(Vector(Some('H'), Some('w'))))) &&
+              assert(result.errors.get(p2))(isSome(equalTo(Vector(Some('s'), Some('t'), Some('?'))))) &&
+              assert(result.output)(equalTo(())) &&
+              assert(result.exitCodes.get(p1))(isSome(equalTo(ExitCode(0)))) &&
+              assert(result.exitCodes.get(p2))(isSome(equalTo(ExitCode(0))))
           }
         },
 
@@ -369,7 +369,7 @@ object ProcessGroupSpecs extends ProxSpecHelpers {
                 contents2 <- fs2.io.file.readAll[Task](tempFile2.toPath, blocker, 1024).through(fs2.text.utf8Decode).compile.foldMonoid
               } yield (contents1, contents2)
 
-              assertM(program, equalTo(("Hello", "world")))
+              assertM(program)(equalTo(("Hello", "world")))
             }
           }
         },
@@ -385,10 +385,10 @@ object ProcessGroupSpecs extends ProxSpecHelpers {
 
           processGroup.run(blocker)
             .map { result =>
-              assert(result.errors.get(p1), isSome(equalTo("Hello"))) &&
-                assert(result.errors.get(p2), isSome(equalTo(""))) &&
-                assert(result.errors.get(p3), isSome(equalTo(""))) &&
-                assert(result.output.trim, equalTo("5"))
+              assert(result.errors.get(p1))(isSome(equalTo("Hello"))) &&
+                assert(result.errors.get(p2))(isSome(equalTo(""))) &&
+                assert(result.errors.get(p3))(isSome(equalTo(""))) &&
+                assert(result.output.trim)(equalTo("5"))
             }
         },
 
@@ -401,10 +401,10 @@ object ProcessGroupSpecs extends ProxSpecHelpers {
 
           processGroup.run(blocker)
             .map { result =>
-              assert(result.errors.get(p1), isSome(equalTo("Hello"))) &&
-                assert(result.errors.get(p2), isSome(equalTo(""))) &&
-                assert(result.errors.get(p3), isSome(equalTo(""))) &&
-                assert(result.output.trim, equalTo("5"))
+              assert(result.errors.get(p1))(isSome(equalTo("Hello"))) &&
+                assert(result.errors.get(p2))(isSome(equalTo(""))) &&
+                assert(result.errors.get(p3))(isSome(equalTo(""))) &&
+                assert(result.output.trim)(equalTo("5"))
             }
         },
 
@@ -417,10 +417,10 @@ object ProcessGroupSpecs extends ProxSpecHelpers {
 
           processGroup.run(blocker)
             .map { result =>
-              assert(result.errors.get(p1), isSome(equalTo("Hello"))) &&
-                assert(result.errors.get(p2), isSome(equalTo(""))) &&
-                assert(result.errors.get(p3), isSome(equalTo(""))) &&
-                assert(result.output.trim, equalTo("5"))
+              assert(result.errors.get(p1))(isSome(equalTo("Hello"))) &&
+                assert(result.errors.get(p2))(isSome(equalTo(""))) &&
+                assert(result.errors.get(p3))(isSome(equalTo(""))) &&
+                assert(result.output.trim)(equalTo("5"))
             }
         },
 
@@ -433,10 +433,10 @@ object ProcessGroupSpecs extends ProxSpecHelpers {
 
           processGroup.run(blocker)
             .map { result =>
-              assert(result.errors.get(p1), isSome(equalTo("Hello"))) &&
-                assert(result.errors.get(p2), isSome(equalTo(""))) &&
-                assert(result.errors.get(p3), isSome(equalTo(""))) &&
-                assert(result.output.trim, equalTo("5"))
+              assert(result.errors.get(p1))(isSome(equalTo("Hello"))) &&
+                assert(result.errors.get(p2))(isSome(equalTo(""))) &&
+                assert(result.errors.get(p3))(isSome(equalTo(""))) &&
+                assert(result.output.trim)(equalTo("5"))
             }
         },
 
@@ -449,10 +449,10 @@ object ProcessGroupSpecs extends ProxSpecHelpers {
 
           processGroup.run(blocker)
             .map { result =>
-              assert(result.errors.get(p1), isSome(equalTo("Hello"))) &&
-                assert(result.errors.get(p2), isSome(equalTo(""))) &&
-                assert(result.errors.get(p3), isSome(equalTo(""))) &&
-                assert(result.output.trim, equalTo("5"))
+              assert(result.errors.get(p1))(isSome(equalTo("Hello"))) &&
+                assert(result.errors.get(p2))(isSome(equalTo(""))) &&
+                assert(result.errors.get(p3))(isSome(equalTo(""))) &&
+                assert(result.output.trim)(equalTo("5"))
             }
         },
 
@@ -465,19 +465,16 @@ object ProcessGroupSpecs extends ProxSpecHelpers {
 
           processGroup.run(blocker)
             .map { result =>
-              assert(result.errors.get(p1), isSome(equalTo("Hello"))) &&
-                assert(result.errors.get(p2), isSome(equalTo(""))) &&
-                assert(result.errors.get(p3), isSome(equalTo(""))) &&
-                assert(result.output.trim, equalTo("5"))
+              assert(result.errors.get(p1))(isSome(equalTo("Hello"))) &&
+                assert(result.errors.get(p2))(isSome(equalTo(""))) &&
+                assert(result.errors.get(p3))(isSome(equalTo(""))) &&
+                assert(result.output.trim)(equalTo("5"))
             }
         },
       ),
 
       testM("bound process is not pipeable") {
-        assertM(
-          typeCheck("""val bad = (Process[Task]("echo", List("Hello world")) ># fs2.text.utf8Decode) | Process[Task]("wc", List("-w"))"""),
-          isLeft(anything)
-        )
+        assertM(typeCheck("""val bad = (Process[Task]("echo", List("Hello world")) ># fs2.text.utf8Decode) | Process[Task]("wc", List("-w"))"""))(isLeft(anything))
       }
     )
 }
