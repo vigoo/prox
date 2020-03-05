@@ -19,7 +19,7 @@
 
 <p>First add <code class="highlighter-rouge">prox</code> as a dependency:</p>
 
-<pre><code class="language-sbt">libraryDependencies += "io.github.vigoo" %% "prox" % "0.5.0"
+<pre><code class="language-sbt">libraryDependencies += "io.github.vigoo" %% "prox" % "0.5.1"
 </code></pre>
 
 <p>and use the following imports:</p>
@@ -34,7 +34,7 @@ The type parameters have the following meaning:</p>
 
 <ul>
   <li>
-<code class="highlighter-rouge">F</code> is the effect type, for eample <code class="highlighter-rouge">IO</code> when using <em>cats-effect</em> or <code class="highlighter-rouge">Task</code> when using <em>ZIO</em> with its <em>cats-effect interop</em>
+<code class="highlighter-rouge">F</code> is the effect type, for example <code class="highlighter-rouge">IO</code> when using <em>cats-effect</em> or <code class="highlighter-rouge">Task</code> when using <em>ZIO</em> with its <em>cats-effect interop</em>
 </li>
   <li>
 <code class="highlighter-rouge">O</code> is the type of the output value after the system process has finished running</li>
@@ -64,9 +64,9 @@ redirected.</p>
 <span class="c1">//   Map(),</span>
 <span class="c1">//   Set(),</span>
 <span class="c1">//   StdOut(),</span>
-<span class="c1">//   io.github.vigoo.prox.Process$$$Lambda$7266/0x0000000102294040@4f7d4324,</span>
+<span class="c1">//   io.github.vigoo.prox.Process$$$Lambda$9143/616778402@1a176e13,</span>
 <span class="c1">//   StdOut(),</span>
-<span class="c1">//   io.github.vigoo.prox.Process$$$Lambda$7267/0x0000000102294440@1a40411a,</span>
+<span class="c1">//   io.github.vigoo.prox.Process$$$Lambda$9144/891252660@54f1ca3c,</span>
 <span class="c1">//   StdIn()</span>
 <span class="c1">// )</span>
 </code></pre></div></div>
@@ -83,9 +83,9 @@ redirected.</p>
 <span class="c1">//   Map(),</span>
 <span class="c1">//   Set(),</span>
 <span class="c1">//   StdOut(),</span>
-<span class="c1">//   io.github.vigoo.prox.Process$$$Lambda$7266/0x0000000102294040@431ecd3e,</span>
+<span class="c1">//   io.github.vigoo.prox.Process$$$Lambda$9143/616778402@5dea14ca,</span>
 <span class="c1">//   StdOut(),</span>
-<span class="c1">//   io.github.vigoo.prox.Process$$$Lambda$7267/0x0000000102294440@4932931b,</span>
+<span class="c1">//   io.github.vigoo.prox.Process$$$Lambda$9144/891252660@fb758ee,</span>
 <span class="c1">//   StdIn()</span>
 <span class="c1">// )</span>
 </code></pre></div></div>
@@ -121,7 +121,7 @@ running:</p>
   <span class="nv">proc1</span><span class="o">.</span><span class="py">run</span><span class="o">(</span><span class="n">blocker</span><span class="o">)</span>
 <span class="o">}</span>
 <span class="c1">// res0: IO[ProcessResult[Unit, Unit]] = Async(</span>
-<span class="c1">//   cats.effect.internals.IOBracket$$$Lambda$7495/0x00000001023e8040@1c96e484,</span>
+<span class="c1">//   cats.effect.internals.IOBracket$$$Lambda$9161/740815161@2ef1c8fd,</span>
 <span class="c1">//   false</span>
 <span class="c1">// )</span>
 </code></pre></div></div>
