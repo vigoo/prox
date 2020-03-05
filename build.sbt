@@ -94,3 +94,21 @@ micrositeHighlightLanguages ++= Seq("scala", "sbt")
 micrositeConfigYaml := ConfigYml(
   yamlCustomProperties = Map("plugins" -> List("jemoji"))
 )
+
+// Temporary fix to avoid including mdoc in the published POM
+import scala.xml.{Node => XmlNode, NodeSeq => XmlNodeSeq, _}
+import scala.xml.transform.{RewriteRule, RuleTransformer}
+
+// skip dependency elements with a scope
+pomPostProcess := { (node: XmlNode) =>
+  new RuleTransformer(new RewriteRule {
+    override def transform(node: XmlNode): XmlNodeSeq = node match {
+      case e: Elem if e.label == "dependency" && e.child.exists(child => child.label == "artifactId" && child.text.startsWith("mdoc_")) =>
+        val organization = e.child.filter(_.label == "groupId").flatMap(_.text).mkString
+        val artifact = e.child.filter(_.label == "artifactId").flatMap(_.text).mkString
+        val version = e.child.filter(_.label == "version").flatMap(_.text).mkString
+        Comment(s"dependency $organization#$artifact;$version has been omitted")
+      case _ => node
+    }
+  }).transform(node).head
+}
