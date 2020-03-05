@@ -27,7 +27,7 @@ import io.github.vigoo.prox.syntax._
 In prox a process to be executed is defined by a pure value which implementes the `Process[F, O, E]` trait.
 The type parameters have the following meaning:
 
-- `F` is the effect type, for eample `IO` when using _cats-effect_ or `Task` when using _ZIO_ with its _cats-effect interop_
+- `F` is the effect type, for example `IO` when using _cats-effect_ or `Task` when using _ZIO_ with its _cats-effect interop_
 - `O` is the type of the output value after the system process has finished running
 - `E` is the type of the error output value after the system process has finished running
 
