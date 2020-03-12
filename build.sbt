@@ -19,9 +19,9 @@ libraryDependencies ++= Seq(
   "com.chuusai" %% "shapeless" % "2.3.3",
   "org.scala-lang.modules" %% "scala-collection-compat" % "2.1.4",
 
-  "dev.zio" %% "zio" % "1.0.0-RC17" % "test",
-  "dev.zio" %% "zio-test"     % "1.0.0-RC17" % "test",
-  "dev.zio" %% "zio-test-sbt" % "1.0.0-RC17" % "test",
+  "dev.zio" %% "zio" % "1.0.0-RC18-2" % "test",
+  "dev.zio" %% "zio-test"     % "1.0.0-RC18-2" % "test",
+  "dev.zio" %% "zio-test-sbt" % "1.0.0-RC18-2" % "test",
   "dev.zio" %% "zio-interop-cats" % "2.0.0.0-RC10" % "test",
 )
 

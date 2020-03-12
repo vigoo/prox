@@ -24,7 +24,7 @@ object ProcessSpecs extends ProxSpecHelpers {
           falseResult <- Process[Task]("false").run(blocker)
         } yield (trueResult.exitCode, falseResult.exitCode)
 
-        assertM(program, equalTo((ExitCode(0), ExitCode(1))))
+        assertM(program)(equalTo((ExitCode(0), ExitCode(1))))
       },
 
       suite("Output redirection")(
@@ -36,7 +36,7 @@ object ProcessSpecs extends ProxSpecHelpers {
               contents <- fs2.io.file.readAll[Task](tempFile.toPath, blocker, 1024).through(fs2.text.utf8Decode).compile.foldMonoid
             } yield contents
 
-            assertM(program, equalTo("Hello world!\n"))
+            assertM(program)(equalTo("Hello world!\n"))
           }
         },
 
@@ -50,7 +50,7 @@ object ProcessSpecs extends ProxSpecHelpers {
               contents <- fs2.io.file.readAll[Task](tempFile.toPath, blocker, 1024).through(fs2.text.utf8Decode).compile.foldMonoid
             } yield contents
 
-            assertM(program, equalTo("Hello\nworld\n"))
+            assertM(program)(equalTo("Hello\nworld\n"))
           }
         },
 
@@ -58,14 +58,14 @@ object ProcessSpecs extends ProxSpecHelpers {
           val process = Process[Task]("echo", List("Hello world!")) ># fs2.text.utf8Decode
           val program = process.run(blocker).map(_.output)
 
-          assertM(program, equalTo("Hello world!\n"))
+          assertM(program)(equalTo("Hello world!\n"))
         },
 
         proxTest("can redirect output to stream folding monoid") { blocker =>
           val process = Process[Task]("echo", List("Hello\nworld!")) ># fs2.text.utf8Decode.andThen(fs2.text.lines)
           val program = process.run(blocker).map(_.output)
 
-          assertM(program, equalTo("Helloworld!"))
+          assertM(program)(equalTo("Helloworld!"))
         },
 
         proxTest("can redirect output to stream collected to vector") { blocker =>
@@ -77,14 +77,14 @@ object ProcessSpecs extends ProxSpecHelpers {
           val process = Process[Task]("echo", List("Hello\nworld!")) >? stream
           val program = process.run(blocker).map(_.output)
 
-          assertM(program, hasSameElements(List(StringLength(5), StringLength(6), StringLength(0))))
+          assertM(program)(hasSameElements(List(StringLength(5), StringLength(6), StringLength(0))))
         },
 
         proxTest("can redirect output to stream and ignore it's result") { blocker =>
           val process = Process[Task]("echo", List("Hello\nworld!")).drainOutput(fs2.text.utf8Decode.andThen(fs2.text.lines))
           val program = process.run(blocker).map(_.output)
 
-          assertM(program, equalTo(()))
+          assertM(program)(equalTo(()))
         },
 
         proxTest("can redirect output to stream and fold it") { blocker =>
@@ -95,7 +95,7 @@ object ProcessSpecs extends ProxSpecHelpers {
           )
           val program = process.run(blocker).map(_.output)
 
-          assertM(program, equalTo(Vector(Some('H'), Some('w'), None)))
+          assertM(program)(equalTo(Vector(Some('H'), Some('w'), None)))
         },
 
         proxTest("can redirect output to a sink") { blocker =>
@@ -107,7 +107,7 @@ object ProcessSpecs extends ProxSpecHelpers {
           val process = Process[Task]("echo", List("Hello world!")) > target
           val program = process.run(blocker).map(_ => builder.toString)
 
-          assertM(program, equalTo("Hello world!\n"))
+          assertM(program)(equalTo("Hello world!\n"))
         },
       ),
       suite("Error redirection")(
@@ -119,7 +119,7 @@ object ProcessSpecs extends ProxSpecHelpers {
               contents <- fs2.io.file.readAll[Task](tempFile.toPath, blocker, 1024).through(fs2.text.utf8Decode).compile.foldMonoid
             } yield contents
 
-            assertM(program, equalTo("Hello world!"))
+            assertM(program)(equalTo("Hello world!"))
           }
         },
 
@@ -133,7 +133,7 @@ object ProcessSpecs extends ProxSpecHelpers {
               contents <- fs2.io.file.readAll[Task](tempFile.toPath, blocker, 1024).through(fs2.text.utf8Decode).compile.foldMonoid
             } yield contents
 
-            assertM(program, equalTo("Helloworld"))
+            assertM(program)(equalTo("Helloworld"))
           }
         },
 
@@ -141,14 +141,14 @@ object ProcessSpecs extends ProxSpecHelpers {
           val process = Process[Task]("perl", List("-e", """print STDERR "Hello"""")) !># fs2.text.utf8Decode
           val program = process.run(blocker).map(_.error)
 
-          assertM(program, equalTo("Hello"))
+          assertM(program)(equalTo("Hello"))
         },
 
         proxTest("can redirect error to stream folding monoid") { blocker =>
           val process = Process[Task]("perl", List("-e", "print STDERR 'Hello\nworld!'")) !># fs2.text.utf8Decode.andThen(fs2.text.lines)
           val program = process.run(blocker).map(_.error)
 
-          assertM(program, equalTo("Helloworld!"))
+          assertM(program)(equalTo("Helloworld!"))
         },
 
         proxTest("can redirect error to stream collected to vector") { blocker =>
@@ -160,14 +160,14 @@ object ProcessSpecs extends ProxSpecHelpers {
           val process = Process[Task]("perl", List("-e", "print STDERR 'Hello\nworld!'")) !>? stream
           val program = process.run(blocker).map(_.error)
 
-          assertM(program, hasSameElements(List(StringLength(5), StringLength(6))))
+          assertM(program)(hasSameElements(List(StringLength(5), StringLength(6))))
         },
 
         proxTest("can redirect error to stream and ignore it's result") { blocker =>
           val process = Process[Task]("perl", List("-e", "print STDERR 'Hello\nworld!'")).drainError(fs2.text.utf8Decode.andThen(fs2.text.lines))
           val program = process.run(blocker).map(_.error)
 
-          assertM(program, equalTo(()))
+          assertM(program)(equalTo(()))
         },
 
         proxTest("can redirect error to stream and fold it") { blocker =>
@@ -178,7 +178,7 @@ object ProcessSpecs extends ProxSpecHelpers {
           )
           val program = process.run(blocker).map(_.error)
 
-          assertM(program, equalTo(Vector(Some('H'), Some('w'))))
+          assertM(program)(equalTo(Vector(Some('H'), Some('w'))))
         },
 
         proxTest("can redirect error to a sink") { blocker =>
@@ -190,7 +190,7 @@ object ProcessSpecs extends ProxSpecHelpers {
           val process = Process[Task]("perl", List("-e", """print STDERR "Hello"""")) !> target
           val program = process.run(blocker).map(_ => builder.toString)
 
-          assertM(program, equalTo("Hello"))
+          assertM(program)(equalTo("Hello"))
         },
       ),
 
@@ -200,21 +200,21 @@ object ProcessSpecs extends ProxSpecHelpers {
           val process = Process[Task]("perl", List("-e", """my $str = <>; print STDERR "$str"""".stripMargin)) < source !># fs2.text.utf8Decode
           val program = process.run(blocker).map(_.error)
 
-          assertM(program, equalTo("This is a test string"))
+          assertM(program)(equalTo("This is a test string"))
         },
 
         proxTest("can redirect error first then output to stream") { blocker =>
           val process = (Process[Task]("perl", List("-e", """print STDOUT Hello; print STDERR World""".stripMargin)) !># fs2.text.utf8Decode) ># fs2.text.utf8Decode
           val program = process.run(blocker).map(r => r.output + r.error)
 
-          assertM(program, equalTo("HelloWorld"))
+          assertM(program)(equalTo("HelloWorld"))
         },
 
         proxTest("can redirect output first then error to stream") { blocker =>
           val process = (Process[Task]("perl", List("-e", """print STDOUT Hello; print STDERR World""".stripMargin)) ># fs2.text.utf8Decode) !># fs2.text.utf8Decode
           val program = process.run(blocker).map(r => r.output + r.error)
 
-          assertM(program, equalTo("HelloWorld"))
+          assertM(program)(equalTo("HelloWorld"))
         },
 
         proxTest("can redirect output first then error finally input to stream") { blocker =>
@@ -224,7 +224,7 @@ object ProcessSpecs extends ProxSpecHelpers {
             !># fs2.text.utf8Decode) < source
           val program = process.run(blocker).map(r => r.output + r.error)
 
-          assertM(program, equalTo("HelloWorld"))
+          assertM(program)(equalTo("HelloWorld"))
         },
 
         proxTest("can redirect output first then input finally error to stream") { blocker =>
@@ -234,7 +234,7 @@ object ProcessSpecs extends ProxSpecHelpers {
             < source) !># fs2.text.utf8Decode
           val program = process.run(blocker).map(r => r.output + r.error)
 
-          assertM(program, equalTo("HelloWorld"))
+          assertM(program)(equalTo("HelloWorld"))
         },
 
         proxTest("can redirect input first then error finally output to stream") { blocker =>
@@ -244,7 +244,7 @@ object ProcessSpecs extends ProxSpecHelpers {
             !># fs2.text.utf8Decode) ># fs2.text.utf8Decode
           val program = process.run(blocker).map(r => r.output + r.error)
 
-          assertM(program, equalTo("HelloWorld"))
+          assertM(program)(equalTo("HelloWorld"))
         },
       ),
 
@@ -254,7 +254,7 @@ object ProcessSpecs extends ProxSpecHelpers {
           val process = Process[Task]("wc", List("-w")) < source ># fs2.text.utf8Decode
           val program = process.run(blocker).map(_.output.trim)
 
-          assertM(program, equalTo("5"))
+          assertM(program)(equalTo("5"))
         },
 
         proxTest("can use stream as input flushing after each chunk") { blocker =>
@@ -262,7 +262,7 @@ object ProcessSpecs extends ProxSpecHelpers {
           val process = (Process[Task]("wc", List("-w")) !< source) ># fs2.text.utf8Decode
           val program = process.run(blocker).map(_.output.trim)
 
-          assertM(program, equalTo("5"))
+          assertM(program)(equalTo("5"))
         },
       ),
 
@@ -271,7 +271,7 @@ object ProcessSpecs extends ProxSpecHelpers {
           val process = Process[Task]("perl", List("-e", """$SIG{TERM} = sub { exit 1 }; sleep 30; exit 0"""))
           val program = process.start(blocker).use { fiber => fiber.cancel }
 
-          assertM(program, equalTo(()))
+          assertM(program)(equalTo(()))
         } @@ TestAspect.timeout(5.seconds),
 
         proxTest[Clock, Throwable, String]("can be terminated") { blocker =>
@@ -282,7 +282,7 @@ object ProcessSpecs extends ProxSpecHelpers {
             result <- runningProcess.terminate()
           } yield result.exitCode
 
-          assertM(program, equalTo(ExitCode(1)))
+          assertM(program)(equalTo(ExitCode(1)))
         },
 
         proxTest("can be killed") { blocker =>
@@ -293,7 +293,7 @@ object ProcessSpecs extends ProxSpecHelpers {
             result <- runningProcess.kill()
           } yield result.exitCode
 
-          assertM(program, equalTo(ExitCode(137)))
+          assertM(program)(equalTo(ExitCode(137)))
         },
 
         proxTest("can be checked if is alive") { blocker =>
@@ -305,7 +305,7 @@ object ProcessSpecs extends ProxSpecHelpers {
             isAliveAfter <- runningProcess.isAlive
           } yield (isAliveBefore, isAliveAfter)
 
-          assertM(program, equalTo((true, false)))
+          assertM(program)(equalTo((true, false)))
         },
       ),
 
@@ -315,7 +315,7 @@ object ProcessSpecs extends ProxSpecHelpers {
           val p2 = p1.withCommand("echo")
           val program = p2.run(blocker).map(_.output)
 
-          assertM(program, equalTo("Hello world\n"))
+          assertM(program)(equalTo("Hello world\n"))
         },
 
         proxTest("can change the arguments") { blocker =>
@@ -323,7 +323,7 @@ object ProcessSpecs extends ProxSpecHelpers {
           val p2 = p1.withArguments(List("Hello", "world"))
           val program = p2.run(blocker).map(_.output)
 
-          assertM(program, equalTo("Hello world\n"))
+          assertM(program)(equalTo("Hello world\n"))
         },
 
         proxTest("respects the working directory") { blocker =>
@@ -331,7 +331,7 @@ object ProcessSpecs extends ProxSpecHelpers {
             val process = (Process[Task]("pwd") in tempDirectory) ># fs2.text.utf8Decode
             val program = process.run(blocker).map(_.output.trim)
 
-            assertM(program, equalTo(tempDirectory.toString) || equalTo(s"/private${tempDirectory}"))
+            assertM(program)(equalTo(tempDirectory.toString) || equalTo(s"/private${tempDirectory}"))
           }
         },
 
@@ -341,7 +341,7 @@ object ProcessSpecs extends ProxSpecHelpers {
             `with` ("TEST2" -> "prox")) ># fs2.text.utf8Decode
           val program = process.run(blocker).map(_.output)
 
-          assertM(program, equalTo("Hello world! I am prox!\n"))
+          assertM(program)(equalTo("Hello world! I am prox!\n"))
         },
 
         proxTest("is customizable with excluded environment variables") { blocker =>
@@ -351,7 +351,7 @@ object ProcessSpecs extends ProxSpecHelpers {
             `without` "TEST1") ># fs2.text.utf8Decode
           val program = process.run(blocker).map(_.output)
 
-          assertM(program, equalTo("Hello ! I am prox!\n"))
+          assertM(program)(equalTo("Hello ! I am prox!\n"))
         },
 
         proxTest("is customizable with environment variables output is bound") { blocker =>
@@ -360,7 +360,7 @@ object ProcessSpecs extends ProxSpecHelpers {
             `with` ("TEST2" -> "prox"))
           val program = process.run(blocker).map(_.output)
 
-          assertM(program, equalTo("Hello world! I am prox!\n"))
+          assertM(program)(equalTo("Hello world! I am prox!\n"))
         },
 
         proxTest("is customizable with environment variables if input is bound") { blocker =>
@@ -370,7 +370,7 @@ object ProcessSpecs extends ProxSpecHelpers {
             `with` ("TEST2" -> "prox")) ># fs2.text.utf8Decode
           val program = process.run(blocker).map(_.output)
 
-          assertM(program, equalTo("Hello world! I am prox!\n"))
+          assertM(program)(equalTo("Hello world! I am prox!\n"))
         },
 
         proxTest("is customizable with environment variables if error is bound") { blocker =>
@@ -380,7 +380,7 @@ object ProcessSpecs extends ProxSpecHelpers {
             `with` ("TEST2" -> "prox")) ># fs2.text.utf8Decode
           val program = process.run(blocker).map(_.output)
 
-          assertM(program, equalTo("Hello world! I am prox!\n"))
+          assertM(program)(equalTo("Hello world! I am prox!\n"))
         },
 
         proxTest("is customizable with environment variables if input and output are bound") { blocker =>
@@ -390,7 +390,7 @@ object ProcessSpecs extends ProxSpecHelpers {
             `with` ("TEST2" -> "prox"))
           val program = process.run(blocker).map(_.output)
 
-          assertM(program, equalTo("Hello world! I am prox!\n"))
+          assertM(program)(equalTo("Hello world! I am prox!\n"))
         },
 
 
@@ -401,7 +401,7 @@ object ProcessSpecs extends ProxSpecHelpers {
             `with` ("TEST2" -> "prox")) ># fs2.text.utf8Decode
           val program = process.run(blocker).map(_.output)
 
-          assertM(program, equalTo("Hello world! I am prox!\n"))
+          assertM(program)(equalTo("Hello world! I am prox!\n"))
         },
 
         proxTest("is customizable with environment variables if output and error are bound") { blocker =>
@@ -410,7 +410,7 @@ object ProcessSpecs extends ProxSpecHelpers {
             `with` ("TEST2" -> "prox"))
           val program = process.run(blocker).map(_.output)
 
-          assertM(program, equalTo("Hello world! I am prox!\n"))
+          assertM(program)(equalTo("Hello world! I am prox!\n"))
         },
 
         proxTest("is customizable with environment variables if everything is bound") { blocker =>
@@ -420,27 +420,18 @@ object ProcessSpecs extends ProxSpecHelpers {
             `with` ("TEST2" -> "prox"))
           val program = process.run(blocker).map(_.output)
 
-          assertM(program, equalTo("Hello world! I am prox!\n"))
+          assertM(program)(equalTo("Hello world! I am prox!\n"))
         },
       ),
 
       testM("double output redirect is illegal") {
-        assertM(
-          typeCheck("""val bad = Process[Task]("echo", List("Hello world")) > new File("x").toPath > new File("y").toPath"""),
-          isLeft(anything)
-        )
+        assertM(typeCheck("""val bad = Process[Task]("echo", List("Hello world")) > new File("x").toPath > new File("y").toPath"""))(isLeft(anything))
       },
       testM("double error redirect is illegal") {
-        assertM(
-          typeCheck("""val bad = Process[Task]("echo", List("Hello world")) !> new File("x").toPath !> new File("y").toPath"""),
-          isLeft(anything)
-        )
+        assertM(typeCheck("""val bad = Process[Task]("echo", List("Hello world")) !> new File("x").toPath !> new File("y").toPath"""))(isLeft(anything))
       },
       testM("double input redirect is illegal") {
-        assertM(
-          typeCheck("""val bad = (Process[Task]("echo", List("Hello world")) < fs2.Stream("X").through(fs2.text.utf8Encode)) < fs2.Stream("Y").through(fs2.text.utf8Encode)"""),
-          isLeft(anything)
-        )
+        assertM(typeCheck("""val bad = (Process[Task]("echo", List("Hello world")) < fs2.Stream("X").through(fs2.text.utf8Encode)) < fs2.Stream("Y").through(fs2.text.utf8Encode)"""))(isLeft(anything))
       }
     )
 }

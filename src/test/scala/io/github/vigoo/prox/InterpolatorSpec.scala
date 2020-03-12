@@ -16,7 +16,7 @@ object InterpolatorSpecs {
         implicit val cs: ContextShift[IO] = cats.effect.IO.contextShift(ExecutionContext.global)
         val process = proc"ls"
 
-        assert(process.command, equalTo("ls")) && assert(process.arguments, isEmpty)
+        assert(process.command)(equalTo("ls")) && assert(process.arguments)(isEmpty)
       },
 
       test("works with interpolated process name") {
@@ -24,14 +24,14 @@ object InterpolatorSpecs {
         val cmd = "ls"
         val process = proc"$cmd"
 
-        assert(process.command, equalTo("ls")) && assert(process.arguments, isEmpty)
+        assert(process.command)(equalTo("ls")) && assert(process.arguments)(isEmpty)
       },
 
       test("works with static parameters") {
         implicit val cs: ContextShift[IO] = cats.effect.IO.contextShift(ExecutionContext.global)
         val process = proc"ls -hal tmp"
 
-        assert(process.command, equalTo("ls")) && assert(process.arguments, equalTo(List("-hal", "tmp")))
+        assert(process.command)(equalTo("ls")) && assert(process.arguments)(equalTo(List("-hal", "tmp")))
       },
 
       test("works with static parameters and interpolated process name") {
@@ -39,7 +39,7 @@ object InterpolatorSpecs {
         val cmd = "ls"
         val process = proc"$cmd -hal tmp"
 
-        assert(process.command, equalTo("ls")) && assert(process.arguments, equalTo(List("-hal", "tmp")))
+        assert(process.command)(equalTo("ls")) && assert(process.arguments)(equalTo(List("-hal", "tmp")))
       },
 
       test("works with static process name and interpolated parameters") {
@@ -48,7 +48,7 @@ object InterpolatorSpecs {
         val p2 = "tmp"
         val process = proc"ls $p1 $p2"
 
-        assert(process.command, equalTo("ls")) && assert(process.arguments, equalTo(List("-hal", "tmp")))
+        assert(process.command)(equalTo("ls")) && assert(process.arguments)(equalTo(List("-hal", "tmp")))
       },
 
       test("works with interpolated name and parameters") {
@@ -58,7 +58,7 @@ object InterpolatorSpecs {
         val p2 = "tmp"
         val process = proc"$cmd $p1 $p2"
 
-        assert(process.command, equalTo("ls")) && assert(process.arguments, equalTo(List("-hal", "tmp")))
+        assert(process.command)(equalTo("ls")) && assert(process.arguments)(equalTo(List("-hal", "tmp")))
       },
 
       test("works with mixed static and interpolated parameters") {
@@ -67,8 +67,8 @@ object InterpolatorSpecs {
         val p2 = "dear visitor"
         val process = proc"echo $p1, $p2!!!"
 
-        assert(process.command, equalTo("echo")) &&
-          assert(process.arguments, equalTo(List("hello", ",", "dear visitor", "!!!")))
+        assert(process.command)(equalTo("echo")) &&
+          assert(process.arguments)(equalTo(List("hello", ",", "dear visitor", "!!!")))
       }
     )
   )
