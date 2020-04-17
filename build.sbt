@@ -13,11 +13,11 @@ crossScalaVersions := List(scala212, scala213)
 addCompilerPlugin("org.typelevel" %% "kind-projector" % "0.10.3")
 
 libraryDependencies ++= Seq(
-  "org.typelevel" %% "cats-effect" % "2.1.2",
-  "co.fs2" %% "fs2-core" % "2.3.0",
-  "co.fs2" %% "fs2-io" % "2.3.0",
+  "org.typelevel" %% "cats-effect" % "2.1.3",
+  "co.fs2" %% "fs2-core" % "2.2.2",
+  "co.fs2" %% "fs2-io" % "2.2.2",
   "com.chuusai" %% "shapeless" % "2.3.3",
-  "org.scala-lang.modules" %% "scala-collection-compat" % "2.1.4",
+  "org.scala-lang.modules" %% "scala-collection-compat" % "2.1.5",
 
   "dev.zio" %% "zio" % "1.0.0-RC17" % "test",
   "dev.zio" %% "zio-test"     % "1.0.0-RC17" % "test",
