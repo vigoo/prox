@@ -9,7 +9,7 @@ import zio.test._
 
 trait ProxSpecHelpers {
 
-  def proxTest[Nothing, Throwable, L](label: L)(assertion: Blocker => Task[TestResult]): ZSpec[Any, scala.Throwable, L, Unit] = {
+  def proxTest[Nothing, Throwable](label: String)(assertion: Blocker => Task[TestResult]): ZSpec[Any, scala.Throwable] = {
     testM(label)(Blocker[Task].use { blocker => assertion(blocker) })
   }
 
