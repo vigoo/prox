@@ -22,7 +22,7 @@ libraryDependencies ++= Seq(
   "dev.zio" %% "zio" % "1.0.0-RC18-2" % "test",
   "dev.zio" %% "zio-test"     % "1.0.0-RC18-2" % "test",
   "dev.zio" %% "zio-test-sbt" % "1.0.0-RC18-2" % "test",
-  "dev.zio" %% "zio-interop-cats" % "2.0.0.0-RC12" % "test",
+  "dev.zio" %% "zio-interop-cats" % "2.0.0.0-RC13" % "test",
 )
 
 testFrameworks += new TestFramework("zio.test.sbt.ZTestFramework")
