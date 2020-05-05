@@ -1,9 +1,10 @@
 package io.github.vigoo.prox
 
+import java.nio.file.Path
+
 import cats.Applicative
 import cats.effect._
 import fs2._
-
 import _root_.io.github.vigoo.prox.syntax._
 
 /**
@@ -61,7 +62,7 @@ trait RunningProcessGroup[F[_], O, E] {
   * @tparam O Output type
   * @tparam E Error output type
   */
-trait ProcessGroup[F[_], O, E] extends ProcessLike[F] {
+trait ProcessGroup[F[_], O, E] extends ProcessLike[F] with ProcessGroupConfiguration[F, O, E] {
   implicit val concurrent: Concurrent[F]
 
   val firstProcess: Process[F, Stream[F, Byte], E]
@@ -110,7 +111,72 @@ trait ProcessGroup[F[_], O, E] extends ProcessLike[F] {
     * @param f process mapper
     * @return a new process group with all the processes altered by the mapper
     */
-  def map(f: ProcessGroup.Mapper[F, O, E]): ProcessGroup[F, O, E]
+  def map(f: ProcessGroup.Mapper[F, O, E]): Self
+}
+
+trait ProcessGroupConfiguration[F[_], O, E] extends ProcessLikeConfiguration[F] {
+  this: ProcessGroup[F, O, E] =>
+
+  override type Self <: ProcessGroup[F, O, E]
+
+  private val allProcesses = (firstProcess :: innerProcesses) :+ lastProcess
+
+  override val workingDirectory: Option[Path] = {
+    val allWorkingDirectories = allProcesses.map(_.workingDirectory).toSet
+    if (allWorkingDirectories.size == 1) {
+      allWorkingDirectories.head
+    } else {
+      None
+    }
+  }
+
+  override val environmentVariables: Map[String, String] = {
+    allProcesses.map(_.environmentVariables.toSet).reduce(_ intersect _).toMap
+  }
+
+  override val removedEnvironmentVariables: Set[String] = {
+    allProcesses.map(_.removedEnvironmentVariables).reduce(_ intersect _)
+  }
+
+  override protected def applyConfiguration(workingDirectory: Option[Path], environmentVariables: Map[String, String], removedEnvironmentVariables: Set[String]): Self =
+    map(new ProcessGroup.Mapper[F, O, E] {
+      override def mapFirst[P <: Process[F, Stream[F, Byte], E]](process: P): P =
+        ConfigApplication[P](process, workingDirectory, environmentVariables, removedEnvironmentVariables)
+
+      override def mapInner[P <: Process.UnboundIProcess[F, Stream[F, Byte], E]](process: P): P =
+        ConfigApplication[P](process, workingDirectory, environmentVariables, removedEnvironmentVariables)
+
+      override def mapLast[P <: Process.UnboundIProcess[F, O, E]](process: P): P =
+        ConfigApplication[P](process, workingDirectory, environmentVariables, removedEnvironmentVariables)
+    })
+
+  class ConfigApplication[P <: ProcessLikeConfiguration[F]] {
+    // NOTE: Unfortunately we have no proof that P#Self == P so we cast
+
+    private def applyWorkingDirectory(workingDirectory: Option[Path])(process: P): P =
+      workingDirectory match {
+        case Some(path) => (process in path).asInstanceOf[P]
+        case None => process.inInheritedWorkingDirectory().asInstanceOf[P]
+      }
+
+    private def addEnvironmentVariables(environmentVariables: Seq[(String, String)])(process: P): P =
+      environmentVariables.foldLeft(process) { case (proc, pair) => (proc `with` pair).asInstanceOf[P] }
+
+    private def removeEnvironmentVariables(environmentVariables: Seq[String])(process: P): P  =
+      environmentVariables.foldLeft(process) { case (proc, name) => (proc without name).asInstanceOf[P] }
+
+    def apply(process: P,
+              workingDirectory: Option[Path],
+              environmentVariables: Map[String, String],
+              removedEnvironmentVariables: Set[String]): P =
+      (applyWorkingDirectory(workingDirectory) _  compose
+      addEnvironmentVariables(environmentVariables.toSeq) compose
+        removeEnvironmentVariables(removedEnvironmentVariables.toSeq))(process)
+  }
+
+  object ConfigApplication {
+    def apply[P <: ProcessLikeConfiguration[F]]: ConfigApplication[P] = new ConfigApplication[P]
+  }
 }
 
 object ProcessGroup {
@@ -128,6 +194,8 @@ object ProcessGroup {
                                              override val originalProcesses: List[Process[F, Unit, Unit]])
                                             (implicit override val concurrent: Concurrent[F])
     extends ProcessGroup[F, O, E] {
+
+    override type Self = ProcessGroupImplIOE[F, O, E]
 
     def map(f: ProcessGroup.Mapper[F, O, E]): ProcessGroupImplIOE[F, O, E] = {
       copy(
@@ -147,6 +215,8 @@ object ProcessGroup {
                                         (implicit override val concurrent: Concurrent[F])
     extends ProcessGroup[F, O, Unit]
       with RedirectableErrors[F, ProcessGroupImplIOE[F, O, *]]{
+
+    override type Self = ProcessGroupImplIO[F, O]
 
     def map(f: ProcessGroup.Mapper[F, O, Unit]): ProcessGroupImplIO[F, O] = {
       copy(
@@ -179,6 +249,8 @@ object ProcessGroup {
     extends ProcessGroup[F, Unit, E]
       with RedirectableOutput[F, ProcessGroupImplIOE[F, *, E]] {
 
+    override type Self = ProcessGroupImplIE[F, E]
+
     def map(f: ProcessGroup.Mapper[F, Unit, E]): ProcessGroupImplIE[F, E] = {
       copy(
         firstProcess = f.mapFirst(this.firstProcess),
@@ -206,6 +278,8 @@ object ProcessGroup {
                                            (implicit override val concurrent: Concurrent[F])
     extends ProcessGroup[F, O, E]
       with RedirectableInput[F, ProcessGroupImplIOE[F, O, E]] {
+
+    override type Self = ProcessGroupImplOE[F, O, E]
 
     def map(f: ProcessGroup.Mapper[F, O, E]): ProcessGroupImplOE[F, O, E] = {
       copy(
@@ -235,6 +309,8 @@ object ProcessGroup {
     extends ProcessGroup[F, Unit, Unit]
       with RedirectableOutput[F, ProcessGroupImplIO[F, *]]
       with RedirectableErrors[F, ProcessGroupImplIE[F, *]] {
+
+    override type Self = ProcessGroupImplI[F]
 
     def map(f: ProcessGroup.Mapper[F, Unit, Unit]): ProcessGroupImplI[F] = {
       copy(
@@ -277,6 +353,8 @@ object ProcessGroup {
       with RedirectableInput[F, ProcessGroupImplIO[F, O]]
       with RedirectableErrors[F, ProcessGroupImplOE[F, O, *]] {
 
+    override type Self = ProcessGroupImplO[F, O]
+
     def map(f: ProcessGroup.Mapper[F, O, Unit]): ProcessGroupImplO[F, O] = {
       copy(
         firstProcess = f.mapFirst(this.firstProcess),
@@ -318,6 +396,8 @@ object ProcessGroup {
       with RedirectableOutput[F, ProcessGroupImplOE[F, *, E]]
       with RedirectableInput[F, ProcessGroupImplIE[F, E]] {
 
+    override type Self = ProcessGroupImplE[F, E]
+
     def map(f: ProcessGroup.Mapper[F, Unit, E]): ProcessGroupImplE[F, E] = {
       copy(
         firstProcess = f.mapFirst(this.firstProcess),
@@ -356,6 +436,8 @@ object ProcessGroup {
       with RedirectableOutput[F, ProcessGroupImplO[F, *]]
       with RedirectableInput[F, ProcessGroupImplI[F]]
       with RedirectableErrors[F, ProcessGroupImplE[F, *]] {
+
+    override type Self = ProcessGroupImpl[F]
 
     def pipeInto(other: Process.UnboundProcess[F],
                  channel: Pipe[F, Byte, Byte]): ProcessGroupImpl[F] = {

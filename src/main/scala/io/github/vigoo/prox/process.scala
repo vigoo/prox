@@ -27,9 +27,6 @@ case class SimpleProcessResult[+O, +E](override val exitCode: ExitCode,
                                        override val error: E)
   extends ProcessResult[O, E]
 
-/** Common base trait for processes and process groups, used in constraints in the redirection traits */
-trait ProcessLike[F[_]]
-
 /**
   * Representation of a running process
   * @tparam F Effect type
@@ -70,7 +67,7 @@ trait RunningProcess[F[_], O, E] {
   * @tparam O Output type
   * @tparam E Error output type
   */
-trait Process[F[_], O, E] extends ProcessLike[F] {
+trait Process[F[_], O, E] extends ProcessLike[F] with ProcessConfiguration[F] {
   implicit val concurrent: Concurrent[F]
 
   val command: String
@@ -84,26 +81,6 @@ trait Process[F[_], O, E] extends ProcessLike[F] {
   val errorRedirection: OutputRedirection[F]
   val runErrorStream: (java.io.InputStream, Blocker, ContextShift[F]) => F[E]
   val inputRedirection: InputRedirection[F]
-
-  /**
-    * Replaces the command
-    *
-    * Use the variant in the [[ProcessConfiguration]] trait to preserve the exact process type
-    *
-    * @param newCommand new value for the command to be executed
-    * @return returns a new process specification
-    */
-  def withCommand(newCommand: String): Process[F, O, E]
-
-  /**
-    * Replaces the arguments
-    *
-    * Use the variant in the [[ProcessConfiguration]] trait to preserve the exact process type
-    *
-    * @param newArguments new list of arguments
-    * @return returns a new process specification
-    */
-  def withArguments(newArguments: List[String]): Process[F, O, E]
 
   /**
     * Starts the process asynchronously and returns the [[RunningProcess]] interface for it
@@ -144,50 +121,25 @@ trait Process[F[_], O, E] extends ProcessLike[F] {
 /**
   * The capability to configure process execution details
   * @tparam F Effect type
-  * @tparam P Self type
   */
-trait ProcessConfiguration[F[_], +P <: Process[F, _, _]] {
+trait ProcessConfiguration[F[_]] extends ProcessLikeConfiguration[F] {
   this: Process[F, _, _] =>
+
+  override protected def applyConfiguration(workingDirectory: Option[Path], environmentVariables: Map[String, String], removedEnvironmentVariables: Set[String]): Self =
+    selfCopy(command, arguments, workingDirectory, environmentVariables, removedEnvironmentVariables)
 
   protected def selfCopy(command: String,
                          arguments: List[String],
                          workingDirectory: Option[Path],
                          environmentVariables: Map[String, String],
-                         removedEnvironmentVariables: Set[String]): P
-
-  /**
-    * Changes the working directory of the process
-    * @param workingDirectory the working directory
-    * @return a new process with the working directory set
-    */
-  def in(workingDirectory: Path): P =
-    selfCopy(command, arguments, workingDirectory = Some(workingDirectory), environmentVariables, removedEnvironmentVariables)
-
-  /**
-    * Adds an environment variable to the process
-    * @param nameValuePair A pair of name and value
-    * @return a new process with the working directory set
-    */
-  def `with`(nameValuePair: (String, String)): P =
-    selfCopy(command, arguments, workingDirectory, environmentVariables = environmentVariables + nameValuePair, removedEnvironmentVariables)
-
-  /**
-    * Removes an environment variable from the process
-    *
-    * Usable to remove variables inherited from the parent process.
-    *
-    * @param name Name of the environment variable
-    * @return a new process with the working directory set
-    */
-  def without(name: String): P =
-    selfCopy(command, arguments, workingDirectory, environmentVariables, removedEnvironmentVariables = removedEnvironmentVariables + name)
+                         removedEnvironmentVariables: Set[String]): Self
 
   /**
     * Replaces the command
     * @param newCommand new value for the command to be executed
     * @return returns a new process specification
     */
-  def withCommand(newCommand: String): P =
+  def withCommand(newCommand: String): Self =
     selfCopy(newCommand, arguments, workingDirectory, environmentVariables, removedEnvironmentVariables)
 
   /**
@@ -195,7 +147,7 @@ trait ProcessConfiguration[F[_], +P <: Process[F, _, _]] {
     * @param newArguments new list of arguments
     * @return returns a new process specification
     */
-  def withArguments(newArguments: List[String]): P =
+  def withArguments(newArguments: List[String]): Self =
     selfCopy(command, newArguments, workingDirectory, environmentVariables, removedEnvironmentVariables)
 }
 
@@ -242,7 +194,9 @@ object Process {
                                         override val runErrorStream: (java.io.InputStream, Blocker, ContextShift[F]) => F[E],
                                         override val inputRedirection: InputRedirection[F])
                                        (override implicit val concurrent: Concurrent[F])
-    extends Process[F, O, E] with ProcessConfiguration[F, ProcessImplIOE[F, O, E]] {
+    extends Process[F, O, E] {
+
+    override type Self = ProcessImplIOE[F, O, E]
 
     override protected def selfCopy(command: String, arguments: List[String], workingDirectory: Option[Path], environmentVariables: Map[String, String], removedEnvironmentVariables: Set[String]): ProcessImplIOE[F, O, E] =
       copy(command, arguments, workingDirectory, environmentVariables, removedEnvironmentVariables)
@@ -261,8 +215,9 @@ object Process {
                                        override val inputRedirection: InputRedirection[F])
                                       (override implicit val concurrent: Concurrent[F])
     extends Process[F, O, Unit]
-      with RedirectableError[F, ProcessImplIOE[F, O, *]]
-      with ProcessConfiguration[F, ProcessImplIO[F, O]] {
+      with RedirectableError[F, ProcessImplIOE[F, O, *]] {
+
+    override type Self = ProcessImplIO[F, O]
 
     override def connectError[R <: OutputRedirection[F], RE](target: R)(implicit outputRedirectionType: OutputRedirectionType.Aux[F, R, RE]): ProcessImplIOE[F, O, RE] =
       ProcessImplIOE(
@@ -295,8 +250,9 @@ object Process {
                                        override val inputRedirection: InputRedirection[F])
                                       (override implicit val concurrent: Concurrent[F])
     extends Process[F, Unit, E]
-      with RedirectableOutput[F, ProcessImplIOE[F, *, E]]
-      with ProcessConfiguration[F, ProcessImplIE[F, E]] {
+      with RedirectableOutput[F, ProcessImplIOE[F, *, E]] {
+
+    override type Self = ProcessImplIE[F, E]
 
     override def connectOutput[R <: OutputRedirection[F], RO](target: R)(implicit outputRedirectionType: OutputRedirectionType.Aux[F, R, RO]): ProcessImplIOE[F, RO, E] =
       ProcessImplIOE(
@@ -329,8 +285,9 @@ object Process {
                                        override val inputRedirection: InputRedirection[F])
                                       (override implicit val concurrent: Concurrent[F])
     extends Process[F, O, E]
-      with RedirectableInput[F, ProcessImplIOE[F, O, E]]
-      with ProcessConfiguration[F, ProcessImplOE[F, O, E]] {
+      with RedirectableInput[F, ProcessImplIOE[F, O, E]] {
+
+    override type Self = ProcessImplOE[F, O, E]
 
     override def connectInput(source: InputRedirection[F]): ProcessImplIOE[F, O, E] =
       ProcessImplIOE(
@@ -364,8 +321,9 @@ object Process {
                                      (override implicit val concurrent: Concurrent[F])
     extends Process[F, O, Unit]
       with RedirectableError[F, ProcessImplOE[F, O, *]]
-      with RedirectableInput[F, ProcessImplIO[F, O]]
-      with ProcessConfiguration[F, ProcessImplO[F, O]] {
+      with RedirectableInput[F, ProcessImplIO[F, O]] {
+
+    override type Self = ProcessImplO[F, O]
 
     override def connectInput(source: InputRedirection[F]): ProcessImplIO[F, O] =
       ProcessImplIO(
@@ -413,8 +371,9 @@ object Process {
                                      (override implicit val concurrent: Concurrent[F])
     extends Process[F, Unit, E]
       with RedirectableInput[F, ProcessImplIE[F, E]]
-      with RedirectableOutput[F, ProcessImplOE[F, *, E]]
-      with ProcessConfiguration[F, ProcessImplE[F, E]] {
+      with RedirectableOutput[F, ProcessImplOE[F, *, E]] {
+
+    override type Self = ProcessImplE[F, E]
 
     override def connectInput(source: InputRedirection[F]): ProcessImplIE[F, E] =
       ProcessImplIE(
@@ -462,8 +421,9 @@ object Process {
                                      (override implicit val concurrent: Concurrent[F])
     extends Process[F, Unit, Unit]
       with RedirectableOutput[F, ProcessImplIO[F, *]]
-      with RedirectableError[F, ProcessImplIE[F, *]]
-      with ProcessConfiguration[F, ProcessImplI[F]] {
+      with RedirectableError[F, ProcessImplIE[F, *]] {
+
+    override type Self = ProcessImplI[F]
 
     def connectOutput[R <: OutputRedirection[F], RO](target: R)(implicit outputRedirectionType: OutputRedirectionType.Aux[F, R, RO]): ProcessImplIO[F, RO] =
       ProcessImplIO(
@@ -512,8 +472,9 @@ object Process {
     extends Process[F, Unit, Unit]
       with RedirectableOutput[F, ProcessImplO[F, *]]
       with RedirectableError[F, ProcessImplE[F, *]]
-      with RedirectableInput[F, ProcessImplI[F]]
-      with ProcessConfiguration[F, ProcessImpl[F]] {
+      with RedirectableInput[F, ProcessImplI[F]] {
+
+    override type Self = ProcessImpl[F]
 
     def connectOutput[R <: OutputRedirection[F], RO](target: R)(implicit outputRedirectionType: OutputRedirectionType.Aux[F, R, RO]): ProcessImplO[F, RO] =
       ProcessImplO(
