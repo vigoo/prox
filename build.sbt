@@ -92,6 +92,7 @@ micrositeHighlightLanguages ++= Seq("scala", "sbt")
 micrositeConfigYaml := ConfigYml(
   yamlCustomProperties = Map("plugins" -> List("jemoji"))
 )
+micrositeAnalyticsToken := "UA-56320875-3"
 
 // Temporary fix to avoid including mdoc in the published POM
 import scala.xml.{Node => XmlNode, NodeSeq => XmlNodeSeq, _}
