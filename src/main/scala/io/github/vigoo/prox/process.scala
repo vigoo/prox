@@ -70,6 +70,8 @@ trait RunningProcess[F[_], O, E] {
 trait Process[F[_], O, E] extends ProcessLike[F] with ProcessConfiguration[F] {
   implicit val concurrent: Concurrent[F]
 
+  override type Self <: Process[F, O, E]
+
   val command: String
   val arguments: List[String]
   val workingDirectory: Option[Path]
@@ -124,6 +126,8 @@ trait Process[F[_], O, E] extends ProcessLike[F] with ProcessConfiguration[F] {
   */
 trait ProcessConfiguration[F[_]] extends ProcessLikeConfiguration[F] {
   this: Process[F, _, _] =>
+
+  override type Self <: ProcessConfiguration[F]
 
   override protected def applyConfiguration(workingDirectory: Option[Path], environmentVariables: Map[String, String], removedEnvironmentVariables: Set[String]): Self =
     selfCopy(command, arguments, workingDirectory, environmentVariables, removedEnvironmentVariables)

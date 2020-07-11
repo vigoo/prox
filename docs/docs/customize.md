@@ -52,15 +52,14 @@ val proc3 = Process[IO]("echo" , List("$PATH")) `without` "PATH"
 
 ### Writing reusable functions 
 
-Because these methods are not part of the `Process` trait itself but of the 
-`ProcessConfiguration` _capability_, writing reusable functions require us to define
+Because these methods are part of the `ProcessConfiguration` _capability_, writing reusable functions require us to define
 a polymorphic function that requires this capability:
 
 ```scala mdoc
 import java.nio.file.Path
 
 class Decorators[F[_]] private {
-  def withHome[P <: Process[F, _, _] with ProcessConfiguration[F, P]](home: Path, proc: P): P = 
+  def withHome[P <: ProcessLike[F] with ProcessLikeConfiguration[F]](home: Path, proc: P): P#Self = 
     proc `with` ("HOME" -> home.toString)
 }
 object Decorators {
@@ -69,10 +68,13 @@ object Decorators {
 ```
 
 We also created a wrapper class to fix the effect type as it is not inferable from the two parameters `Path` and `P`.
-Then we can use it on any kind of process (read about [redirection](redirection) to understand
+Then we can use it on any kind of process or process group (read about [redirection](redirection) to understand
 why there are multiple concrete process types):
 
 ```scala mdoc
 val proc4 = Process[IO]("echo", List("$HOME"))
 val proc5 = Decorators[IO].withHome(home, proc4)
+
+val group1 = Process[IO]("grep", List("ERROR")) | Process[IO]("sort")
+val group2 = Decorators[IO].withHome(home, group1)
 ```
