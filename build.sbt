@@ -96,6 +96,7 @@ micrositeConfigYaml := ConfigYml(
   )
 )
 micrositeAnalyticsToken := "UA-56320875-3"
+includeFilter in makeSite := "*.html" | "*.css" | "*.png" | "*.jpg" | "*.gif" | "*.js" | "*.swf" | "*.txt" | "*.xml"
 
 // Temporary fix to avoid including mdoc in the published POM
 import scala.xml.{Node => XmlNode, NodeSeq => XmlNodeSeq, _}
