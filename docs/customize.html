@@ -1,4 +1,4 @@
-<!DOCTYPE html><html><head><title>prox: Customizing environment</title><meta charset="utf-8" /><meta http-equiv="X-UA-Compatible" content="IE=edge,chrome=1" /><meta name="viewport" content="width=device-width, initial-scale=1.0" /><meta name="author" content="Daniel Vigovszky" /><meta name="description" content="A Scala library for working with system processes" /><meta name="og:image" content="/prox/img/poster.png" /><meta name="image" property="og:image" content="/prox/img/poster.png" /><meta name="og:title" content="prox: Customizing environment" /><meta name="title" property="og:title" content="prox: Customizing environment" /><meta name="og:site_name" content="prox" /><meta name="og:url" content="https://vigoo.github.io/prox/" /><meta name="og:type" content="website" /><meta name="og:description" content="A Scala library for working with system processes" /><link rel="icon" type="image/png" href="/prox/img/favicon.png" /><meta name="twitter:title" content="prox: Customizing environment" /><meta name="twitter:image" content="https://vigoo.github.io/prox/img/poster.png" /><meta name="twitter:description" content="A Scala library for working with system processes" /><meta name="twitter:card" content="summary_large_image" /><meta name="twitter:creator" content="@dvigovszky" /><link rel="icon" type="image/png" sizes="16x16" href="/prox/img/favicon16x16.png" /><link rel="icon" type="image/png" sizes="24x24" href="/prox/img/favicon24x24.png" /><link rel="icon" type="image/png" sizes="32x32" href="/prox/img/favicon32x32.png" /><link rel="icon" type="image/png" sizes="48x48" href="/prox/img/favicon48x48.png" /><link rel="icon" type="image/png" sizes="57x57" href="/prox/img/favicon57x57.png" /><link rel="icon" type="image/png" sizes="60x60" href="/prox/img/favicon60x60.png" /><link rel="icon" type="image/png" sizes="64x64" href="/prox/img/favicon64x64.png" /><link rel="icon" type="image/png" sizes="70x70" href="/prox/img/favicon70x70.png" /><link rel="icon" type="image/png" sizes="72x72" href="/prox/img/favicon72x72.png" /><link rel="icon" type="image/png" sizes="76x76" href="/prox/img/favicon76x76.png" /><link rel="icon" type="image/png" sizes="96x96" href="/prox/img/favicon96x96.png" /><link rel="icon" type="image/png" sizes="114x114" href="/prox/img/favicon114x114.png" /><link rel="icon" type="image/png" sizes="120x120" href="/prox/img/favicon120x120.png" /><link rel="icon" type="image/png" sizes="128x128" href="/prox/img/favicon128x128.png" /><link rel="icon" type="image/png" sizes="144x144" href="/prox/img/favicon144x144.png" /><link rel="icon" type="image/png" sizes="150x150" href="/prox/img/favicon150x150.png" /><link rel="icon" type="image/png" sizes="152x152" href="/prox/img/favicon152x152.png" /><link rel="icon" type="image/png" sizes="196x196" href="/prox/img/favicon196x196.png" /><link rel="icon" type="image/png" sizes="310x310" href="/prox/img/favicon310x310.png" /><link rel="icon" type="image/png" sizes="310x150" href="/prox/img/favicon310x150.png" /><link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/4.7.0/css/font-awesome.min.css" /><link rel="stylesheet" href="/prox/highlight/styles/vs.css" /><link rel="stylesheet" href="/prox/css/light-style.css" /><script async="async">
+<!DOCTYPE html><html><head><title>prox: Customizing environment</title><meta charset="utf-8" /><meta http-equiv="X-UA-Compatible" content="IE=edge,chrome=1" /><meta name="viewport" content="width=device-width, initial-scale=1.0" /><meta name="author" content="Daniel Vigovszky" /><meta name="description" content="A Scala library for working with system processes" /><meta name="og:image" content="https://vigoo.github.io/prox/img/poster.png" /><meta name="image" property="og:image" content="https://vigoo.github.io/prox/img/poster.png" /><meta name="og:title" content="prox: Customizing environment" /><meta name="title" property="og:title" content="prox: Customizing environment" /><meta name="og:site_name" content="prox" /><meta name="og:url" content="https://vigoo.github.io/prox/" /><meta name="og:type" content="website" /><meta name="og:description" content="A Scala library for working with system processes" /><link rel="icon" type="image/png" href="https://vigoo.github.io/prox/img/favicon.png" /><meta name="twitter:title" content="prox: Customizing environment" /><meta name="twitter:image" content="https://vigoo.github.io/prox/img/poster.png" /><meta name="twitter:description" content="A Scala library for working with system processes" /><meta name="twitter:card" content="summary_large_image" /><meta name="twitter:creator" content="@dvigovszky" /><link rel="icon" type="image/png" sizes="16x16" href="https://vigoo.github.io/prox/img/favicon16x16.png" /><link rel="icon" type="image/png" sizes="24x24" href="https://vigoo.github.io/prox/img/favicon24x24.png" /><link rel="icon" type="image/png" sizes="32x32" href="https://vigoo.github.io/prox/img/favicon32x32.png" /><link rel="icon" type="image/png" sizes="48x48" href="https://vigoo.github.io/prox/img/favicon48x48.png" /><link rel="icon" type="image/png" sizes="57x57" href="https://vigoo.github.io/prox/img/favicon57x57.png" /><link rel="icon" type="image/png" sizes="60x60" href="https://vigoo.github.io/prox/img/favicon60x60.png" /><link rel="icon" type="image/png" sizes="64x64" href="https://vigoo.github.io/prox/img/favicon64x64.png" /><link rel="icon" type="image/png" sizes="70x70" href="https://vigoo.github.io/prox/img/favicon70x70.png" /><link rel="icon" type="image/png" sizes="72x72" href="https://vigoo.github.io/prox/img/favicon72x72.png" /><link rel="icon" type="image/png" sizes="76x76" href="https://vigoo.github.io/prox/img/favicon76x76.png" /><link rel="icon" type="image/png" sizes="96x96" href="https://vigoo.github.io/prox/img/favicon96x96.png" /><link rel="icon" type="image/png" sizes="114x114" href="https://vigoo.github.io/prox/img/favicon114x114.png" /><link rel="icon" type="image/png" sizes="120x120" href="https://vigoo.github.io/prox/img/favicon120x120.png" /><link rel="icon" type="image/png" sizes="128x128" href="https://vigoo.github.io/prox/img/favicon128x128.png" /><link rel="icon" type="image/png" sizes="144x144" href="https://vigoo.github.io/prox/img/favicon144x144.png" /><link rel="icon" type="image/png" sizes="150x150" href="https://vigoo.github.io/prox/img/favicon150x150.png" /><link rel="icon" type="image/png" sizes="152x152" href="https://vigoo.github.io/prox/img/favicon152x152.png" /><link rel="icon" type="image/png" sizes="196x196" href="https://vigoo.github.io/prox/img/favicon196x196.png" /><link rel="icon" type="image/png" sizes="310x310" href="https://vigoo.github.io/prox/img/favicon310x310.png" /><link rel="icon" type="image/png" sizes="310x150" href="https://vigoo.github.io/prox/img/favicon310x150.png" /><link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/4.7.0/css/font-awesome.min.css" /><link rel="stylesheet" href="https://vigoo.github.io/prox/highlight/styles/vs.css" /><link rel="stylesheet" href="/prox/css/light-style.css" /><script async="async">
 (function(i,s,o,g,r,a,m){i['GoogleAnalyticsObject']=r;i[r]=i[r]||function(){
 (i[r].q=i[r].q||[]).push(arguments)},i[r].l=1*new Date();a=s.createElement(o),
 m=s.getElementsByTagName(o)[0];a.async=1;a.src=g;m.parentNode.insertBefore(a,m)
@@ -27,9 +27,9 @@ adding three methods that can be used to customize the working environment of th
 <span class="c1">//   Map(),</span>
 <span class="c1">//   Set(),</span>
 <span class="c1">//   StdOut(),</span>
-<span class="c1">//   io.github.vigoo.prox.Process$$$Lambda$7710/0x0000000102453440@39f829c8,</span>
+<span class="c1">//   io.github.vigoo.prox.Process$$$Lambda$7982/0x0000000102544c40@3eb0cc38,</span>
 <span class="c1">//   StdOut(),</span>
-<span class="c1">//   io.github.vigoo.prox.Process$$$Lambda$7711/0x0000000102457040@3fb558a,</span>
+<span class="c1">//   io.github.vigoo.prox.Process$$$Lambda$7983/0x0000000102547840@dcd41e1,</span>
 <span class="c1">//   StdIn()</span>
 <span class="c1">// )</span>
 </code></pre></div></div>
@@ -50,9 +50,9 @@ way:</p>
 <span class="c1">//   Map("TEST" -&gt; "Hello world"),</span>
 <span class="c1">//   Set(),</span>
 <span class="c1">//   StdOut(),</span>
-<span class="c1">//   io.github.vigoo.prox.Process$$$Lambda$7710/0x0000000102453440@1bde0b6c,</span>
+<span class="c1">//   io.github.vigoo.prox.Process$$$Lambda$7982/0x0000000102544c40@4331b733,</span>
 <span class="c1">//   StdOut(),</span>
-<span class="c1">//   io.github.vigoo.prox.Process$$$Lambda$7711/0x0000000102457040@3a33a728,</span>
+<span class="c1">//   io.github.vigoo.prox.Process$$$Lambda$7983/0x0000000102547840@4325d56,</span>
 <span class="c1">//   StdIn()</span>
 <span class="c1">// )</span>
 </code></pre></div></div>
@@ -70,9 +70,9 @@ way:</p>
 <span class="c1">//   Map(),</span>
 <span class="c1">//   Set("PATH"),</span>
 <span class="c1">//   StdOut(),</span>
-<span class="c1">//   io.github.vigoo.prox.Process$$$Lambda$7710/0x0000000102453440@523a11da,</span>
+<span class="c1">//   io.github.vigoo.prox.Process$$$Lambda$7982/0x0000000102544c40@255ce72b,</span>
 <span class="c1">//   StdOut(),</span>
-<span class="c1">//   io.github.vigoo.prox.Process$$$Lambda$7711/0x0000000102457040@18124cc2,</span>
+<span class="c1">//   io.github.vigoo.prox.Process$$$Lambda$7983/0x0000000102547840@46b1e1f,</span>
 <span class="c1">//   StdIn()</span>
 <span class="c1">// )</span>
 </code></pre></div></div>
@@ -105,9 +105,9 @@ why there are multiple concrete process types):</p>
 <span class="c1">//   Map(),</span>
 <span class="c1">//   Set(),</span>
 <span class="c1">//   StdOut(),</span>
-<span class="c1">//   io.github.vigoo.prox.Process$$$Lambda$7710/0x0000000102453440@73fca1c7,</span>
+<span class="c1">//   io.github.vigoo.prox.Process$$$Lambda$7982/0x0000000102544c40@4aada98e,</span>
 <span class="c1">//   StdOut(),</span>
-<span class="c1">//   io.github.vigoo.prox.Process$$$Lambda$7711/0x0000000102457040@54d14277,</span>
+<span class="c1">//   io.github.vigoo.prox.Process$$$Lambda$7983/0x0000000102547840@5ce38560,</span>
 <span class="c1">//   StdIn()</span>
 <span class="c1">// )</span>
 <span class="k">val</span> <span class="nv">proc5</span> <span class="k">=</span> <span class="nc">Decorators</span><span class="o">[</span><span class="kt">IO</span><span class="o">].</span><span class="py">withHome</span><span class="o">(</span><span class="n">home</span><span class="o">,</span> <span class="n">proc4</span><span class="o">)</span>
@@ -118,9 +118,9 @@ why there are multiple concrete process types):</p>
 <span class="c1">//   Map("HOME" -&gt; "/home/travis"),</span>
 <span class="c1">//   Set(),</span>
 <span class="c1">//   StdOut(),</span>
-<span class="c1">//   io.github.vigoo.prox.Process$$$Lambda$7710/0x0000000102453440@73fca1c7,</span>
+<span class="c1">//   io.github.vigoo.prox.Process$$$Lambda$7982/0x0000000102544c40@4aada98e,</span>
 <span class="c1">//   StdOut(),</span>
-<span class="c1">//   io.github.vigoo.prox.Process$$$Lambda$7711/0x0000000102457040@54d14277,</span>
+<span class="c1">//   io.github.vigoo.prox.Process$$$Lambda$7983/0x0000000102547840@5ce38560,</span>
 <span class="c1">//   StdIn()</span>
 <span class="c1">// )</span>
 
@@ -133,13 +133,13 @@ why there are multiple concrete process types):</p>
 <span class="c1">//     Map(),</span>
 <span class="c1">//     Set(),</span>
 <span class="c1">//     OutputStream(</span>
-<span class="c1">//       io.github.vigoo.prox.syntax$ProcessPiping$$Lambda$7712/0x0000000102455840@6f761d37,</span>
-<span class="c1">//       io.github.vigoo.prox.syntax$ProcessPiping$$Lambda$7713/0x0000000102454840@4e513197,</span>
+<span class="c1">//       io.github.vigoo.prox.syntax$ProcessPiping$$Lambda$7984/0x0000000102558040@421c9c5f,</span>
+<span class="c1">//       io.github.vigoo.prox.syntax$ProcessPiping$$Lambda$7985/0x0000000102559040@fc6f928,</span>
 <span class="c1">//       8192</span>
 <span class="c1">//     ),</span>
-<span class="c1">//     io.github.vigoo.prox.Process$ProcessImpl$$Lambda$7714/0x0000000102455440@505b3ae0,</span>
+<span class="c1">//     io.github.vigoo.prox.Process$ProcessImpl$$Lambda$7986/0x0000000102558c40@401cbe90,</span>
 <span class="c1">//     StdOut(),</span>
-<span class="c1">//     io.github.vigoo.prox.Process$$$Lambda$7711/0x0000000102457040@1d5ad59e,</span>
+<span class="c1">//     io.github.vigoo.prox.Process$$$Lambda$7983/0x0000000102547840@6cc04ad9,</span>
 <span class="c1">//     StdIn()</span>
 <span class="c1">//   ),</span>
 <span class="c1">//   List(),</span>
@@ -150,9 +150,9 @@ why there are multiple concrete process types):</p>
 <span class="c1">//     Map(),</span>
 <span class="c1">//     Set(),</span>
 <span class="c1">//     StdOut(),</span>
-<span class="c1">//     io.github.vigoo.prox.Process$$$Lambda$7710/0x0000000102453440@421afca7,</span>
+<span class="c1">//     io.github.vigoo.prox.Process$$$Lambda$7982/0x0000000102544c40@4a98cd7a,</span>
 <span class="c1">//     StdOut(),</span>
-<span class="c1">//     io.github.vigoo.prox.Process$$$Lambda$7711/0x0000000102457040@500a0fa,</span>
+<span class="c1">//     io.github.vigoo.prox.Process$$$Lambda$7983/0x0000000102547840@722f72b8,</span>
 <span class="c1">//     StdIn()</span>
 <span class="c1">//   ),</span>
 <span class="c1">//   List(</span>
@@ -163,9 +163,9 @@ why there are multiple concrete process types):</p>
 <span class="c1">//       Map(),</span>
 <span class="c1">//       Set(),</span>
 <span class="c1">//       StdOut(),</span>
-<span class="c1">//       io.github.vigoo.prox.Process$$$Lambda$7710/0x0000000102453440@421afca7,</span>
+<span class="c1">//       io.github.vigoo.prox.Process$$$Lambda$7982/0x0000000102544c40@4a98cd7a,</span>
 <span class="c1">//       StdOut(),</span>
-<span class="c1">//       io.github.vigoo.prox.Process$$$Lambda$7711/0x0000000102457040@500a0fa,</span>
+<span class="c1">//       io.github.vigoo.prox.Process$$$Lambda$7983/0x0000000102547840@722f72b8,</span>
 <span class="c1">//       StdIn()</span>
 <span class="c1">//     ),</span>
 <span class="c1">//     ProcessImpl(</span>
@@ -181,13 +181,13 @@ why there are multiple concrete process types):</p>
 <span class="c1">//     Map("HOME" -&gt; "/home/travis"),</span>
 <span class="c1">//     Set(),</span>
 <span class="c1">//     OutputStream(</span>
-<span class="c1">//       io.github.vigoo.prox.syntax$ProcessPiping$$Lambda$7712/0x0000000102455840@6f761d37,</span>
-<span class="c1">//       io.github.vigoo.prox.syntax$ProcessPiping$$Lambda$7713/0x0000000102454840@4e513197,</span>
+<span class="c1">//       io.github.vigoo.prox.syntax$ProcessPiping$$Lambda$7984/0x0000000102558040@421c9c5f,</span>
+<span class="c1">//       io.github.vigoo.prox.syntax$ProcessPiping$$Lambda$7985/0x0000000102559040@fc6f928,</span>
 <span class="c1">//       8192</span>
 <span class="c1">//     ),</span>
-<span class="c1">//     io.github.vigoo.prox.Process$ProcessImpl$$Lambda$7714/0x0000000102455440@505b3ae0,</span>
+<span class="c1">//     io.github.vigoo.prox.Process$ProcessImpl$$Lambda$7986/0x0000000102558c40@401cbe90,</span>
 <span class="c1">//     StdOut(),</span>
-<span class="c1">//     io.github.vigoo.prox.Process$$$Lambda$7711/0x0000000102457040@1d5ad59e,</span>
+<span class="c1">//     io.github.vigoo.prox.Process$$$Lambda$7983/0x0000000102547840@6cc04ad9,</span>
 <span class="c1">//     StdIn()</span>
 <span class="c1">//   ),</span>
 <span class="c1">//   List(),</span>
@@ -198,9 +198,9 @@ why there are multiple concrete process types):</p>
 <span class="c1">//     Map("HOME" -&gt; "/home/travis"),</span>
 <span class="c1">//     Set(),</span>
 <span class="c1">//     StdOut(),</span>
-<span class="c1">//     io.github.vigoo.prox.Process$$$Lambda$7710/0x0000000102453440@421afca7,</span>
+<span class="c1">//     io.github.vigoo.prox.Process$$$Lambda$7982/0x0000000102544c40@4a98cd7a,</span>
 <span class="c1">//     StdOut(),</span>
-<span class="c1">//     io.github.vigoo.prox.Process$$$Lambda$7711/0x0000000102457040@500a0fa,</span>
+<span class="c1">//     io.github.vigoo.prox.Process$$$Lambda$7983/0x0000000102547840@722f72b8,</span>
 <span class="c1">//     StdIn()</span>
 <span class="c1">//   ),</span>
 <span class="c1">//   List(</span>
@@ -211,9 +211,9 @@ why there are multiple concrete process types):</p>
 <span class="c1">//       Map(),</span>
 <span class="c1">//       Set(),</span>
 <span class="c1">//       StdOut(),</span>
-<span class="c1">//       io.github.vigoo.prox.Process$$$Lambda$7710/0x0000000102453440@421afca7,</span>
+<span class="c1">//       io.github.vigoo.prox.Process$$$Lambda$7982/0x0000000102544c40@4a98cd7a,</span>
 <span class="c1">//       StdOut(),</span>
-<span class="c1">//       io.github.vigoo.prox.Process$$$Lambda$7711/0x0000000102457040@500a0fa,</span>
+<span class="c1">//       io.github.vigoo.prox.Process$$$Lambda$7983/0x0000000102547840@722f72b8,</span>
 <span class="c1">//       StdIn()</span>
 <span class="c1">//     ),</span>
 <span class="c1">//     ProcessImpl(</span>
@@ -221,7 +221,7 @@ why there are multiple concrete process types):</p>
 <span class="c1">//       List("ERROR"),</span>
 <span class="c1">// ...</span>
 </code></pre></div></div>
-</section></div></div></div></div><script src="/prox/highlight/highlight.pack.js"></script><script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/9.15.10/languages/sbt.min.js"></script><script>
+</section></div></div></div></div><script src="https://vigoo.github.io/prox/highlight/highlight.pack.js"></script><script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/9.15.10/languages/sbt.min.js"></script><script>
 // For all code blocks, copy the language from the containing div
 // to the inner code tag (where hljs expects it to be)
 const langPrefix = 'language-';
