@@ -90,7 +90,10 @@ micrositeJsDirectory := file("src/microsite/scripts")
 micrositeTheme := "light"
 micrositeHighlightLanguages ++= Seq("scala", "sbt")
 micrositeConfigYaml := ConfigYml(
-  yamlCustomProperties = Map("plugins" -> List("jemoji"))
+  yamlCustomProperties = Map(
+    "url" -> "https://vigoo.github.io",
+    "plugins" -> List("jemoji", "jekyll-sitemap")
+  )
 )
 micrositeAnalyticsToken := "UA-56320875-3"
 
