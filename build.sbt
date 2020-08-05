@@ -5,7 +5,7 @@ organization := "io.github.vigoo"
 dynverSonatypeSnapshots in ThisBuild := true
 
 val scala212 = "2.12.10"
-val scala213 = "2.13.1"
+val scala213 = "2.13.2"
 
 scalaVersion := scala213
 crossScalaVersions := List(scala212, scala213)
@@ -19,10 +19,10 @@ libraryDependencies ++= Seq(
   "com.chuusai" %% "shapeless" % "2.3.3",
   "org.scala-lang.modules" %% "scala-collection-compat" % "2.1.6",
 
-  "dev.zio" %% "zio" % "1.0.0-RC21-2" % "test",
-  "dev.zio" %% "zio-test"     % "1.0.0-RC21-2" % "test",
-  "dev.zio" %% "zio-test-sbt" % "1.0.0-RC21-2" % "test",
-  "dev.zio" %% "zio-interop-cats" % "2.0.0.0-RC14" % "test",
+  "dev.zio" %% "zio" % "1.0.0" % "test",
+  "dev.zio" %% "zio-test"     % "1.0.0" % "test",
+  "dev.zio" %% "zio-test-sbt" % "1.0.0" % "test",
+  "dev.zio" %% "zio-interop-cats" % "2.1.4.0" % "test",
 )
 
 testFrameworks += new TestFramework("zio.test.sbt.ZTestFramework")
