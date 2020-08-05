@@ -8,7 +8,7 @@ title: Getting started
 First add `prox` as a dependency:
 
 ```sbt
-libraryDependencies += "io.github.vigoo" %% "prox" % "0.5.1"
+libraryDependencies += "io.github.vigoo" %% "prox" % "0.5.2"
 ```
 
 and use the following imports:
