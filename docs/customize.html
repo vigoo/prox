@@ -21,16 +21,16 @@ adding three methods that can be used to customize the working environment of th
 <span class="c1">// dir: java.nio.file.Path = /home/travis/tmp</span>
 <span class="k">val</span> <span class="nv">proc1</span> <span class="k">=</span> <span class="nc">Process</span><span class="o">[</span><span class="kt">IO</span><span class="o">](</span><span class="s">"ls"</span><span class="o">)</span> <span class="n">in</span> <span class="n">dir</span> 
 <span class="c1">// proc1: Process.ProcessImpl[IO] = ProcessImpl(</span>
-<span class="c1">//   "ls",</span>
-<span class="c1">//   List(),</span>
-<span class="c1">//   Some(/home/travis/tmp),</span>
-<span class="c1">//   Map(),</span>
-<span class="c1">//   Set(),</span>
-<span class="c1">//   StdOut(),</span>
-<span class="c1">//   io.github.vigoo.prox.Process$$$Lambda$7951/0x0000000102589c40@757c8fa7,</span>
-<span class="c1">//   StdOut(),</span>
-<span class="c1">//   io.github.vigoo.prox.Process$$$Lambda$7952/0x000000010258b840@4f8f2a1b,</span>
-<span class="c1">//   StdIn()</span>
+<span class="c1">//   command = "ls",</span>
+<span class="c1">//   arguments = List(),</span>
+<span class="c1">//   workingDirectory = Some(value = /home/travis/tmp),</span>
+<span class="c1">//   environmentVariables = Map(),</span>
+<span class="c1">//   removedEnvironmentVariables = Set(),</span>
+<span class="c1">//   outputRedirection = StdOut(),</span>
+<span class="c1">//   runOutputStream = io.github.vigoo.prox.Process$$$Lambda$8005/0x0000000102593840@6b5dbcc0,</span>
+<span class="c1">//   errorRedirection = StdOut(),</span>
+<span class="c1">//   runErrorStream = io.github.vigoo.prox.Process$$$Lambda$8006/0x0000000102593c40@54ef5ca5,</span>
+<span class="c1">//   inputRedirection = StdIn()</span>
 <span class="c1">// )</span>
 </code></pre></div></div>
 
@@ -44,16 +44,16 @@ way:</p>
 
 <div class="language-scala highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="k">val</span> <span class="nv">proc2</span> <span class="k">=</span> <span class="nc">Process</span><span class="o">[</span><span class="kt">IO</span><span class="o">](</span><span class="s">"echo"</span><span class="o">,</span> <span class="nc">List</span><span class="o">(</span><span class="s">"$TEST"</span><span class="o">))</span> <span class="n">`with`</span> <span class="o">(</span><span class="s">"TEST"</span> <span class="o">-&gt;</span> <span class="s">"Hello world"</span><span class="o">)</span>
 <span class="c1">// proc2: Process.ProcessImpl[IO] = ProcessImpl(</span>
-<span class="c1">//   "echo",</span>
-<span class="c1">//   List("$TEST"),</span>
-<span class="c1">//   None,</span>
-<span class="c1">//   Map("TEST" -&gt; "Hello world"),</span>
-<span class="c1">//   Set(),</span>
-<span class="c1">//   StdOut(),</span>
-<span class="c1">//   io.github.vigoo.prox.Process$$$Lambda$7951/0x0000000102589c40@21d87ce7,</span>
-<span class="c1">//   StdOut(),</span>
-<span class="c1">//   io.github.vigoo.prox.Process$$$Lambda$7952/0x000000010258b840@3477f68e,</span>
-<span class="c1">//   StdIn()</span>
+<span class="c1">//   command = "echo",</span>
+<span class="c1">//   arguments = List("$TEST"),</span>
+<span class="c1">//   workingDirectory = None,</span>
+<span class="c1">//   environmentVariables = Map("TEST" -&gt; "Hello world"),</span>
+<span class="c1">//   removedEnvironmentVariables = Set(),</span>
+<span class="c1">//   outputRedirection = StdOut(),</span>
+<span class="c1">//   runOutputStream = io.github.vigoo.prox.Process$$$Lambda$8005/0x0000000102593840@2b7dcc05,</span>
+<span class="c1">//   errorRedirection = StdOut(),</span>
+<span class="c1">//   runErrorStream = io.github.vigoo.prox.Process$$$Lambda$8006/0x0000000102593c40@6762409e,</span>
+<span class="c1">//   inputRedirection = StdIn()</span>
 <span class="c1">// )</span>
 </code></pre></div></div>
 
@@ -64,16 +64,16 @@ way:</p>
 
 <div class="language-scala highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="k">val</span> <span class="nv">proc3</span> <span class="k">=</span> <span class="nc">Process</span><span class="o">[</span><span class="kt">IO</span><span class="o">](</span><span class="s">"echo"</span> <span class="o">,</span> <span class="nc">List</span><span class="o">(</span><span class="s">"$PATH"</span><span class="o">))</span> <span class="n">`without`</span> <span class="s">"PATH"</span>
 <span class="c1">// proc3: Process.ProcessImpl[IO] = ProcessImpl(</span>
-<span class="c1">//   "echo",</span>
-<span class="c1">//   List("$PATH"),</span>
-<span class="c1">//   None,</span>
-<span class="c1">//   Map(),</span>
-<span class="c1">//   Set("PATH"),</span>
-<span class="c1">//   StdOut(),</span>
-<span class="c1">//   io.github.vigoo.prox.Process$$$Lambda$7951/0x0000000102589c40@6470382d,</span>
-<span class="c1">//   StdOut(),</span>
-<span class="c1">//   io.github.vigoo.prox.Process$$$Lambda$7952/0x000000010258b840@61360d5e,</span>
-<span class="c1">//   StdIn()</span>
+<span class="c1">//   command = "echo",</span>
+<span class="c1">//   arguments = List("$PATH"),</span>
+<span class="c1">//   workingDirectory = None,</span>
+<span class="c1">//   environmentVariables = Map(),</span>
+<span class="c1">//   removedEnvironmentVariables = Set("PATH"),</span>
+<span class="c1">//   outputRedirection = StdOut(),</span>
+<span class="c1">//   runOutputStream = io.github.vigoo.prox.Process$$$Lambda$8005/0x0000000102593840@22a07eda,</span>
+<span class="c1">//   errorRedirection = StdOut(),</span>
+<span class="c1">//   runErrorStream = io.github.vigoo.prox.Process$$$Lambda$8006/0x0000000102593c40@3cd0aeca,</span>
+<span class="c1">//   inputRedirection = StdIn()</span>
 <span class="c1">// )</span>
 </code></pre></div></div>
 
@@ -99,126 +99,116 @@ why there are multiple concrete process types):</p>
 
 <div class="language-scala highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="k">val</span> <span class="nv">proc4</span> <span class="k">=</span> <span class="nc">Process</span><span class="o">[</span><span class="kt">IO</span><span class="o">](</span><span class="s">"echo"</span><span class="o">,</span> <span class="nc">List</span><span class="o">(</span><span class="s">"$HOME"</span><span class="o">))</span>
 <span class="c1">// proc4: Process.ProcessImpl[IO] = ProcessImpl(</span>
-<span class="c1">//   "echo",</span>
-<span class="c1">//   List("$HOME"),</span>
-<span class="c1">//   None,</span>
-<span class="c1">//   Map(),</span>
-<span class="c1">//   Set(),</span>
-<span class="c1">//   StdOut(),</span>
-<span class="c1">//   io.github.vigoo.prox.Process$$$Lambda$7951/0x0000000102589c40@36b6adb,</span>
-<span class="c1">//   StdOut(),</span>
-<span class="c1">//   io.github.vigoo.prox.Process$$$Lambda$7952/0x000000010258b840@8a33fbe,</span>
-<span class="c1">//   StdIn()</span>
+<span class="c1">//   command = "echo",</span>
+<span class="c1">//   arguments = List("$HOME"),</span>
+<span class="c1">//   workingDirectory = None,</span>
+<span class="c1">//   environmentVariables = Map(),</span>
+<span class="c1">//   removedEnvironmentVariables = Set(),</span>
+<span class="c1">//   outputRedirection = StdOut(),</span>
+<span class="c1">//   runOutputStream = io.github.vigoo.prox.Process$$$Lambda$8005/0x0000000102593840@798840b1,</span>
+<span class="c1">//   errorRedirection = StdOut(),</span>
+<span class="c1">//   runErrorStream = io.github.vigoo.prox.Process$$$Lambda$8006/0x0000000102593c40@c1b89ae,</span>
+<span class="c1">//   inputRedirection = StdIn()</span>
 <span class="c1">// )</span>
 <span class="k">val</span> <span class="nv">proc5</span> <span class="k">=</span> <span class="nc">Decorators</span><span class="o">[</span><span class="kt">IO</span><span class="o">].</span><span class="py">withHome</span><span class="o">(</span><span class="n">home</span><span class="o">,</span> <span class="n">proc4</span><span class="o">)</span>
 <span class="c1">// proc5: Process.ProcessImpl[IO]#Self = ProcessImpl(</span>
-<span class="c1">//   "echo",</span>
-<span class="c1">//   List("$HOME"),</span>
-<span class="c1">//   None,</span>
-<span class="c1">//   Map("HOME" -&gt; "/home/travis"),</span>
-<span class="c1">//   Set(),</span>
-<span class="c1">//   StdOut(),</span>
-<span class="c1">//   io.github.vigoo.prox.Process$$$Lambda$7951/0x0000000102589c40@36b6adb,</span>
-<span class="c1">//   StdOut(),</span>
-<span class="c1">//   io.github.vigoo.prox.Process$$$Lambda$7952/0x000000010258b840@8a33fbe,</span>
-<span class="c1">//   StdIn()</span>
+<span class="c1">//   command = "echo",</span>
+<span class="c1">//   arguments = List("$HOME"),</span>
+<span class="c1">//   workingDirectory = None,</span>
+<span class="c1">//   environmentVariables = Map("HOME" -&gt; "/home/travis"),</span>
+<span class="c1">//   removedEnvironmentVariables = Set(),</span>
+<span class="c1">//   outputRedirection = StdOut(),</span>
+<span class="c1">//   runOutputStream = io.github.vigoo.prox.Process$$$Lambda$8005/0x0000000102593840@798840b1,</span>
+<span class="c1">//   errorRedirection = StdOut(),</span>
+<span class="c1">//   runErrorStream = io.github.vigoo.prox.Process$$$Lambda$8006/0x0000000102593c40@c1b89ae,</span>
+<span class="c1">//   inputRedirection = StdIn()</span>
 <span class="c1">// )</span>
 
 <span class="k">val</span> <span class="nv">group1</span> <span class="k">=</span> <span class="nc">Process</span><span class="o">[</span><span class="kt">IO</span><span class="o">](</span><span class="s">"grep"</span><span class="o">,</span> <span class="nc">List</span><span class="o">(</span><span class="s">"ERROR"</span><span class="o">))</span> <span class="o">|</span> <span class="nc">Process</span><span class="o">[</span><span class="kt">IO</span><span class="o">](</span><span class="s">"sort"</span><span class="o">)</span>
 <span class="c1">// group1: ProcessGroup.ProcessGroupImpl[IO[A]] = ProcessGroupImpl(</span>
-<span class="c1">//   ProcessImplO(</span>
-<span class="c1">//     "grep",</span>
-<span class="c1">//     List("ERROR"),</span>
-<span class="c1">//     None,</span>
-<span class="c1">//     Map(),</span>
-<span class="c1">//     Set(),</span>
-<span class="c1">//     OutputStream(</span>
-<span class="c1">//       io.github.vigoo.prox.syntax$ProcessPiping$$Lambda$7953/0x000000010258f840@4981456c,</span>
-<span class="c1">//       io.github.vigoo.prox.syntax$ProcessPiping$$Lambda$7954/0x000000010258e840@52dc916b,</span>
-<span class="c1">//       8192</span>
+<span class="c1">//   firstProcess = ProcessImplO(</span>
+<span class="c1">//     command = "grep",</span>
+<span class="c1">//     arguments = List("ERROR"),</span>
+<span class="c1">//     workingDirectory = None,</span>
+<span class="c1">//     environmentVariables = Map(),</span>
+<span class="c1">//     removedEnvironmentVariables = Set(),</span>
+<span class="c1">//     outputRedirection = OutputStream(</span>
+<span class="c1">//       pipe = io.github.vigoo.prox.syntax$ProcessPiping$$Lambda$8007/0x00000001025a7040@3cf32fc0,</span>
+<span class="c1">//       runner = io.github.vigoo.prox.syntax$ProcessPiping$$Lambda$8008/0x00000001025a6840@38e36e2b,</span>
+<span class="c1">//       chunkSize = 8192</span>
 <span class="c1">//     ),</span>
-<span class="c1">//     io.github.vigoo.prox.Process$ProcessImpl$$Lambda$7955/0x000000010258f440@244cfb68,</span>
-<span class="c1">//     StdOut(),</span>
-<span class="c1">//     io.github.vigoo.prox.Process$$$Lambda$7952/0x000000010258b840@5206f583,</span>
-<span class="c1">//     StdIn()</span>
+<span class="c1">//     runOutputStream = io.github.vigoo.prox.Process$ProcessImpl$$Lambda$8009/0x00000001025a6040@59c5aeaf,</span>
+<span class="c1">//     errorRedirection = StdOut(),</span>
+<span class="c1">//     runErrorStream = io.github.vigoo.prox.Process$$$Lambda$8006/0x0000000102593c40@70c39b17,</span>
+<span class="c1">//     inputRedirection = StdIn()</span>
 <span class="c1">//   ),</span>
-<span class="c1">//   List(),</span>
-<span class="c1">//   ProcessImpl(</span>
-<span class="c1">//     "sort",</span>
-<span class="c1">//     List(),</span>
-<span class="c1">//     None,</span>
-<span class="c1">//     Map(),</span>
-<span class="c1">//     Set(),</span>
-<span class="c1">//     StdOut(),</span>
-<span class="c1">//     io.github.vigoo.prox.Process$$$Lambda$7951/0x0000000102589c40@116f608a,</span>
-<span class="c1">//     StdOut(),</span>
-<span class="c1">//     io.github.vigoo.prox.Process$$$Lambda$7952/0x000000010258b840@278efc05,</span>
-<span class="c1">//     StdIn()</span>
+<span class="c1">//   innerProcesses = List(),</span>
+<span class="c1">//   lastProcess = ProcessImpl(</span>
+<span class="c1">//     command = "sort",</span>
+<span class="c1">//     arguments = List(),</span>
+<span class="c1">//     workingDirectory = None,</span>
+<span class="c1">//     environmentVariables = Map(),</span>
+<span class="c1">//     removedEnvironmentVariables = Set(),</span>
+<span class="c1">//     outputRedirection = StdOut(),</span>
+<span class="c1">//     runOutputStream = io.github.vigoo.prox.Process$$$Lambda$8005/0x0000000102593840@55eb27e0,</span>
+<span class="c1">//     errorRedirection = StdOut(),</span>
+<span class="c1">//     runErrorStream = io.github.vigoo.prox.Process$$$Lambda$8006/0x0000000102593c40@765a8940,</span>
+<span class="c1">//     inputRedirection = StdIn()</span>
 <span class="c1">//   ),</span>
-<span class="c1">//   List(</span>
+<span class="c1">//   originalProcesses = List(</span>
 <span class="c1">//     ProcessImpl(</span>
-<span class="c1">//       "sort",</span>
-<span class="c1">//       List(),</span>
-<span class="c1">//       None,</span>
-<span class="c1">//       Map(),</span>
-<span class="c1">//       Set(),</span>
-<span class="c1">//       StdOut(),</span>
-<span class="c1">//       io.github.vigoo.prox.Process$$$Lambda$7951/0x0000000102589c40@116f608a,</span>
-<span class="c1">//       StdOut(),</span>
-<span class="c1">//       io.github.vigoo.prox.Process$$$Lambda$7952/0x000000010258b840@278efc05,</span>
-<span class="c1">//       StdIn()</span>
-<span class="c1">//     ),</span>
-<span class="c1">//     ProcessImpl(</span>
-<span class="c1">//       "grep",</span>
-<span class="c1">//       List("ERROR"),</span>
+<span class="c1">//       command = "sort",</span>
+<span class="c1">//       arguments = List(),</span>
+<span class="c1">//       workingDirectory = None,</span>
+<span class="c1">//       environmentVariables = Map(),</span>
+<span class="c1">//       removedEnvironmentVariables = Set(),</span>
+<span class="c1">//       outputRedirection = StdOut(),</span>
+<span class="c1">//       runOutputStream = io.github.vigoo.prox.Process$$$Lambda$8005/0x0000000102593840@55eb27e0,</span>
+<span class="c1">//       errorRedirection = StdOut(),</span>
+<span class="c1">//       runErrorStream = io.github.vigoo.prox.Process$$$Lambda$8006/0x0000000102593c40@765a8940,</span>
 <span class="c1">// ...</span>
 <span class="k">val</span> <span class="nv">group2</span> <span class="k">=</span> <span class="nc">Decorators</span><span class="o">[</span><span class="kt">IO</span><span class="o">].</span><span class="py">withHome</span><span class="o">(</span><span class="n">home</span><span class="o">,</span> <span class="n">group1</span><span class="o">)</span>
 <span class="c1">// group2: ProcessGroup.ProcessGroupImpl[IO[A]]#Self = ProcessGroupImpl(</span>
-<span class="c1">//   ProcessImplO(</span>
-<span class="c1">//     "grep",</span>
-<span class="c1">//     List("ERROR"),</span>
-<span class="c1">//     None,</span>
-<span class="c1">//     Map("HOME" -&gt; "/home/travis"),</span>
-<span class="c1">//     Set(),</span>
-<span class="c1">//     OutputStream(</span>
-<span class="c1">//       io.github.vigoo.prox.syntax$ProcessPiping$$Lambda$7953/0x000000010258f840@4981456c,</span>
-<span class="c1">//       io.github.vigoo.prox.syntax$ProcessPiping$$Lambda$7954/0x000000010258e840@52dc916b,</span>
-<span class="c1">//       8192</span>
+<span class="c1">//   firstProcess = ProcessImplO(</span>
+<span class="c1">//     command = "grep",</span>
+<span class="c1">//     arguments = List("ERROR"),</span>
+<span class="c1">//     workingDirectory = None,</span>
+<span class="c1">//     environmentVariables = Map("HOME" -&gt; "/home/travis"),</span>
+<span class="c1">//     removedEnvironmentVariables = Set(),</span>
+<span class="c1">//     outputRedirection = OutputStream(</span>
+<span class="c1">//       pipe = io.github.vigoo.prox.syntax$ProcessPiping$$Lambda$8007/0x00000001025a7040@3cf32fc0,</span>
+<span class="c1">//       runner = io.github.vigoo.prox.syntax$ProcessPiping$$Lambda$8008/0x00000001025a6840@38e36e2b,</span>
+<span class="c1">//       chunkSize = 8192</span>
 <span class="c1">//     ),</span>
-<span class="c1">//     io.github.vigoo.prox.Process$ProcessImpl$$Lambda$7955/0x000000010258f440@244cfb68,</span>
-<span class="c1">//     StdOut(),</span>
-<span class="c1">//     io.github.vigoo.prox.Process$$$Lambda$7952/0x000000010258b840@5206f583,</span>
-<span class="c1">//     StdIn()</span>
+<span class="c1">//     runOutputStream = io.github.vigoo.prox.Process$ProcessImpl$$Lambda$8009/0x00000001025a6040@59c5aeaf,</span>
+<span class="c1">//     errorRedirection = StdOut(),</span>
+<span class="c1">//     runErrorStream = io.github.vigoo.prox.Process$$$Lambda$8006/0x0000000102593c40@70c39b17,</span>
+<span class="c1">//     inputRedirection = StdIn()</span>
 <span class="c1">//   ),</span>
-<span class="c1">//   List(),</span>
-<span class="c1">//   ProcessImpl(</span>
-<span class="c1">//     "sort",</span>
-<span class="c1">//     List(),</span>
-<span class="c1">//     None,</span>
-<span class="c1">//     Map("HOME" -&gt; "/home/travis"),</span>
-<span class="c1">//     Set(),</span>
-<span class="c1">//     StdOut(),</span>
-<span class="c1">//     io.github.vigoo.prox.Process$$$Lambda$7951/0x0000000102589c40@116f608a,</span>
-<span class="c1">//     StdOut(),</span>
-<span class="c1">//     io.github.vigoo.prox.Process$$$Lambda$7952/0x000000010258b840@278efc05,</span>
-<span class="c1">//     StdIn()</span>
+<span class="c1">//   innerProcesses = List(),</span>
+<span class="c1">//   lastProcess = ProcessImpl(</span>
+<span class="c1">//     command = "sort",</span>
+<span class="c1">//     arguments = List(),</span>
+<span class="c1">//     workingDirectory = None,</span>
+<span class="c1">//     environmentVariables = Map("HOME" -&gt; "/home/travis"),</span>
+<span class="c1">//     removedEnvironmentVariables = Set(),</span>
+<span class="c1">//     outputRedirection = StdOut(),</span>
+<span class="c1">//     runOutputStream = io.github.vigoo.prox.Process$$$Lambda$8005/0x0000000102593840@55eb27e0,</span>
+<span class="c1">//     errorRedirection = StdOut(),</span>
+<span class="c1">//     runErrorStream = io.github.vigoo.prox.Process$$$Lambda$8006/0x0000000102593c40@765a8940,</span>
+<span class="c1">//     inputRedirection = StdIn()</span>
 <span class="c1">//   ),</span>
-<span class="c1">//   List(</span>
+<span class="c1">//   originalProcesses = List(</span>
 <span class="c1">//     ProcessImpl(</span>
-<span class="c1">//       "sort",</span>
-<span class="c1">//       List(),</span>
-<span class="c1">//       None,</span>
-<span class="c1">//       Map(),</span>
-<span class="c1">//       Set(),</span>
-<span class="c1">//       StdOut(),</span>
-<span class="c1">//       io.github.vigoo.prox.Process$$$Lambda$7951/0x0000000102589c40@116f608a,</span>
-<span class="c1">//       StdOut(),</span>
-<span class="c1">//       io.github.vigoo.prox.Process$$$Lambda$7952/0x000000010258b840@278efc05,</span>
-<span class="c1">//       StdIn()</span>
-<span class="c1">//     ),</span>
-<span class="c1">//     ProcessImpl(</span>
-<span class="c1">//       "grep",</span>
-<span class="c1">//       List("ERROR"),</span>
+<span class="c1">//       command = "sort",</span>
+<span class="c1">//       arguments = List(),</span>
+<span class="c1">//       workingDirectory = None,</span>
+<span class="c1">//       environmentVariables = Map(),</span>
+<span class="c1">//       removedEnvironmentVariables = Set(),</span>
+<span class="c1">//       outputRedirection = StdOut(),</span>
+<span class="c1">//       runOutputStream = io.github.vigoo.prox.Process$$$Lambda$8005/0x0000000102593840@55eb27e0,</span>
+<span class="c1">//       errorRedirection = StdOut(),</span>
+<span class="c1">//       runErrorStream = io.github.vigoo.prox.Process$$$Lambda$8006/0x0000000102593c40@765a8940,</span>
 <span class="c1">// ...</span>
 </code></pre></div></div>
 </section></div></div></div></div><script src="https://vigoo.github.io/prox/highlight/highlight.pack.js"></script><script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/9.15.10/languages/sbt.min.js"></script><script>

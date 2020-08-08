@@ -27,33 +27,33 @@ implements the given capability.</p>
 
 <span class="k">val</span> <span class="nv">proc1</span> <span class="k">=</span> <span class="nc">Process</span><span class="o">[</span><span class="kt">IO</span><span class="o">](</span><span class="s">"echo"</span><span class="o">,</span> <span class="nc">List</span><span class="o">(</span><span class="s">"Hello world"</span><span class="o">))</span>
 <span class="c1">// proc1: Process.ProcessImpl[IO] = ProcessImpl(</span>
-<span class="c1">//   "echo",</span>
-<span class="c1">//   List("Hello world"),</span>
-<span class="c1">//   None,</span>
-<span class="c1">//   Map(),</span>
-<span class="c1">//   Set(),</span>
-<span class="c1">//   StdOut(),</span>
-<span class="c1">//   io.github.vigoo.prox.Process$$$Lambda$7951/0x0000000102589c40@78389c9f,</span>
-<span class="c1">//   StdOut(),</span>
-<span class="c1">//   io.github.vigoo.prox.Process$$$Lambda$7952/0x000000010258b840@5d2d5f11,</span>
-<span class="c1">//   StdIn()</span>
+<span class="c1">//   command = "echo",</span>
+<span class="c1">//   arguments = List("Hello world"),</span>
+<span class="c1">//   workingDirectory = None,</span>
+<span class="c1">//   environmentVariables = Map(),</span>
+<span class="c1">//   removedEnvironmentVariables = Set(),</span>
+<span class="c1">//   outputRedirection = StdOut(),</span>
+<span class="c1">//   runOutputStream = io.github.vigoo.prox.Process$$$Lambda$8005/0x0000000102593840@867a55,</span>
+<span class="c1">//   errorRedirection = StdOut(),</span>
+<span class="c1">//   runErrorStream = io.github.vigoo.prox.Process$$$Lambda$8006/0x0000000102593c40@5df5291c,</span>
+<span class="c1">//   inputRedirection = StdIn()</span>
 <span class="c1">// )</span>
 <span class="k">val</span> <span class="nv">proc2</span> <span class="k">=</span> <span class="n">proc1</span> <span class="o">&gt;#</span> <span class="nv">fs2</span><span class="o">.</span><span class="py">text</span><span class="o">.</span><span class="py">utf8Decode</span>
 <span class="c1">// proc2: Process.ProcessImplO[IO, String] = ProcessImplO(</span>
-<span class="c1">//   "echo",</span>
-<span class="c1">//   List("Hello world"),</span>
-<span class="c1">//   None,</span>
-<span class="c1">//   Map(),</span>
-<span class="c1">//   Set(),</span>
-<span class="c1">//   OutputStream(</span>
-<span class="c1">//     fs2.text$$$Lambda$8112/0x000000010269f840@19449925,</span>
-<span class="c1">//     io.github.vigoo.prox.RedirectableOutput$$Lambda$8113/0x000000010269e840@252422f6,</span>
-<span class="c1">//     8192</span>
+<span class="c1">//   command = "echo",</span>
+<span class="c1">//   arguments = List("Hello world"),</span>
+<span class="c1">//   workingDirectory = None,</span>
+<span class="c1">//   environmentVariables = Map(),</span>
+<span class="c1">//   removedEnvironmentVariables = Set(),</span>
+<span class="c1">//   outputRedirection = OutputStream(</span>
+<span class="c1">//     pipe = fs2.text$$$Lambda$8168/0x00000001026af840@65d5cec,</span>
+<span class="c1">//     runner = io.github.vigoo.prox.RedirectableOutput$$Lambda$8169/0x00000001026ae840@353acaa0,</span>
+<span class="c1">//     chunkSize = 8192</span>
 <span class="c1">//   ),</span>
-<span class="c1">//   io.github.vigoo.prox.Process$ProcessImpl$$Lambda$7955/0x000000010258f440@12463494,</span>
-<span class="c1">//   StdOut(),</span>
-<span class="c1">//   io.github.vigoo.prox.Process$$$Lambda$7952/0x000000010258b840@5d2d5f11,</span>
-<span class="c1">//   StdIn()</span>
+<span class="c1">//   runOutputStream = io.github.vigoo.prox.Process$ProcessImpl$$Lambda$8009/0x00000001025a6040@4173a8d2,</span>
+<span class="c1">//   errorRedirection = StdOut(),</span>
+<span class="c1">//   runErrorStream = io.github.vigoo.prox.Process$$$Lambda$8006/0x0000000102593c40@5df5291c,</span>
+<span class="c1">//   inputRedirection = StdIn()</span>
 <span class="c1">// )</span>
 </code></pre></div></div>
 
@@ -421,20 +421,20 @@ defined as follows:</p>
 
 <span class="k">val</span> <span class="nv">proc4</span> <span class="k">=</span> <span class="nf">logErrors</span><span class="o">(</span><span class="nc">Process</span><span class="o">[</span><span class="kt">IO</span><span class="o">](</span><span class="s">"something"</span><span class="o">))</span>
 <span class="c1">// proc4: Process[IO, _, Unit] = ProcessImplE(</span>
-<span class="c1">//   "something",</span>
-<span class="c1">//   List(),</span>
-<span class="c1">//   None,</span>
-<span class="c1">//   Map(),</span>
-<span class="c1">//   Set(),</span>
-<span class="c1">//   StdOut(),</span>
-<span class="c1">//   io.github.vigoo.prox.Process$$$Lambda$7951/0x0000000102589c40@187ae635,</span>
-<span class="c1">//   OutputStream(</span>
-<span class="c1">//     scala.Function1$$Lambda$8048/0x00000001025ea040@16d6db49,</span>
-<span class="c1">//     io.github.vigoo.prox.RedirectableError$$Lambda$8119/0x00000001026b6840@24106ac6,</span>
-<span class="c1">//     8192</span>
+<span class="c1">//   command = "something",</span>
+<span class="c1">//   arguments = List(),</span>
+<span class="c1">//   workingDirectory = None,</span>
+<span class="c1">//   environmentVariables = Map(),</span>
+<span class="c1">//   removedEnvironmentVariables = Set(),</span>
+<span class="c1">//   outputRedirection = StdOut(),</span>
+<span class="c1">//   runOutputStream = io.github.vigoo.prox.Process$$$Lambda$8005/0x0000000102593840@682c4743,</span>
+<span class="c1">//   errorRedirection = OutputStream(</span>
+<span class="c1">//     pipe = scala.Function1$$Lambda$8104/0x0000000102653840@42488898,</span>
+<span class="c1">//     runner = io.github.vigoo.prox.RedirectableError$$Lambda$8175/0x00000001026a9840@b544a4,</span>
+<span class="c1">//     chunkSize = 8192</span>
 <span class="c1">//   ),</span>
-<span class="c1">//   io.github.vigoo.prox.Process$ProcessImpl$$Lambda$8120/0x00000001026b7440@72580c96,</span>
-<span class="c1">//   StdIn()</span>
+<span class="c1">//   runErrorStream = io.github.vigoo.prox.Process$ProcessImpl$$Lambda$8176/0x00000001026aa440@3a6776aa,</span>
+<span class="c1">//   inputRedirection = StdIn()</span>
 <span class="c1">// )</span>
 </code></pre></div></div>
 </section></div></div></div></div><script src="https://vigoo.github.io/prox/highlight/highlight.pack.js"></script><script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/9.15.10/languages/sbt.min.js"></script><script>
