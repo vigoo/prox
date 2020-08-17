@@ -32,11 +32,15 @@ case class SimpleProcessResult[+O, +E](override val exitCode: ExitCode,
   * @tparam F Effect type
   * @tparam O Output type
   * @tparam E Error output type
+  * @tparam Info Runner-specific process information
   */
-trait RunningProcess[F[_], O, E] {
+trait RunningProcess[F[_], O, E, +Info] {
   val runningInput: Fiber[F, Unit]
   val runningOutput: Fiber[F, O]
   val runningError: Fiber[F, E]
+
+  /** Gets the runner-specific process information */
+  val info: Info
 
   /** Checks whether the process is still running */
   def isAlive: F[Boolean]
@@ -49,6 +53,19 @@ trait RunningProcess[F[_], O, E] {
 
   /** Block until the process stops */
   def waitForExit(): F[ProcessResult[O, E]]
+
+  def mapInfo[I2](f: Info => I2): RunningProcess[F, O, E, I2] =
+    new RunningProcess[F, O, E, I2] {
+      override val runningInput: Fiber[F, Unit] = RunningProcess.this.runningInput
+      override val runningOutput: Fiber[F, O] = RunningProcess.this.runningOutput
+      override val runningError: Fiber[F, E] = RunningProcess.this.runningError
+      override val info: I2 = f(RunningProcess.this.info)
+
+      override def isAlive: F[Boolean] = RunningProcess.this.isAlive
+      override def kill(): F[ProcessResult[O, E]] = RunningProcess.this.kill()
+      override def terminate(): F[ProcessResult[O, E]] = RunningProcess.this.terminate()
+      override def waitForExit(): F[ProcessResult[O, E]] = RunningProcess.this.waitForExit()
+    }
 }
 
 /**
@@ -91,9 +108,12 @@ trait Process[F[_], O, E] extends ProcessLike[F] with ProcessConfiguration[F] {
     *
     * @param blocker Execution context for blocking operations
     * @param runner The process runner to be used
+    *
+    * @tparam Info The runner-specific process info type
+    *
     * @return interface for handling the running process
     */
-  def startProcess(blocker: Blocker)(implicit runner: ProcessRunner[F]): F[RunningProcess[F, O, E]] =
+  def startProcess[Info](blocker: Blocker)(implicit runner: ProcessRunner[F, Info]): F[RunningProcess[F, O, E, Info]] =
     runner.startProcess(this, blocker)
 
   /**
@@ -106,7 +126,7 @@ trait Process[F[_], O, E] extends ProcessLike[F] with ProcessConfiguration[F] {
     * @param runner The process runner to be used
     * @return a managed fiber representing the running process
     */
-  def start(blocker: Blocker)(implicit runner: ProcessRunner[F]): Resource[F, Fiber[F, ProcessResult[O, E]]] =
+  def start[Info](blocker: Blocker)(implicit runner: ProcessRunner[F, Info]): Resource[F, Fiber[F, ProcessResult[O, E]]] =
     runner.start(this, blocker)
 
   /**
@@ -116,7 +136,7 @@ trait Process[F[_], O, E] extends ProcessLike[F] with ProcessConfiguration[F] {
     * @param runner The process runner to be used
     * @return the result of the finished process
     */
-  def run(blocker: Blocker)(implicit runner: ProcessRunner[F]): F[ProcessResult[O, E]] =
+  def run[Info](blocker: Blocker)(implicit runner: ProcessRunner[F, Info]): F[ProcessResult[O, E]] =
     start(blocker).use(_.join)
 }
 

@@ -12,7 +12,7 @@ import zio.test.Assertion._
 import zio.test._
 
 object ProcessSpecs extends DefaultRunnableSpec with ProxSpecHelpers {
-  implicit val processRunner: ProcessRunner[Task] = new JVMProcessRunner
+  implicit val processRunner: ProcessRunner[Task, JVMProcessInfo] = new JVMProcessRunner
 
   override val aspects = List(
     TestAspect.timeoutWarning(60.seconds),
