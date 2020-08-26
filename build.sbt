@@ -22,14 +22,14 @@ val commonSettings = Seq(
 
   libraryDependencies ++= Seq(
     "org.typelevel" %% "cats-effect" % "2.1.4",
-    "co.fs2" %% "fs2-core" % "2.4.2",
-    "co.fs2" %% "fs2-io" % "2.4.2",
+    "co.fs2" %% "fs2-core" % "2.4.4",
+    "co.fs2" %% "fs2-io" % "2.4.4",
     "com.chuusai" %% "shapeless" % "2.3.3",
     "org.scala-lang.modules" %% "scala-collection-compat" % "2.1.6",
 
-    "dev.zio" %% "zio" % "1.0.0" % "test",
-    "dev.zio" %% "zio-test" % "1.0.0" % "test",
-    "dev.zio" %% "zio-test-sbt" % "1.0.0" % "test",
+    "dev.zio" %% "zio" % "1.0.1" % "test",
+    "dev.zio" %% "zio-test" % "1.0.1" % "test",
+    "dev.zio" %% "zio-test-sbt" % "1.0.1" % "test",
     "dev.zio" %% "zio-interop-cats" % "2.1.4.0" % "test",
   ),
 
