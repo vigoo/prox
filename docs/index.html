@@ -72,9 +72,9 @@ redirected.</p>
 <span class="c1">//   environmentVariables = Map(),</span>
 <span class="c1">//   removedEnvironmentVariables = Set(),</span>
 <span class="c1">//   outputRedirection = StdOut(),</span>
-<span class="c1">//   runOutputStream = io.github.vigoo.prox.Process$$$Lambda$7988/0x000000010259d440@37fe1bde,</span>
+<span class="c1">//   runOutputStream = io.github.vigoo.prox.Process$$$Lambda$7991/0x00000001025b1040@581266a5,</span>
 <span class="c1">//   errorRedirection = StdOut(),</span>
-<span class="c1">//   runErrorStream = io.github.vigoo.prox.Process$$$Lambda$7989/0x000000010259b040@dd3b631,</span>
+<span class="c1">//   runErrorStream = io.github.vigoo.prox.Process$$$Lambda$7992/0x00000001025b1440@75248d98,</span>
 <span class="c1">//   inputRedirection = StdIn()</span>
 <span class="c1">// )</span>
 </code></pre></div></div>
@@ -91,9 +91,9 @@ redirected.</p>
 <span class="c1">//   environmentVariables = Map(),</span>
 <span class="c1">//   removedEnvironmentVariables = Set(),</span>
 <span class="c1">//   outputRedirection = StdOut(),</span>
-<span class="c1">//   runOutputStream = io.github.vigoo.prox.Process$$$Lambda$7988/0x000000010259d440@327f29d9,</span>
+<span class="c1">//   runOutputStream = io.github.vigoo.prox.Process$$$Lambda$7991/0x00000001025b1040@29bb4685,</span>
 <span class="c1">//   errorRedirection = StdOut(),</span>
-<span class="c1">//   runErrorStream = io.github.vigoo.prox.Process$$$Lambda$7989/0x000000010259b040@7d3d5a17,</span>
+<span class="c1">//   runErrorStream = io.github.vigoo.prox.Process$$$Lambda$7992/0x00000001025b1440@3b784816,</span>
 <span class="c1">//   inputRedirection = StdIn()</span>
 <span class="c1">// )</span>
 </code></pre></div></div>
@@ -129,9 +129,50 @@ running:</p>
   <span class="nv">proc1</span><span class="o">.</span><span class="py">run</span><span class="o">(</span><span class="n">blocker</span><span class="o">)</span>
 <span class="o">}</span>
 <span class="c1">// res0: IO[ProcessResult[Unit, Unit]] = Async(</span>
-<span class="c1">//   k = cats.effect.internals.IOBracket$$$Lambda$8095/0x0000000102660040@76280373,</span>
-<span class="c1">//   trampolineAfter = false</span>
-<span class="c1">// )</span>
+<span class="c1">//   k = cats.effect.internals.IOAsync$$$Lambda$7919/0x0000000102568c40@2bb0122f,</span>
+<span class="c1">//   trampolineAfter = true,</span>
+<span class="c1">//   trace = StackTrace(</span>
+<span class="c1">//     stackTrace = List(</span>
+<span class="c1">//       cats.effect.internals.IOTracing$.buildFrame(IOTracing.scala:48),</span>
+<span class="c1">//       cats.effect.internals.IOTracing$.buildCachedFrame(IOTracing.scala:39),</span>
+<span class="c1">//       cats.effect.internals.IOTracing$.cached(IOTracing.scala:34),</span>
+<span class="c1">//       cats.effect.internals.IOAsync$.apply(IOAsync.scala:30),</span>
+<span class="c1">//       cats.effect.internals.IOBracket$.apply(IOBracket.scala:54),</span>
+<span class="c1">//       cats.effect.IO.bracketCase(IO.scala:613),</span>
+<span class="c1">//       cats.effect.IOLowPriorityInstances$IOEffect.bracketCase(IO.scala:904),</span>
+<span class="c1">//       cats.effect.IOLowPriorityInstances$IOEffect.bracketCase(IO.scala:863),</span>
+<span class="c1">//       cats.effect.Resource.loop$1(Resource.scala:121),</span>
+<span class="c1">//       cats.effect.Resource.fold(Resource.scala:130),</span>
+<span class="c1">//       cats.effect.Resource.use(Resource.scala:142),</span>
+<span class="c1">//       repl.MdocSession$App.&lt;init&gt;(index.md:53),</span>
+<span class="c1">//       repl.MdocSession$.app(index.md:3),</span>
+<span class="c1">//       mdoc.internal.document.DocumentBuilder$$doc$.$anonfun$build$2(DocumentBuilder.scala:82),</span>
+<span class="c1">//       scala.runtime.java8.JFunction0$mcV$sp.apply(JFunction0$mcV$sp.scala:18),</span>
+<span class="c1">//       scala.util.DynamicVariable.withValue(DynamicVariable.scala:59),</span>
+<span class="c1">//       scala.Console$.withErr(Console.scala:193),</span>
+<span class="c1">//       mdoc.internal.document.DocumentBuilder$$doc$.$anonfun$build$1(DocumentBuilder.scala:82),</span>
+<span class="c1">//       scala.runtime.java8.JFunction0$mcV$sp.apply(JFunction0$mcV$sp.scala:18),</span>
+<span class="c1">//       scala.util.DynamicVariable.withValue(DynamicVariable.scala:59),</span>
+<span class="c1">//       scala.Console$.withOut(Console.scala:164),</span>
+<span class="c1">//       mdoc.internal.document.DocumentBuilder$$doc$.build(DocumentBuilder.scala:81),</span>
+<span class="c1">//       mdoc.internal.markdown.MarkdownBuilder$.buildDocument(MarkdownBuilder.scala:44),</span>
+<span class="c1">//       mdoc.internal.markdown.Processor.processScalaInputs(Processor.scala:186),</span>
+<span class="c1">//       mdoc.internal.markdown.Processor.processScalaInputs(Processor.scala:153),</span>
+<span class="c1">//       mdoc.internal.markdown.Processor.processDocument(Processor.scala:52),</span>
+<span class="c1">//       mdoc.internal.markdown.Markdown$.toMarkdown(Markdown.scala:132),</span>
+<span class="c1">//       mdoc.internal.cli.MainOps.handleMarkdown(MainOps.scala:82),</span>
+<span class="c1">//       mdoc.internal.cli.MainOps.handleFile(MainOps.scala:110),</span>
+<span class="c1">//       mdoc.internal.cli.MainOps.$anonfun$generateCompleteSite$1(MainOps.scala:157),</span>
+<span class="c1">//       scala.collection.LinearSeqOps.foldLeft(LinearSeq.scala:168),</span>
+<span class="c1">//       scala.collection.LinearSeqOps.foldLeft$(LinearSeq.scala:164),</span>
+<span class="c1">//       scala.collection.immutable.List.foldLeft(List.scala:79),</span>
+<span class="c1">//       mdoc.internal.cli.MainOps.generateCompleteSite(MainOps.scala:155),</span>
+<span class="c1">//       mdoc.internal.cli.MainOps.run(MainOps.scala:178),</span>
+<span class="c1">//       mdoc.internal.cli.MainOps$.process(MainOps.scala:270),</span>
+<span class="c1">//       mdoc.Main$.process(Main.scala:26),</span>
+<span class="c1">//       mdoc.Main$.process(Main.scala:21),</span>
+<span class="c1">//       mdoc.Main$.main(Main.scala:16),</span>
+<span class="c1">// ...</span>
 </code></pre></div></div>
 
 <p>The result of this IO action is a <code class="highlighter-rouge">ProcessResult[O, E]</code>, with the ability to observe the 
