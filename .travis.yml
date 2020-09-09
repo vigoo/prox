@@ -18,6 +18,11 @@ stages:
 jobs:
   include:
     - stage: test
+      scala: 2.12.12
+      name: "Compile and test"
+      script: sbt ++$TRAVIS_SCALA_VERSION clean test
+    - stage: test
+      scala: 2.13.3
       name: "Compile and test"
       script: sbt ++$TRAVIS_SCALA_VERSION clean coverage test coverageReport && bash <(curl -s https://codecov.io/bash)
     - stage: release
