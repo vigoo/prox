@@ -27,9 +27,9 @@ adding three methods that can be used to customize the working environment of th
 <span class="c1">//   environmentVariables = Map(),</span>
 <span class="c1">//   removedEnvironmentVariables = Set(),</span>
 <span class="c1">//   outputRedirection = StdOut(),</span>
-<span class="c1">//   runOutputStream = io.github.vigoo.prox.Process$$$Lambda$9038/0x000000010292f840@4591d976,</span>
+<span class="c1">//   runOutputStream = io.github.vigoo.prox.Process$$$Lambda$9066/0x00000001029d3c40@5d22f16d,</span>
 <span class="c1">//   errorRedirection = StdOut(),</span>
-<span class="c1">//   runErrorStream = io.github.vigoo.prox.Process$$$Lambda$9039/0x000000010292fc40@75bab615,</span>
+<span class="c1">//   runErrorStream = io.github.vigoo.prox.Process$$$Lambda$9067/0x00000001029d7840@287f5eb8,</span>
 <span class="c1">//   inputRedirection = StdIn()</span>
 <span class="c1">// )</span>
 </code></pre></div></div>
@@ -50,9 +50,9 @@ way:</p>
 <span class="c1">//   environmentVariables = Map("TEST" -&gt; "Hello world"),</span>
 <span class="c1">//   removedEnvironmentVariables = Set(),</span>
 <span class="c1">//   outputRedirection = StdOut(),</span>
-<span class="c1">//   runOutputStream = io.github.vigoo.prox.Process$$$Lambda$9038/0x000000010292f840@2d235274,</span>
+<span class="c1">//   runOutputStream = io.github.vigoo.prox.Process$$$Lambda$9066/0x00000001029d3c40@12757420,</span>
 <span class="c1">//   errorRedirection = StdOut(),</span>
-<span class="c1">//   runErrorStream = io.github.vigoo.prox.Process$$$Lambda$9039/0x000000010292fc40@2c5c30df,</span>
+<span class="c1">//   runErrorStream = io.github.vigoo.prox.Process$$$Lambda$9067/0x00000001029d7840@170b8447,</span>
 <span class="c1">//   inputRedirection = StdIn()</span>
 <span class="c1">// )</span>
 </code></pre></div></div>
@@ -70,9 +70,9 @@ way:</p>
 <span class="c1">//   environmentVariables = Map(),</span>
 <span class="c1">//   removedEnvironmentVariables = Set("PATH"),</span>
 <span class="c1">//   outputRedirection = StdOut(),</span>
-<span class="c1">//   runOutputStream = io.github.vigoo.prox.Process$$$Lambda$9038/0x000000010292f840@530dde76,</span>
+<span class="c1">//   runOutputStream = io.github.vigoo.prox.Process$$$Lambda$9066/0x00000001029d3c40@6b1ba070,</span>
 <span class="c1">//   errorRedirection = StdOut(),</span>
-<span class="c1">//   runErrorStream = io.github.vigoo.prox.Process$$$Lambda$9039/0x000000010292fc40@1dd96e,</span>
+<span class="c1">//   runErrorStream = io.github.vigoo.prox.Process$$$Lambda$9067/0x00000001029d7840@56454e18,</span>
 <span class="c1">//   inputRedirection = StdIn()</span>
 <span class="c1">// )</span>
 </code></pre></div></div>
@@ -105,9 +105,9 @@ why there are multiple concrete process types):</p>
 <span class="c1">//   environmentVariables = Map(),</span>
 <span class="c1">//   removedEnvironmentVariables = Set(),</span>
 <span class="c1">//   outputRedirection = StdOut(),</span>
-<span class="c1">//   runOutputStream = io.github.vigoo.prox.Process$$$Lambda$9038/0x000000010292f840@371a9beb,</span>
+<span class="c1">//   runOutputStream = io.github.vigoo.prox.Process$$$Lambda$9066/0x00000001029d3c40@6fa8f484,</span>
 <span class="c1">//   errorRedirection = StdOut(),</span>
-<span class="c1">//   runErrorStream = io.github.vigoo.prox.Process$$$Lambda$9039/0x000000010292fc40@7a0d9f1f,</span>
+<span class="c1">//   runErrorStream = io.github.vigoo.prox.Process$$$Lambda$9067/0x00000001029d7840@244a7c8a,</span>
 <span class="c1">//   inputRedirection = StdIn()</span>
 <span class="c1">// )</span>
 <span class="k">val</span> <span class="nv">proc5</span> <span class="k">=</span> <span class="nc">Decorators</span><span class="o">[</span><span class="kt">IO</span><span class="o">].</span><span class="py">withHome</span><span class="o">(</span><span class="n">home</span><span class="o">,</span> <span class="n">proc4</span><span class="o">)</span>
@@ -118,9 +118,9 @@ why there are multiple concrete process types):</p>
 <span class="c1">//   environmentVariables = Map("HOME" -&gt; "/home/travis"),</span>
 <span class="c1">//   removedEnvironmentVariables = Set(),</span>
 <span class="c1">//   outputRedirection = StdOut(),</span>
-<span class="c1">//   runOutputStream = io.github.vigoo.prox.Process$$$Lambda$9038/0x000000010292f840@371a9beb,</span>
+<span class="c1">//   runOutputStream = io.github.vigoo.prox.Process$$$Lambda$9066/0x00000001029d3c40@6fa8f484,</span>
 <span class="c1">//   errorRedirection = StdOut(),</span>
-<span class="c1">//   runErrorStream = io.github.vigoo.prox.Process$$$Lambda$9039/0x000000010292fc40@7a0d9f1f,</span>
+<span class="c1">//   runErrorStream = io.github.vigoo.prox.Process$$$Lambda$9067/0x00000001029d7840@244a7c8a,</span>
 <span class="c1">//   inputRedirection = StdIn()</span>
 <span class="c1">// )</span>
 
@@ -133,13 +133,13 @@ why there are multiple concrete process types):</p>
 <span class="c1">//     environmentVariables = Map(),</span>
 <span class="c1">//     removedEnvironmentVariables = Set(),</span>
 <span class="c1">//     outputRedirection = OutputStream(</span>
-<span class="c1">//       pipe = io.github.vigoo.prox.syntax$ProcessPiping$$Lambda$9040/0x000000010292d840@540dbdb5,</span>
-<span class="c1">//       runner = io.github.vigoo.prox.syntax$ProcessPiping$$Lambda$9041/0x000000010292d040@5a60eb11,</span>
+<span class="c1">//       pipe = io.github.vigoo.prox.syntax$ProcessPiping$$Lambda$9068/0x00000001029d6040@e92ce15,</span>
+<span class="c1">//       runner = io.github.vigoo.prox.syntax$ProcessPiping$$Lambda$9069/0x00000001029e8040@38b0155b,</span>
 <span class="c1">//       chunkSize = 8192</span>
 <span class="c1">//     ),</span>
-<span class="c1">//     runOutputStream = io.github.vigoo.prox.Process$ProcessImpl$$Lambda$9042/0x000000010292c840@4a63fd00,</span>
+<span class="c1">//     runOutputStream = io.github.vigoo.prox.Process$ProcessImpl$$Lambda$9070/0x00000001029d5c40@30605158,</span>
 <span class="c1">//     errorRedirection = StdOut(),</span>
-<span class="c1">//     runErrorStream = io.github.vigoo.prox.Process$$$Lambda$9039/0x000000010292fc40@4bf5043f,</span>
+<span class="c1">//     runErrorStream = io.github.vigoo.prox.Process$$$Lambda$9067/0x00000001029d7840@340c9010,</span>
 <span class="c1">//     inputRedirection = StdIn()</span>
 <span class="c1">//   ),</span>
 <span class="c1">//   innerProcesses = List(),</span>
@@ -150,9 +150,9 @@ why there are multiple concrete process types):</p>
 <span class="c1">//     environmentVariables = Map(),</span>
 <span class="c1">//     removedEnvironmentVariables = Set(),</span>
 <span class="c1">//     outputRedirection = StdOut(),</span>
-<span class="c1">//     runOutputStream = io.github.vigoo.prox.Process$$$Lambda$9038/0x000000010292f840@72ace8e1,</span>
+<span class="c1">//     runOutputStream = io.github.vigoo.prox.Process$$$Lambda$9066/0x00000001029d3c40@2cf612e2,</span>
 <span class="c1">//     errorRedirection = StdOut(),</span>
-<span class="c1">//     runErrorStream = io.github.vigoo.prox.Process$$$Lambda$9039/0x000000010292fc40@2fc9bdc6,</span>
+<span class="c1">//     runErrorStream = io.github.vigoo.prox.Process$$$Lambda$9067/0x00000001029d7840@14d4c0ea,</span>
 <span class="c1">//     inputRedirection = StdIn()</span>
 <span class="c1">//   ),</span>
 <span class="c1">//   originalProcesses = List(</span>
@@ -163,9 +163,9 @@ why there are multiple concrete process types):</p>
 <span class="c1">//       environmentVariables = Map(),</span>
 <span class="c1">//       removedEnvironmentVariables = Set(),</span>
 <span class="c1">//       outputRedirection = StdOut(),</span>
-<span class="c1">//       runOutputStream = io.github.vigoo.prox.Process$$$Lambda$9038/0x000000010292f840@72ace8e1,</span>
+<span class="c1">//       runOutputStream = io.github.vigoo.prox.Process$$$Lambda$9066/0x00000001029d3c40@2cf612e2,</span>
 <span class="c1">//       errorRedirection = StdOut(),</span>
-<span class="c1">//       runErrorStream = io.github.vigoo.prox.Process$$$Lambda$9039/0x000000010292fc40@2fc9bdc6,</span>
+<span class="c1">//       runErrorStream = io.github.vigoo.prox.Process$$$Lambda$9067/0x00000001029d7840@14d4c0ea,</span>
 <span class="c1">// ...</span>
 <span class="k">val</span> <span class="nv">group2</span> <span class="k">=</span> <span class="nc">Decorators</span><span class="o">[</span><span class="kt">IO</span><span class="o">].</span><span class="py">withHome</span><span class="o">(</span><span class="n">home</span><span class="o">,</span> <span class="n">group1</span><span class="o">)</span>
 <span class="c1">// group2: ProcessGroup.ProcessGroupImpl[IO[A]]#Self = ProcessGroupImpl(</span>
@@ -176,13 +176,13 @@ why there are multiple concrete process types):</p>
 <span class="c1">//     environmentVariables = Map("HOME" -&gt; "/home/travis"),</span>
 <span class="c1">//     removedEnvironmentVariables = Set(),</span>
 <span class="c1">//     outputRedirection = OutputStream(</span>
-<span class="c1">//       pipe = io.github.vigoo.prox.syntax$ProcessPiping$$Lambda$9040/0x000000010292d840@540dbdb5,</span>
-<span class="c1">//       runner = io.github.vigoo.prox.syntax$ProcessPiping$$Lambda$9041/0x000000010292d040@5a60eb11,</span>
+<span class="c1">//       pipe = io.github.vigoo.prox.syntax$ProcessPiping$$Lambda$9068/0x00000001029d6040@e92ce15,</span>
+<span class="c1">//       runner = io.github.vigoo.prox.syntax$ProcessPiping$$Lambda$9069/0x00000001029e8040@38b0155b,</span>
 <span class="c1">//       chunkSize = 8192</span>
 <span class="c1">//     ),</span>
-<span class="c1">//     runOutputStream = io.github.vigoo.prox.Process$ProcessImpl$$Lambda$9042/0x000000010292c840@4a63fd00,</span>
+<span class="c1">//     runOutputStream = io.github.vigoo.prox.Process$ProcessImpl$$Lambda$9070/0x00000001029d5c40@30605158,</span>
 <span class="c1">//     errorRedirection = StdOut(),</span>
-<span class="c1">//     runErrorStream = io.github.vigoo.prox.Process$$$Lambda$9039/0x000000010292fc40@4bf5043f,</span>
+<span class="c1">//     runErrorStream = io.github.vigoo.prox.Process$$$Lambda$9067/0x00000001029d7840@340c9010,</span>
 <span class="c1">//     inputRedirection = StdIn()</span>
 <span class="c1">//   ),</span>
 <span class="c1">//   innerProcesses = List(),</span>
@@ -193,9 +193,9 @@ why there are multiple concrete process types):</p>
 <span class="c1">//     environmentVariables = Map("HOME" -&gt; "/home/travis"),</span>
 <span class="c1">//     removedEnvironmentVariables = Set(),</span>
 <span class="c1">//     outputRedirection = StdOut(),</span>
-<span class="c1">//     runOutputStream = io.github.vigoo.prox.Process$$$Lambda$9038/0x000000010292f840@72ace8e1,</span>
+<span class="c1">//     runOutputStream = io.github.vigoo.prox.Process$$$Lambda$9066/0x00000001029d3c40@2cf612e2,</span>
 <span class="c1">//     errorRedirection = StdOut(),</span>
-<span class="c1">//     runErrorStream = io.github.vigoo.prox.Process$$$Lambda$9039/0x000000010292fc40@2fc9bdc6,</span>
+<span class="c1">//     runErrorStream = io.github.vigoo.prox.Process$$$Lambda$9067/0x00000001029d7840@14d4c0ea,</span>
 <span class="c1">//     inputRedirection = StdIn()</span>
 <span class="c1">//   ),</span>
 <span class="c1">//   originalProcesses = List(</span>
@@ -206,9 +206,9 @@ why there are multiple concrete process types):</p>
 <span class="c1">//       environmentVariables = Map(),</span>
 <span class="c1">//       removedEnvironmentVariables = Set(),</span>
 <span class="c1">//       outputRedirection = StdOut(),</span>
-<span class="c1">//       runOutputStream = io.github.vigoo.prox.Process$$$Lambda$9038/0x000000010292f840@72ace8e1,</span>
+<span class="c1">//       runOutputStream = io.github.vigoo.prox.Process$$$Lambda$9066/0x00000001029d3c40@2cf612e2,</span>
 <span class="c1">//       errorRedirection = StdOut(),</span>
-<span class="c1">//       runErrorStream = io.github.vigoo.prox.Process$$$Lambda$9039/0x000000010292fc40@2fc9bdc6,</span>
+<span class="c1">//       runErrorStream = io.github.vigoo.prox.Process$$$Lambda$9067/0x00000001029d7840@14d4c0ea,</span>
 <span class="c1">// ...</span>
 </code></pre></div></div>
 </section></div></div></div></div><script src="https://vigoo.github.io/prox/highlight/highlight.pack.js"></script><script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/9.15.10/languages/sbt.min.js"></script><script>
