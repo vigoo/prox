@@ -88,7 +88,7 @@ trait ProxZStream extends Prox {
   protected override final def streamThrough[A, B](s: Stream[A], pipe: Pipe[A, B]): Stream[B] =
     pipe(s)
 
-  override protected def runStreamTo[A](s: Stream[A], sink: Sink[A]): IO[Unit] =
+  override protected final def runStreamTo[A](s: Stream[A], sink: Sink[A]): IO[Unit] =
     s.run(sink)
 
   protected override final def fromJavaInputStream(input: io.InputStream, chunkSize: Int): Stream[Byte] =
@@ -102,7 +102,7 @@ trait ProxZStream extends Prox {
     }
   }
 
-  final def flushingOutputStreamSink(os: io.OutputStream): ZSink[Blocking, IOException, Byte, Byte, Long] =
+  private final def flushingOutputStreamSink(os: io.OutputStream): ZSink[Blocking, IOException, Byte, Byte, Long] =
     ZSink.foldLeftChunksM(0L) { (bytesWritten, byteChunk: Chunk[Byte]) =>
       blocking.effectBlockingInterrupt {
         val bytes = byteChunk.toArray
