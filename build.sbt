@@ -60,7 +60,7 @@ lazy val prox = project.in(file("."))
     description := "A Scala library for working with system processes",
     dynverSonatypeSnapshots in ThisBuild := true,
   )
-  .aggregate(proxCore, proxFS2, proxJava9)
+  .aggregate(proxCore, proxFS2, proxZStream, proxJava9)
 
 lazy val proxCore = Project("prox-core", file("prox-core"))
   .settings(commonSettings)
