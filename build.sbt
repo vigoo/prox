@@ -140,6 +140,4 @@ lazy val proxZStream = Project("prox-zstream", file("prox-zstream")).settings(co
   testFrameworks += new TestFramework("zio.test.sbt.ZTestFramework"),
 ).dependsOn(proxCore)
 
-lazy val proxJava9 = Project("prox-java9", file("prox-java9")).settings(commonSettings).settings(
-  scalacOptions += "-target:jvm-1.9"
-).dependsOn(proxCore)
+lazy val proxJava9 = Project("prox-java9", file("prox-java9")).settings(commonSettings).dependsOn(proxCore)
