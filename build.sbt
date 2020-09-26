@@ -3,8 +3,8 @@ description := "A Scala library for working with system processes"
 
 dynverSonatypeSnapshots in ThisBuild := true
 
-val scala212 = "2.12.10"
-val scala213 = "2.13.2"
+val scala212 = "2.12.12"
+val scala213 = "2.13.3"
 
 val scalacOptions212 = Seq("-Ypartial-unification", "-deprecation")
 val scalacOptions213 = Seq("-deprecation")
@@ -21,11 +21,11 @@ val commonSettings = Seq(
   addCompilerPlugin("org.typelevel" %% "kind-projector" % "0.10.3"),
 
   libraryDependencies ++= Seq(
-    "org.typelevel" %% "cats-effect" % "2.1.4",
+    "org.typelevel" %% "cats-effect" % "2.2.0",
     "co.fs2" %% "fs2-core" % "2.4.4",
     "co.fs2" %% "fs2-io" % "2.4.4",
     "com.chuusai" %% "shapeless" % "2.3.3",
-    "org.scala-lang.modules" %% "scala-collection-compat" % "2.1.6",
+    "org.scala-lang.modules" %% "scala-collection-compat" % "2.2.0",
 
     "dev.zio" %% "zio" % "1.0.1" % "test",
     "dev.zio" %% "zio-test" % "1.0.1" % "test",
@@ -49,8 +49,6 @@ val commonSettings = Seq(
   publishMavenStyle := true,
 
   licenses := Seq("APL2" -> url("http://www.apache.org/licenses/LICENSE-2.0.txt")),
-
-  publishTo := sonatypePublishTo.value,
 
   sonatypeProjectHosting := Some(GitHubHosting("vigoo", "prox", "daniel.vigovszky@gmail.com")),
 

@@ -1,28 +1,43 @@
 language: scala
 scala:
-  - 2.12.10
-  - 2.13.1
+  - 2.12.12
+  - 2.13.3
 jdk:
   - oraclejdk9
 
 before_install:
+  - git fetch --tags
   - if [ "$TRAVIS_BRANCH" = "master" -a "$TRAVIS_PULL_REQUEST" = "false" ]; then bash -x scripts/decrypt_keys.sh; fi
   - export PATH=${PATH}:./vendor/bundle
-install:
-  - rvm use 2.6.0 --install --fuzzy
-  - gem update --system
-  - gem install sass
-  - gem install jekyll -v 4.0.0
-  - gem install jemoji -v 0.11.1
-  - gem install jekyll-sitemap -v 1.4.0
 
-script:
-  - sbt ++$TRAVIS_SCALA_VERSION clean coverage test coverageReport
+stages:
+  - name: test
+  - name: release
+    if: ((branch = master AND type = push) OR (tag IS present)) AND NOT fork
+  - name: microsite
+    if: ((branch = master AND type = push) AND NOT fork)
 
-after_success:
-  - bash <(curl -s https://codecov.io/bash)
-  - if [ "$TRAVIS_BRANCH" = "master" -a "$TRAVIS_PULL_REQUEST" = "false" ]; then sbt ++$TRAVIS_SCALA_VERSION clean coverageOff compile publish; fi
-  - if [ "$TRAVIS_BRANCH" = "master" -a "$TRAVIS_PULL_REQUEST" = "false" ]; then bash scripts/publish_microsite.sh; fi
+script: sbt ++$TRAVIS_SCALA_VERSION clean coverage test coverageReport && bash <(curl -s https://codecov.io/bash)
+
+jobs:
+  include:
+    - scala: 2.12.12
+      scala: 2.13.3
+    - stage: release
+      name: "Release"
+      script: sbt ci-release
+    - stage: microsite
+      scala: 2.13.3
+      name: "Publish microsite"
+      install:
+        - rvm use 2.6.0 --install --fuzzy
+        - gem update --system
+        - gem install sass
+        - gem install jekyll -v 4.0.0
+        - gem install jemoji -v 0.11.1
+        - gem install jekyll-sitemap -v 1.4.0
+      script: bash scripts/publish_microsite.sh
+
 env:
   global:
     - secure: msl3heebF3k3zdMKrjzefj0u+HAbZDf8vS2UC6poFv5OcNatVK73ZYApayq5otU80PTaJZaDdnsuyrMXggeWC/X+tnMZH781h7ckev+22+qOUNs6ZL1RS2cQ4OFuaNFhmr+eteShgGI26p4PmnRATV7IrUnw5s66BZJdFTBwvVtTpQ4d7WY0X/16YzXbZbXiYfAn/3txphJE8Lbh4/PqsySoIRdhIGWNiOoK8db/DrY3tQ2lHHuU1hme6FeBzFMJxjvrdCg+RPP+LKpTZdkzBHKvoa8DiTM96Z1Iqw5cjCLABq44KMlC5tZ3fj0mtxuPMdcbWYVTHmdMaE5pgrcckbIvtwbp9C8GgfNoJuuVmftazoZvXYVmk/7hZ+GrD7WoJrt72ijO8JOwGgUjqs3Vche6dXccDKe0c3fXhF7Y7W58yjF0bNrzYfez6BKELkrR3GObf7k/vVdsGAT4B6YeLIRtE/+xtiLqf7YZUP6+fC488pAZRrYlj2JW+8duzR4XLa5E+z08hw9OxNglFWMgkoav0dTaR93PFc01EpjonlV2nDbEl/LHuW463efow1/2dwqFBRbOhramaf56sfB0pAZjFx1nIiuHhDZm6UDjLH4v9lXWoRR9IaCPEpeWDvhj5kp5W6MvUJhwlyY83PNSwJPTWGkViJvWGrcPUTRb1vg=
