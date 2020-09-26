@@ -16,9 +16,10 @@ import scala.jdk.CollectionConverters._
   *
   * The default implementation is [[JVMProcessRunner]]
   *
-  * @tparam F Effect type
+  * @tparam F    Effect type
+  * @tparam Info The type of information provided for a started process
   */
-trait ProcessRunner[F[_]] {
+trait ProcessRunner[F[_], Info] {
   implicit val concurrent: Concurrent[F]
 
   /**
@@ -30,7 +31,7 @@ trait ProcessRunner[F[_]] {
     * @tparam E Error output type
     * @return interface for handling the running process
     */
-  def startProcess[O, E](process: Process[F, O, E], blocker: Blocker): F[RunningProcess[F, O, E]]
+  def startProcess[O, E](process: Process[F, O, E], blocker: Blocker): F[RunningProcess[F, O, E, Info]]
 
   /**
     * Starts the process asynchronously and returns a managed fiber representing it
@@ -64,12 +65,12 @@ trait ProcessRunner[F[_]] {
     * Starts a process group asynchronously and returns an interface for them
     *
     * @param processGroup The process group to start
-    * @param blocker Execution context for blocking operations
+    * @param blocker      Execution context for blocking operations
     * @tparam O Output type
     * @tparam E Error output type
     * @return interface for handling the running process group
     */
-  def startProcessGroup[O, E](processGroup: ProcessGroup[F, O, E], blocker: Blocker): F[RunningProcessGroup[F, O, E]]
+  def startProcessGroup[O, E](processGroup: ProcessGroup[F, O, E], blocker: Blocker): F[RunningProcessGroup[F, O, E, Info]]
 
   /**
     * Starts the process group asynchronously and returns a managed fiber representing it
@@ -78,7 +79,7 @@ trait ProcessRunner[F[_]] {
     * Cancelling the fiber terminates the process.
     *
     * @param processGroup The process group to be started
-    * @param blocker Execution context for blocking operations
+    * @param blocker      Execution context for blocking operations
     * @tparam O Output type
     * @tparam E Error output type
     * @return interface for handling the running process
@@ -102,13 +103,15 @@ trait ProcessRunner[F[_]] {
   }
 }
 
+class JVMProcessInfo()
 
 /** Default implementation of [[RunningProcess]] using the Java process API */
-class JVMRunningProcess[F[_] : Sync, O, E](val nativeProcess: JvmProcess,
-                                           override val runningInput: Fiber[F, Unit],
-                                           override val runningOutput: Fiber[F, O],
-                                           override val runningError: Fiber[F, E])
-  extends RunningProcess[F, O, E] {
+class JVMRunningProcess[F[_] : Sync, O, E, +Info <: JVMProcessInfo](val nativeProcess: JvmProcess,
+                                                                     override val runningInput: Fiber[F, Unit],
+                                                                     override val runningOutput: Fiber[F, O],
+                                                                     override val runningError: Fiber[F, E],
+                                                                     override val info: Info)
+  extends RunningProcess[F, O, E, Info] {
 
   def isAlive: F[Boolean] =
     Sync[F].delay(nativeProcess.isAlive)
@@ -130,9 +133,12 @@ class JVMRunningProcess[F[_] : Sync, O, E](val nativeProcess: JvmProcess,
 }
 
 /** Default implementation of [[RunningProcessGroup]] using the Java process API */
-class JVMRunningProcessGroup[F[_] : Sync, O, E](runningProcesses: Map[Process[F, Unit, Unit], RunningProcess[F, _, E]],
-                                                override val runningOutput: Fiber[F, O])
-  extends RunningProcessGroup[F, O, E] {
+class JVMRunningProcessGroup[F[_] : Sync, O, E, +Info <: JVMProcessInfo](runningProcesses: Map[Process[F, Unit, Unit], RunningProcess[F, _, E, Info]],
+                                                                          override val runningOutput: Fiber[F, O])
+  extends RunningProcessGroup[F, O, E, Info] {
+
+  override val info: Map[Process[F, Unit, Unit], Info] =
+    runningProcesses.map { case (key, value) => (key, value.info) }
 
   def kill(): F[ProcessGroupResult[F, O, E]] =
     runningProcesses.values.toList.traverse(_.kill() *> Sync[F].unit) >> waitForExit()
@@ -152,13 +158,13 @@ class JVMRunningProcessGroup[F[_] : Sync, O, E](runningProcesses: Map[Process[F,
 }
 
 /** Default implementation of [[ProcessRunner]] using the Java process API */
-class JVMProcessRunner[F[_]](implicit override val concurrent: Concurrent[F],
-                             contextShift: ContextShift[F])
-  extends ProcessRunner[F] {
+abstract class JVMProcessRunnerBase[F[_], Info <: JVMProcessInfo](implicit override val concurrent: Concurrent[F],
+                                                                    contextShift: ContextShift[F])
+  extends ProcessRunner[F, Info] {
 
-  import JVMProcessRunner._
+  import JVMProcessRunnerBase._
 
-  override def startProcess[O, E](process: Process[F, O, E], blocker: Blocker): F[RunningProcess[F, O, E]] = {
+  override def startProcess[O, E](process: Process[F, O, E], blocker: Blocker): F[RunningProcess[F, O, E, Info]] = {
     val builder = withEnvironmentVariables(process,
       withWorkingDirectory(process,
         new ProcessBuilder((process.command :: process.arguments).asJava)))
@@ -169,6 +175,7 @@ class JVMProcessRunner[F[_]](implicit override val concurrent: Concurrent[F],
 
     for {
       nativeProcess <- Sync[F].delay(builder.start())
+      processInfo <- getProcessInfo(nativeProcess)
       nativeOutputStream <- Sync[F].delay(nativeProcess.getInputStream)
       nativeErrorStream <- Sync[F].delay(nativeProcess.getErrorStream)
 
@@ -176,14 +183,16 @@ class JVMProcessRunner[F[_]](implicit override val concurrent: Concurrent[F],
       runningInput <- Concurrent[F].start(inputStream)
       runningOutput <- Concurrent[F].start(process.runOutputStream(nativeOutputStream, blocker, implicitly[ContextShift[F]]))
       runningError <- Concurrent[F].start(process.runErrorStream(nativeErrorStream, blocker, implicitly[ContextShift[F]]))
-    } yield new JVMRunningProcess(nativeProcess, runningInput, runningOutput, runningError)
+    } yield new JVMRunningProcess(nativeProcess, runningInput, runningOutput, runningError, processInfo)
   }
+
+  protected def getProcessInfo(process: JvmProcess): F[Info]
 
   private def connectAndStartProcesses[E](firstProcess: Process[F, Stream[F, Byte], E] with RedirectableInput[F, Process[F, Stream[F, Byte], E]],
                                           previousOutput: Stream[F, Byte],
                                           remainingProcesses: List[Process[F, Stream[F, Byte], E] with RedirectableInput[F, Process[F, Stream[F, Byte], E]]],
                                           blocker: Blocker,
-                                          startedProcesses: List[RunningProcess[F, _, E]]): F[(List[RunningProcess[F, _, E]], Stream[F, Byte])] = {
+                                          startedProcesses: List[RunningProcess[F, _, E, Info]]): F[(List[RunningProcess[F, _, E, Info]], Stream[F, Byte])] = {
     startProcess(firstProcess.connectInput(InputStream(previousOutput, flushChunks = false)), blocker).flatMap { first =>
       first.runningOutput.join.flatMap { firstOutput =>
         val updatedStartedProcesses = first :: startedProcesses
@@ -197,7 +206,7 @@ class JVMProcessRunner[F[_]](implicit override val concurrent: Concurrent[F],
     }
   }
 
-  override def startProcessGroup[O, E](processGroup: ProcessGroup[F, O, E], blocker: Blocker): F[RunningProcessGroup[F, O, E]] =
+  override def startProcessGroup[O, E](processGroup: ProcessGroup[F, O, E], blocker: Blocker): F[RunningProcessGroup[F, O, E, Info]] =
     for {
       first <- startProcess(processGroup.firstProcess, blocker)
       firstOutput <- first.runningOutput.join
@@ -210,7 +219,7 @@ class JVMProcessRunner[F[_]](implicit override val concurrent: Concurrent[F],
       (inner, lastInput) = innerResult
       last <- startProcess(processGroup.lastProcess.connectInput(InputStream(lastInput, flushChunks = false)), blocker)
       runningProcesses = processGroup.originalProcesses.reverse.zip((first :: inner) :+ last).toMap
-    } yield new JVMRunningProcessGroup[F, O, E](
+    } yield new JVMRunningProcessGroup[F, O, E, Info](
       runningProcesses,
       last.runningOutput)
 
@@ -236,7 +245,7 @@ class JVMProcessRunner[F[_]](implicit override val concurrent: Concurrent[F],
   }
 }
 
-object JVMProcessRunner {
+object JVMProcessRunnerBase {
   def withWorkingDirectory[F[_], O, E](process: Process[F, O, E], builder: ProcessBuilder): ProcessBuilder =
     process.workingDirectory match {
       case Some(directory) => builder.directory(directory.toFile)
@@ -289,4 +298,11 @@ object JVMProcessRunner {
           }
         }
     }
+}
+
+class JVMProcessRunner[F[_]](implicit concurrent: Concurrent[F], contextShift: ContextShift[F])
+  extends JVMProcessRunnerBase[F, JVMProcessInfo] {
+
+  override protected def getProcessInfo(process: JvmProcess): F[JVMProcessInfo] =
+    Sync[F].delay(new JVMProcessInfo())
 }

@@ -72,7 +72,7 @@ But for this we first have to have a `ProcessRunner` implementation in scope. Th
 one is called `JVMProcessRunner` and it can be created in the following way:
 
 ```scala mdoc:silent
-implicit val runner: ProcessRunner[IO] = new JVMProcessRunner 
+implicit val runner: ProcessRunner[IO, JVMProcessInfo] = new JVMProcessRunner 
 ```
 
 Read the [custom process runners](custom-runners) page for an example of using a customized runner.

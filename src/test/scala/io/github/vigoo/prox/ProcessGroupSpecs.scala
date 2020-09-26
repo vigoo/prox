@@ -14,7 +14,7 @@ import zio.test.Assertion._
 import zio.test._
 
 object ProcessGroupSpecs extends DefaultRunnableSpec with ProxSpecHelpers {
-  implicit val processRunner: ProcessRunner[Task] = new JVMProcessRunner
+  implicit val processRunner: ProcessRunner[Task, JVMProcessInfo] = new JVMProcessRunner
 
   override val aspects = List(
     TestAspect.timeoutWarning(60.seconds),
@@ -67,7 +67,7 @@ object ProcessGroupSpecs extends DefaultRunnableSpec with ProxSpecHelpers {
           val processGroup1 = (Process[Task]("!echo", List("This is a test string")) | Process[Task]("!wc", List("-w"))) ># fs2.text.utf8Decode
           val processGroup2 = processGroup1.map(new ProcessGroup.Mapper[Task, String, Unit] {
             override def mapFirst[P <: Process[Task, fs2.Stream[Task, Byte], Unit]](process: P): P = process.withCommand(process.command.tail).asInstanceOf[P]
-            override def mapInner[P <: UnboundIProcess[Task, fs2.Stream[Task, Byte], Unit]](process: P): P = process.withCommand(process.command.tail).asInstanceOf[P]
+            override def mapInnerWithIdx[P <: UnboundIProcess[Task, fs2.Stream[Task, Byte], Unit]](process: P, idx: Int): P = process.withCommand(process.command.tail).asInstanceOf[P]
             override def mapLast[P <: UnboundIProcess[Task, String, Unit]](process: P): P = process.withCommand(process.command.tail).asInstanceOf[P]
           })
 

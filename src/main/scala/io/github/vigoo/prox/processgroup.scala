@@ -2,8 +2,11 @@ package io.github.vigoo.prox
 
 import java.nio.file.Path
 
-import cats.Applicative
+import cats.{Applicative, Monad, Traverse}
 import cats.effect._
+import cats.instances.list._
+import cats.syntax.functor._
+import cats.syntax.flatMap._
 import fs2._
 import _root_.io.github.vigoo.prox.syntax._
 
@@ -35,9 +38,13 @@ case class SimpleProcessGroupResult[F[_], +O, +E](override val exitCodes: Map[Pr
   * @tparam F Effect type
   * @tparam O Output type
   * @tparam E Error output type
+  * @tparam Info Runner-specific per-process information type
   */
-trait RunningProcessGroup[F[_], O, E] {
+trait RunningProcessGroup[F[_], O, E, +Info] {
   val runningOutput: Fiber[F, O]
+
+  /** Runner-specific information about each running process */
+  val info: Map[Process[F, Unit, Unit], Info]
 
   /** Forcibly terminates all processes in the group. Blocks until it is done. */
   def kill(): F[ProcessGroupResult[F, O, E]]
@@ -47,6 +54,18 @@ trait RunningProcessGroup[F[_], O, E] {
 
   /** Blocks until the processes finish running */
   def waitForExit(): F[ProcessGroupResult[F, O, E]]
+
+  def mapInfo[I2](f: (Process[F, Unit, Unit], Info) => I2): RunningProcessGroup[F, O, E, I2] =
+    new RunningProcessGroup[F, O, E, I2] {
+      override val runningOutput: Fiber[F, O] = RunningProcessGroup.this.runningOutput
+      override val info: Map[Process[F, Unit, Unit], I2] = RunningProcessGroup.this.info.map { case (key, value) =>
+        key -> f(key, value)
+      }
+
+      override def kill(): F[ProcessGroupResult[F, O, E]] = RunningProcessGroup.this.kill()
+      override def terminate(): F[ProcessGroupResult[F, O, E]] = RunningProcessGroup.this.terminate()
+      override def waitForExit(): F[ProcessGroupResult[F, O, E]] = RunningProcessGroup.this.waitForExit()
+    }
 }
 
 /**
@@ -78,9 +97,12 @@ trait ProcessGroup[F[_], O, E] extends ProcessLike[F] with ProcessGroupConfigura
     *
     * @param blocker Execution context for blocking operations
     * @param runner The process runner to be used
+    *
+    * @tparam Info The runner-specific information about the started processes
+    *
     * @return interface for handling the running process group
     */
-  def startProcessGroup(blocker: Blocker)(implicit runner: ProcessRunner[F]): F[RunningProcessGroup[F, O, E]] =
+  def startProcessGroup[Info](blocker: Blocker)(implicit runner: ProcessRunner[F, Info]): F[RunningProcessGroup[F, O, E, Info]] =
     runner.startProcessGroup(this, blocker)
 
   /**
@@ -93,7 +115,7 @@ trait ProcessGroup[F[_], O, E] extends ProcessLike[F] with ProcessGroupConfigura
     * @param runner The process runner to be used
     * @return a managed fiber representing the running processes
     */
-  def start(blocker: Blocker)(implicit runner: ProcessRunner[F]): Resource[F, Fiber[F, ProcessGroupResult[F, O, E]]] =
+  def start[Info](blocker: Blocker)(implicit runner: ProcessRunner[F, Info]): Resource[F, Fiber[F, ProcessGroupResult[F, O, E]]] =
     runner.start(this, blocker)
 
   /**
@@ -103,7 +125,7 @@ trait ProcessGroup[F[_], O, E] extends ProcessLike[F] with ProcessGroupConfigura
     * @param runner The process runner to be used
     * @return the result of the finished processes
     */
-  def run(blocker: Blocker)(implicit runner: ProcessRunner[F]): F[ProcessGroupResult[F, O, E]] =
+  def run[Info](blocker: Blocker)(implicit runner: ProcessRunner[F, Info]): F[ProcessGroupResult[F, O, E]] =
     start(blocker).use(_.join)
 
   /**
@@ -143,7 +165,7 @@ trait ProcessGroupConfiguration[F[_], O, E] extends ProcessLikeConfiguration[F] 
       override def mapFirst[P <: Process[F, Stream[F, Byte], E]](process: P): P =
         ConfigApplication[P](process, workingDirectory, environmentVariables, removedEnvironmentVariables)
 
-      override def mapInner[P <: Process.UnboundIProcess[F, Stream[F, Byte], E]](process: P): P =
+      override def mapInnerWithIdx[P <: Process.UnboundIProcess[F, Stream[F, Byte], E]](process: P, idx: Int): P =
         ConfigApplication[P](process, workingDirectory, environmentVariables, removedEnvironmentVariables)
 
       override def mapLast[P <: Process.UnboundIProcess[F, O, E]](process: P): P =
@@ -183,7 +205,7 @@ object ProcessGroup {
   /** Mapper functions for altering a process group */
   trait Mapper[F[_], O, E] {
     def mapFirst[P <: Process[F, Stream[F, Byte], E]](process: P): P
-    def mapInner[P <: Process.UnboundIProcess[F, Stream[F, Byte], E]](process: P): P
+    def mapInnerWithIdx[P <: Process.UnboundIProcess[F, Stream[F, Byte], E]](process: P, idx: Int): P
     def mapLast[P <: Process.UnboundIProcess[F, O, E]](process: P): P
   }
 
@@ -200,7 +222,7 @@ object ProcessGroup {
     def map(f: ProcessGroup.Mapper[F, O, E]): ProcessGroupImplIOE[F, O, E] = {
       copy(
         firstProcess = f.mapFirst(this.firstProcess),
-        innerProcesses = this.innerProcesses.map(f.mapInner),
+        innerProcesses = this.innerProcesses.zipWithIndex.map { case (p, idx) => f.mapInnerWithIdx(p, idx + 1) },
         lastProcess = f.mapLast(this.lastProcess),
         originalProcesses
       )
@@ -221,7 +243,7 @@ object ProcessGroup {
     def map(f: ProcessGroup.Mapper[F, O, Unit]): ProcessGroupImplIO[F, O] = {
       copy(
         firstProcess = f.mapFirst(this.firstProcess),
-        innerProcesses = this.innerProcesses.map(f.mapInner),
+        innerProcesses = this.innerProcesses.zipWithIndex.map { case (p, idx) => f.mapInnerWithIdx(p, idx + 1) },
         lastProcess = f.mapLast(this.lastProcess),
         originalProcesses
       )
@@ -254,7 +276,7 @@ object ProcessGroup {
     def map(f: ProcessGroup.Mapper[F, Unit, E]): ProcessGroupImplIE[F, E] = {
       copy(
         firstProcess = f.mapFirst(this.firstProcess),
-        innerProcesses = this.innerProcesses.map(f.mapInner),
+        innerProcesses = this.innerProcesses.zipWithIndex.map { case (p, idx) => f.mapInnerWithIdx(p, idx + 1) },
         lastProcess = f.mapLast(this.lastProcess),
         originalProcesses
       )
@@ -284,7 +306,7 @@ object ProcessGroup {
     def map(f: ProcessGroup.Mapper[F, O, E]): ProcessGroupImplOE[F, O, E] = {
       copy(
         firstProcess = f.mapFirst(this.firstProcess),
-        innerProcesses = this.innerProcesses.map(f.mapInner),
+        innerProcesses = this.innerProcesses.zipWithIndex.map { case (p, idx) => f.mapInnerWithIdx(p, idx + 1) },
         lastProcess = f.mapLast(this.lastProcess),
         originalProcesses
       )
@@ -315,7 +337,7 @@ object ProcessGroup {
     def map(f: ProcessGroup.Mapper[F, Unit, Unit]): ProcessGroupImplI[F] = {
       copy(
         firstProcess = f.mapFirst(this.firstProcess),
-        innerProcesses = this.innerProcesses.map(f.mapInner),
+        innerProcesses = this.innerProcesses.zipWithIndex.map { case (p, idx) => f.mapInnerWithIdx(p, idx + 1) },
         lastProcess = f.mapLast(this.lastProcess),
         originalProcesses
       )
@@ -358,7 +380,7 @@ object ProcessGroup {
     def map(f: ProcessGroup.Mapper[F, O, Unit]): ProcessGroupImplO[F, O] = {
       copy(
         firstProcess = f.mapFirst(this.firstProcess),
-        innerProcesses = this.innerProcesses.map(f.mapInner),
+        innerProcesses = this.innerProcesses.zipWithIndex.map { case (p, idx) => f.mapInnerWithIdx(p, idx + 1) },
         lastProcess = f.mapLast(this.lastProcess),
         originalProcesses
       )
@@ -401,7 +423,7 @@ object ProcessGroup {
     def map(f: ProcessGroup.Mapper[F, Unit, E]): ProcessGroupImplE[F, E] = {
       copy(
         firstProcess = f.mapFirst(this.firstProcess),
-        innerProcesses = this.innerProcesses.map(f.mapInner),
+        innerProcesses = this.innerProcesses.zipWithIndex.map { case (p, idx) => f.mapInnerWithIdx(p, idx + 1) },
         lastProcess = f.mapLast(this.lastProcess),
         originalProcesses
       )
@@ -463,7 +485,7 @@ object ProcessGroup {
     def map(f: ProcessGroup.Mapper[F, Unit, Unit]): ProcessGroupImpl[F] = {
       copy(
         firstProcess = f.mapFirst(this.firstProcess),
-        innerProcesses = this.innerProcesses.map(f.mapInner),
+        innerProcesses = this.innerProcesses.zipWithIndex.map { case (p, idx) => f.mapInnerWithIdx(p, idx + 1) },
         lastProcess = f.mapLast(this.lastProcess),
         originalProcesses
       )

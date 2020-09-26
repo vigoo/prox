@@ -26,7 +26,7 @@ All these methods require a `Blocker[F]` instance that is used for the _blocking
 Let's see some examples!
 
 ```scala mdoc:silent
-implicit val runner: ProcessRunner[IO] = new JVMProcessRunner 
+implicit val runner: ProcessRunner[IO, JVMProcessInfo] = new JVMProcessRunner 
 
 val process = Process[IO]("echo", List("hello"))
 
