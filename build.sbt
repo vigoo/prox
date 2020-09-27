@@ -11,11 +11,14 @@ import xerial.sbt.Sonatype._
 import scala.xml.{Node => XmlNode, NodeSeq => XmlNodeSeq, _}
 import scala.xml.transform.{RewriteRule, RuleTransformer}
 
+dynverSonatypeSnapshots in ThisBuild := true
+
 val commonSettings = Seq(
   organization := "io.github.vigoo",
   scalaVersion := scala213,
   crossScalaVersions := List(scala212, scala213),
   addCompilerPlugin("org.typelevel" %% s"kind-projector" % "0.11.0" cross CrossVersion.full),
+  scalacOptions += "-target:jvm-1.8",
 
   libraryDependencies ++= Seq(
     "org.scala-lang.modules" %% "scala-collection-compat" % "2.2.0"
@@ -55,21 +58,15 @@ val commonSettings = Seq(
 )
 
 lazy val prox = project.in(file("."))
-  .settings(
-    name := "prox",
-    description := "A Scala library for working with system processes",
-    dynverSonatypeSnapshots in ThisBuild := true,
-  )
   .aggregate(proxCore, proxFS2, proxZStream, proxJava9)
 
-lazy val proxCore = Project("prox-core", file("prox-core"))
-  .settings(commonSettings)
+lazy val docs = project
   .enablePlugins(GhpagesPlugin, SiteScaladocPlugin, MicrositesPlugin)
   .settings(
-    scalacOptions += "-target:jvm-1.8",
-
+    publishArtifact := false,
+    name := "prox",
+    description := "A Scala library for working with system processes",
     git.remoteRepo := "git@github.com:vigoo/prox.git",
-
     micrositeUrl := "https://vigoo.github.io",
     micrositeBaseUrl := "/prox",
     micrositeHomepage := "https://vigoo.github.io/prox/",
@@ -79,12 +76,12 @@ lazy val proxCore = Project("prox-core", file("prox-core"))
     micrositeGithubOwner := "vigoo",
     micrositeGithubRepo := "prox",
     micrositeGitterChannel := false,
-    micrositeDataDirectory := file("src/microsite/data"),
-    micrositeStaticDirectory := file("src/microsite/static"),
-    micrositeImgDirectory := file("src/microsite/img"),
-    micrositeCssDirectory := file("src/microsite/styles"),
-    micrositeSassDirectory := file("src/microsite/partials"),
-    micrositeJsDirectory := file("src/microsite/scripts"),
+    micrositeDataDirectory := baseDirectory.value / "src/microsite/data",
+    micrositeStaticDirectory := baseDirectory.value / "src/microsite/static",
+    micrositeImgDirectory := baseDirectory.value / "src/microsite/img",
+    micrositeCssDirectory := baseDirectory.value / "src/microsite/styles",
+    micrositeSassDirectory := baseDirectory.value / "src/microsite/partials",
+    micrositeJsDirectory := baseDirectory.value / "src/microsite/scripts",
     micrositeTheme := "light",
     micrositeHighlightLanguages ++= Seq("scala", "sbt"),
     micrositeConfigYaml := ConfigYml(
@@ -110,7 +107,9 @@ lazy val proxCore = Project("prox-core", file("prox-core"))
         }
       }).transform(node).head
     }
-  )
+  ).dependsOn(proxFS2, proxZStream, proxJava9)
+
+lazy val proxCore = Project("prox-core", file("prox-core")).settings(commonSettings)
 
 lazy val proxFS2 = Project("prox-fs2", file("prox-fs2")).settings(commonSettings).settings(
   libraryDependencies ++= Seq(

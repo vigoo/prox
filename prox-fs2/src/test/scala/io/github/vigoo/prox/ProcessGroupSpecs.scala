@@ -109,7 +109,7 @@ object ProcessGroupSpecs extends DefaultRunnableSpec with ProxSpecHelpers {
             result <- runningProcesses.terminate()
           } yield result.exitCodes.toList
 
-          assertM(program)(contains[(Process[Unit, Unit], ExitCode)](p1 -> ExitCode(1)))
+          assertM(program)(contains[(Process[Unit, Unit], ProxExitCode)](p1 -> ExitCode(1)))
         },
 
         proxTest("can be killed") { prox =>
@@ -126,7 +126,7 @@ object ProcessGroupSpecs extends DefaultRunnableSpec with ProxSpecHelpers {
             result <- runningProcesses.kill()
           } yield result.exitCodes
 
-          assertM(program)(equalTo(Map[Process[Unit, Unit], ExitCode](
+          assertM(program)(equalTo(Map[Process[Unit, Unit], ProxExitCode](
             p1 -> ExitCode(137),
             p2 -> ExitCode(137)
           )))

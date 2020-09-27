@@ -25,3 +25,11 @@ constructing and running the processes directly the main differences are:
 - Different operators / methods for different source and target types, see [the page about redirection](redirection)
 - The need of an implicit [process runner](running) in scope
 - New ways to start and wait for the process, see [the page about runnning processes](running)
+
+### from 0.5 to 0.6
+
+0.6 introduces the native ZIO/ZStream version of the library. For existing code the following differences apply:
+
+- Instead of `prox`, the artifact is now called `prox-fs2`
+- Instead of _global imports_, the FS2 prox module now has to be constructed with the `FS2` constructor and the API is imported from that
+- Because the `FS2` module captures the `F[_]` and the `Blocker`, they are no longer needed to pass on to the API functions and types

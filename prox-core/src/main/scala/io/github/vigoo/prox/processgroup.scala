@@ -13,7 +13,7 @@ trait ProcessGroupModule {
     */
   trait ProcessGroupResult[+O, +E] {
     /** Per-process exit codes. The key is the original process passed to the piping operator */
-    val exitCodes: Map[Process[Unit, Unit], ExitCode]
+    val exitCodes: Map[Process[Unit, Unit], ProxExitCode]
 
     /** Output of the last process in the group */
     val output: O
@@ -23,7 +23,7 @@ trait ProcessGroupModule {
   }
 
   /** Default implementation of [[ProcessGroupResult]] */
-  case class SimpleProcessGroupResult[+O, +E](override val exitCodes: Map[Process[Unit, Unit], ExitCode],
+  case class SimpleProcessGroupResult[+O, +E](override val exitCodes: Map[Process[Unit, Unit], ProxExitCode],
                                               override val output: O,
                                               override val errors: Map[Process[Unit, Unit], E])
     extends ProcessGroupResult[O, E]
@@ -36,32 +36,32 @@ trait ProcessGroupModule {
     * @tparam Info Runner-specific per-process information type
     */
   trait RunningProcessGroup[O, E, +Info] {
-    val runningOutput: Fiber[O]
+    val runningOutput: ProxFiber[O]
 
     /** Runner-specific information about each running process */
     val info: Map[Process[Unit, Unit], Info]
 
     /** Forcibly terminates all processes in the group. Blocks until it is done. */
-    def kill(): IO[ProcessGroupResult[O, E]]
+    def kill(): ProxIO[ProcessGroupResult[O, E]]
 
     /** Terminates all processes in the group. Blocks until it is done. */
-    def terminate(): IO[ProcessGroupResult[O, E]]
+    def terminate(): ProxIO[ProcessGroupResult[O, E]]
 
     /** Blocks until the processes finish running */
-    def waitForExit(): IO[ProcessGroupResult[O, E]]
+    def waitForExit(): ProxIO[ProcessGroupResult[O, E]]
 
     def mapInfo[I2](f: (Process[Unit, Unit], Info) => I2): RunningProcessGroup[O, E, I2] =
       new RunningProcessGroup[O, E, I2] {
-        override val runningOutput: Fiber[O] = RunningProcessGroup.this.runningOutput
+        override val runningOutput: ProxFiber[O] = RunningProcessGroup.this.runningOutput
         override val info: Map[Process[Unit, Unit], I2] = RunningProcessGroup.this.info.map { case (key, value) =>
           key -> f(key, value)
         }
 
-        override def kill(): IO[ProcessGroupResult[O, E]] = RunningProcessGroup.this.kill()
+        override def kill(): ProxIO[ProcessGroupResult[O, E]] = RunningProcessGroup.this.kill()
 
-        override def terminate(): IO[ProcessGroupResult[O, E]] = RunningProcessGroup.this.terminate()
+        override def terminate(): ProxIO[ProcessGroupResult[O, E]] = RunningProcessGroup.this.terminate()
 
-        override def waitForExit(): IO[ProcessGroupResult[O, E]] = RunningProcessGroup.this.waitForExit()
+        override def waitForExit(): ProxIO[ProcessGroupResult[O, E]] = RunningProcessGroup.this.waitForExit()
       }
   }
 
@@ -78,8 +78,8 @@ trait ProcessGroupModule {
     * @tparam E Error output type
     */
   trait ProcessGroup[O, E] extends ProcessLike with ProcessGroupConfiguration[O, E] {
-    val firstProcess: Process[Stream[Byte], E]
-    val innerProcesses: List[Process.UnboundIProcess[Stream[Byte], E]]
+    val firstProcess: Process[ProxStream[Byte], E]
+    val innerProcesses: List[Process.UnboundIProcess[ProxStream[Byte], E]]
     val lastProcess: Process.UnboundIProcess[O, E]
 
     val originalProcesses: List[Process[Unit, Unit]]
@@ -93,7 +93,7 @@ trait ProcessGroupModule {
       * @tparam Info The runner-specific information about the started processes
       * @return interface for handling the running process group
       */
-    def startProcessGroup[Info]()(implicit runner: ProcessRunner[Info]): IO[RunningProcessGroup[O, E, Info]] =
+    def startProcessGroup[Info]()(implicit runner: ProcessRunner[Info]): ProxIO[RunningProcessGroup[O, E, Info]] =
       runner.startProcessGroup(this)
 
     /**
@@ -105,7 +105,7 @@ trait ProcessGroupModule {
       * @param runner The process runner to be used
       * @return a managed fiber representing the running processes
       */
-    def start[Info]()(implicit runner: ProcessRunner[Info]): Resource[Fiber[ProcessGroupResult[O, E]]] =
+    def start[Info]()(implicit runner: ProcessRunner[Info]): ProxResource[ProxFiber[ProcessGroupResult[O, E]]] =
       runner.start(this)
 
     /**
@@ -114,7 +114,7 @@ trait ProcessGroupModule {
       * @param runner The process runner to be used
       * @return the result of the finished processes
       */
-    def run[Info]()(implicit runner: ProcessRunner[Info]): IO[ProcessGroupResult[O, E]] =
+    def run[Info]()(implicit runner: ProcessRunner[Info]): ProxIO[ProcessGroupResult[O, E]] =
       start().use(_.join)
 
     /**
@@ -152,10 +152,10 @@ trait ProcessGroupModule {
 
     override protected def applyConfiguration(workingDirectory: Option[Path], environmentVariables: Map[String, String], removedEnvironmentVariables: Set[String]): Self =
       map(new ProcessGroup.Mapper[O, E] {
-        override def mapFirst[P <: Process[Stream[Byte], E]](process: P): P =
+        override def mapFirst[P <: Process[ProxStream[Byte], E]](process: P): P =
           ConfigApplication[P](process, workingDirectory, environmentVariables, removedEnvironmentVariables)
 
-        override def mapInnerWithIdx[P <: Process.UnboundIProcess[Stream[Byte], E]](process: P, idx: Int): P =
+        override def mapInnerWithIdx[P <: Process.UnboundIProcess[ProxStream[Byte], E]](process: P, idx: Int): P =
           ConfigApplication[P](process, workingDirectory, environmentVariables, removedEnvironmentVariables)
 
         override def mapLast[P <: Process.UnboundIProcess[O, E]](process: P): P =
@@ -196,16 +196,16 @@ trait ProcessGroupModule {
 
     /** Mapper functions for altering a process group */
     trait Mapper[O, E] {
-      def mapFirst[P <: Process[Stream[Byte], E]](process: P): P
+      def mapFirst[P <: Process[ProxStream[Byte], E]](process: P): P
 
-      def mapInnerWithIdx[P <: Process.UnboundIProcess[Stream[Byte], E]](process: P, idx: Int): P
+      def mapInnerWithIdx[P <: Process.UnboundIProcess[ProxStream[Byte], E]](process: P, idx: Int): P
 
       def mapLast[P <: Process.UnboundIProcess[O, E]](process: P): P
     }
 
     /** Process group with bound input, output and error streams */
-    case class ProcessGroupImplIOE[O, E](override val firstProcess: Process[Stream[Byte], E],
-                                         override val innerProcesses: List[Process.UnboundIProcess[Stream[Byte], E]],
+    case class ProcessGroupImplIOE[O, E](override val firstProcess: Process[ProxStream[Byte], E],
+                                         override val innerProcesses: List[Process.UnboundIProcess[ProxStream[Byte], E]],
                                          override val lastProcess: Process.UnboundIProcess[O, E],
                                          override val originalProcesses: List[Process[Unit, Unit]])
       extends ProcessGroup[O, E] {
@@ -223,8 +223,8 @@ trait ProcessGroupModule {
     }
 
     /** Process group with bound input and output streams */
-    case class ProcessGroupImplIO[O](override val firstProcess: Process.UnboundEProcess[Stream[Byte]],
-                                     override val innerProcesses: List[Process.UnboundIEProcess[Stream[Byte]]],
+    case class ProcessGroupImplIO[O](override val firstProcess: Process.UnboundEProcess[ProxStream[Byte]],
+                                     override val innerProcesses: List[Process.UnboundIEProcess[ProxStream[Byte]]],
                                      override val lastProcess: Process.UnboundIEProcess[O],
                                      override val originalProcesses: List[Process[Unit, Unit]])
       extends ProcessGroup[O, Unit]
@@ -255,8 +255,8 @@ trait ProcessGroupModule {
     }
 
     /** Process group with bound input and error streams */
-    case class ProcessGroupImplIE[E](override val firstProcess: Process[Stream[Byte], E],
-                                     override val innerProcesses: List[Process.UnboundIProcess[Stream[Byte], E]],
+    case class ProcessGroupImplIE[E](override val firstProcess: Process[ProxStream[Byte], E],
+                                     override val innerProcesses: List[Process.UnboundIProcess[ProxStream[Byte], E]],
                                      override val lastProcess: Process.UnboundIOProcess[E],
                                      override val originalProcesses: List[Process[Unit, Unit]])
       extends ProcessGroup[Unit, E]
@@ -284,8 +284,8 @@ trait ProcessGroupModule {
     }
 
     /** Process group with bound output and error streams */
-    case class ProcessGroupImplOE[O, E](override val firstProcess: Process.UnboundIProcess[Stream[Byte], E],
-                                        override val innerProcesses: List[Process.UnboundIProcess[Stream[Byte], E]],
+    case class ProcessGroupImplOE[O, E](override val firstProcess: Process.UnboundIProcess[ProxStream[Byte], E],
+                                        override val innerProcesses: List[Process.UnboundIProcess[ProxStream[Byte], E]],
                                         override val lastProcess: Process.UnboundIProcess[O, E],
                                         override val originalProcesses: List[Process[Unit, Unit]])
       extends ProcessGroup[O, E]
@@ -313,8 +313,8 @@ trait ProcessGroupModule {
     }
 
     /** Process group with bound input stream */
-    case class ProcessGroupImplI(override val firstProcess: Process.UnboundEProcess[Stream[Byte]],
-                                 override val innerProcesses: List[Process.UnboundIEProcess[Stream[Byte]]],
+    case class ProcessGroupImplI(override val firstProcess: Process.UnboundEProcess[ProxStream[Byte]],
+                                 override val innerProcesses: List[Process.UnboundIEProcess[ProxStream[Byte]]],
                                  override val lastProcess: Process.UnboundProcess,
                                  override val originalProcesses: List[Process[Unit, Unit]])
       extends ProcessGroup[Unit, Unit]
@@ -355,8 +355,8 @@ trait ProcessGroupModule {
     }
 
     /** Process group with bound output stream */
-    case class ProcessGroupImplO[O](override val firstProcess: Process.UnboundIEProcess[Stream[Byte]],
-                                    override val innerProcesses: List[Process.UnboundIEProcess[Stream[Byte]]],
+    case class ProcessGroupImplO[O](override val firstProcess: Process.UnboundIEProcess[ProxStream[Byte]],
+                                    override val innerProcesses: List[Process.UnboundIEProcess[ProxStream[Byte]]],
                                     override val lastProcess: Process.UnboundIEProcess[O],
                                     override val originalProcesses: List[Process[Unit, Unit]])
       extends ProcessGroup[O, Unit]
@@ -397,8 +397,8 @@ trait ProcessGroupModule {
     }
 
     /** Process group with bound error stream */
-    case class ProcessGroupImplE[E](override val firstProcess: Process.UnboundIProcess[Stream[Byte], E],
-                                    override val innerProcesses: List[Process.UnboundIProcess[Stream[Byte], E]],
+    case class ProcessGroupImplE[E](override val firstProcess: Process.UnboundIProcess[ProxStream[Byte], E],
+                                    override val innerProcesses: List[Process.UnboundIProcess[ProxStream[Byte], E]],
                                     override val lastProcess: Process.UnboundIOProcess[E],
                                     override val originalProcesses: List[Process[Unit, Unit]])
       extends ProcessGroup[Unit, E]
@@ -436,8 +436,8 @@ trait ProcessGroupModule {
     }
 
     /** Process group with unbound input, output and error streams */
-    case class ProcessGroupImpl(override val firstProcess: Process.UnboundIEProcess[Stream[Byte]],
-                                override val innerProcesses: List[Process.UnboundIEProcess[Stream[Byte]]],
+    case class ProcessGroupImpl(override val firstProcess: Process.UnboundIEProcess[ProxStream[Byte]],
+                                override val innerProcesses: List[Process.UnboundIEProcess[ProxStream[Byte]]],
                                 override val lastProcess: Process.UnboundProcess,
                                 override val originalProcesses: List[Process[Unit, Unit]])
       extends ProcessGroup[Unit, Unit]
@@ -448,8 +448,8 @@ trait ProcessGroupModule {
       override type Self = ProcessGroupImpl
 
       def pipeInto(other: Process.UnboundProcess,
-                   channel: Pipe[Byte, Byte]): ProcessGroupImpl = {
-        val pl1 = lastProcess.connectOutput(OutputStreamThroughPipe(channel, (stream: Stream[Byte]) => pure(stream)))
+                   channel: ProxPipe[Byte, Byte]): ProcessGroupImpl = {
+        val pl1 = lastProcess.connectOutput(OutputStreamThroughPipe(channel, (stream: ProxStream[Byte]) => pure(stream)))
 
         copy(
           innerProcesses = pl1 :: innerProcesses,
@@ -462,9 +462,9 @@ trait ProcessGroupModule {
         pipeInto(other, identityPipe)
 
 
-      def via(channel: Pipe[Byte, Byte]): PipeBuilderSyntax[ProcessGroupImpl] =
+      def via(channel: ProxPipe[Byte, Byte]): PipeBuilderSyntax[ProcessGroupImpl] =
         new PipeBuilderSyntax(new PipeBuilder[ProcessGroupImpl] {
-          override def build(other: Process.UnboundProcess, channel: Pipe[Byte, Byte]): ProcessGroupImpl =
+          override def build(other: Process.UnboundProcess, channel: ProxPipe[Byte, Byte]): ProcessGroupImpl =
             ProcessGroupImpl.this.pipeInto(other, channel)
         }, channel)
 

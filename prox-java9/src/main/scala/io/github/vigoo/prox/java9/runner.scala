@@ -12,7 +12,7 @@ trait Java9Module {
   class JVM9ProcessRunner()
     extends JVMProcessRunnerBase[JVM9ProcessInfo] {
 
-    override protected def getProcessInfo(process: JvmProcess): IO[JVM9ProcessInfo] =
+    override protected def getProcessInfo(process: JvmProcess): ProxIO[JVM9ProcessInfo] =
       effect(process.pid(), FailedToQueryState).map(pid => JVM9ProcessInfo(pid))
   }
 }

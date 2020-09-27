@@ -1,6 +1,7 @@
 ---
 layout: docs
 title: Redirection
+section: fs2
 ---
 
 # Redirecting input, output and error
@@ -9,10 +10,13 @@ title: Redirection
 import cats.effect._
 import scala.concurrent.ExecutionContext
 import io.github.vigoo.prox._
-import io.github.vigoo.prox.syntax._
 
 implicit val contextShift = IO.contextShift(ExecutionContext.global)
-```
+val (blocker, _) = Blocker[IO].allocated.unsafeRunSync()
+
+val prox = ProxFS2[IO](blocker)
+import prox._
+``` 
 
 Similarly to [customization](customize), redirection is also implemented with _capability traits_.
 The `ProcessIO` type returned by the `Process` constructor implements all the three redirection capability
@@ -30,7 +34,7 @@ Let's see an example of this (redirection methods are described below on this pa
 ```scala mdoc
 import cats.implicits._
 
-val proc1 = Process[IO]("echo", List("Hello world"))
+val proc1 = Process("echo", List("Hello world"))
 val proc2 = proc1 ># fs2.text.utf8Decode
 ```
 
@@ -139,8 +143,8 @@ for {
   errors <- Queue.unbounded[IO, String]
   parseLines = fs2.text.utf8Decode[IO].andThen(fs2.text.lines)
  
-  p1 = Process[IO]("proc1")
-  p2 = Process[IO]("proc2")
+  p1 = Process("proc1")
+  p2 = Process("proc2")
   group = (p1 | p2).customizedPerProcess.errorsToSink {
     case p if p == p1 => parseLines.andThen(_.map(s => "P1: " + s)).andThen(_.through(errors.enqueue))
     case p if p == p2 => parseLines.andThen(_.map(s => "P2: " + s)).andThen(_.through(errors.enqueue))
@@ -152,25 +156,25 @@ for {
 The `Process` object contains several useful _type aliases_ for writing functions that work with any process by
 only specifying what redirection channels we want _unbounded_. 
 
-The `UnboundProcess[F]` represents a process which is fully unbound, no redirection has been done yet. It is 
+The `UnboundProcess` represents a process which is fully unbound, no redirection has been done yet. It is 
 defined as follows:
 
 ```scala
-type UnboundProcess[F[_]] = Process[F, Unit, Unit]
-    with RedirectableInput[F, UnboundOEProcess[F]]
-    with RedirectableOutput[F, UnboundIEProcess[F, *]]
-    with RedirectableError[F, UnboundIOProcess[F, *]]
+type UnboundProcess = Process[Unit, Unit]
+    with RedirectableInput[UnboundOEProcess]
+    with RedirectableOutput[UnboundIEProcess[*]]
+    with RedirectableError[UnboundIOProcess[*]]
 ```
 
-where `UnboundIOProcess[F, E]` for example represents a process which has its _error output_ already bound.
+where `UnboundIOProcess[E]` for example represents a process which has its _error output_ already bound.
 
 These type aliases can be used to define functions performing redirection on arbitrary processes, for example:
 
 ```scala mdoc
-def logErrors[P <: Process.UnboundEProcess[IO, _]](proc: P) = {
+def logErrors[P <: Process.UnboundEProcess[_]](proc: P) = {
    val target = fs2.text.utf8Decode[IO].andThen(fs2.text.lines).andThen(_.evalMap(line => IO(println(line)))) 
    proc !> target 
 }
 
-val proc4 = logErrors(Process[IO]("something"))
+val proc4 = logErrors(Process("something"))
 ``` 

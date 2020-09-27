@@ -44,7 +44,7 @@ object ProcessGroupSpecs extends DefaultRunnableSpec with ProxSpecHelpers {
         },
 
         testM("is customizable with pipes") {
-          val customPipe = (s: zstream.Stream[Byte]) => s
+          val customPipe = (s: zstream.ProxStream[Byte]) => s
               .transduce(ZTransducer.utf8Decode >>> ZTransducer.splitLines)
               .map(_.split(' ').toVector)
               .map(v => v.map(_ + " !!!").mkString(" "))
@@ -61,9 +61,9 @@ object ProcessGroupSpecs extends DefaultRunnableSpec with ProxSpecHelpers {
 
           val processGroup1 = (Process("!echo", List("This is a test string")) | Process("!wc", List("-w"))) ># ZTransducer.utf8Decode
           val processGroup2 = processGroup1.map(new ProcessGroup.Mapper[String, Unit] {
-            override def mapFirst[P <: Process[zstream.Stream[Byte], Unit]](process: P): P = process.withCommand(process.command.tail).asInstanceOf[P]
+            override def mapFirst[P <: Process[zstream.ProxStream[Byte], Unit]](process: P): P = process.withCommand(process.command.tail).asInstanceOf[P]
 
-            override def mapInnerWithIdx[P <: UnboundIProcess[zstream.Stream[Byte], Unit]](process: P, idx: Int): P = process.withCommand(process.command.tail).asInstanceOf[P]
+            override def mapInnerWithIdx[P <: UnboundIProcess[zstream.ProxStream[Byte], Unit]](process: P, idx: Int): P = process.withCommand(process.command.tail).asInstanceOf[P]
 
             override def mapLast[P <: UnboundIProcess[String, Unit]](process: P): P = process.withCommand(process.command.tail).asInstanceOf[P]
           })
@@ -97,7 +97,7 @@ object ProcessGroupSpecs extends DefaultRunnableSpec with ProxSpecHelpers {
             result <- runningProcesses.terminate()
           } yield result.exitCodes.toList
 
-          assertM(program)(contains[(Process[Unit, Unit], ExitCode)](p1 -> ExitCode(1)))
+          assertM(program)(contains[(Process[Unit, Unit], ProxExitCode)](p1 -> ExitCode(1)))
         },
 
         testM("can be killed") {
@@ -112,7 +112,7 @@ object ProcessGroupSpecs extends DefaultRunnableSpec with ProxSpecHelpers {
             result <- runningProcesses.kill()
           } yield result.exitCodes
 
-          assertM(program)(equalTo(Map[Process[Unit, Unit], ExitCode](
+          assertM(program)(equalTo(Map[Process[Unit, Unit], ProxExitCode](
             p1 -> ExitCode(137),
             p2 -> ExitCode(137)
           )))
@@ -178,7 +178,7 @@ object ProcessGroupSpecs extends DefaultRunnableSpec with ProxSpecHelpers {
 
 
           val builder = new StringBuilder
-          val target: zstream.Sink[Byte] = ZSink.foreach[Blocking, ProxError, Byte]((byte: Byte) => ZIO.effect(builder.append(byte.toChar)).mapError(UnknownProxError))
+          val target: zstream.ProxSink[Byte] = ZSink.foreach[Blocking, ProxError, Byte]((byte: Byte) => ZIO.effect(builder.append(byte.toChar)).mapError(UnknownProxError))
 
           val p1 = Process("perl", List("-e", """print STDERR "Hello""""))
           val p2 = Process("perl", List("-e", """print STDERR "world""""))

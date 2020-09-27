@@ -13,7 +13,7 @@ trait ProcessModule {
     */
   trait ProcessResult[+O, +E] {
     /** The exit code of the process */
-    val exitCode: ExitCode
+    val exitCode: ProxExitCode
 
     /** Output value of the process, depends on what output redirection was applied */
     val output: O
@@ -23,7 +23,7 @@ trait ProcessModule {
   }
 
   /** Default implementation of [[ProcessResult]] */
-  case class SimpleProcessResult[+O, +E](override val exitCode: ExitCode,
+  case class SimpleProcessResult[+O, +E](override val exitCode: ProxExitCode,
                                          override val output: O,
                                          override val error: E)
     extends ProcessResult[O, E]
@@ -36,39 +36,39 @@ trait ProcessModule {
     * @tparam Info Runner-specific process information
     */
   trait RunningProcess[O, E, +Info] {
-    val runningInput: Fiber[Unit]
-    val runningOutput: Fiber[O]
-    val runningError: Fiber[E]
+    val runningInput: ProxFiber[Unit]
+    val runningOutput: ProxFiber[O]
+    val runningError: ProxFiber[E]
 
     /** Gets the runner-specific process information */
     val info: Info
 
     /** Checks whether the process is still running */
-    def isAlive: IO[Boolean]
+    def isAlive: ProxIO[Boolean]
 
     /** Forced termination of the process. Blocks until the process stops. */
-    def kill(): IO[ProcessResult[O, E]]
+    def kill(): ProxIO[ProcessResult[O, E]]
 
     /** Normal termination of the process. Blocks until the process stops. */
-    def terminate(): IO[ProcessResult[O, E]]
+    def terminate(): ProxIO[ProcessResult[O, E]]
 
     /** Block until the process stops */
-    def waitForExit(): IO[ProcessResult[O, E]]
+    def waitForExit(): ProxIO[ProcessResult[O, E]]
 
     def mapInfo[I2](f: Info => I2): RunningProcess[O, E, I2] =
       new RunningProcess[O, E, I2] {
-        override val runningInput: Fiber[Unit] = RunningProcess.this.runningInput
-        override val runningOutput: Fiber[O] = RunningProcess.this.runningOutput
-        override val runningError: Fiber[E] = RunningProcess.this.runningError
+        override val runningInput: ProxFiber[Unit] = RunningProcess.this.runningInput
+        override val runningOutput: ProxFiber[O] = RunningProcess.this.runningOutput
+        override val runningError: ProxFiber[E] = RunningProcess.this.runningError
         override val info: I2 = f(RunningProcess.this.info)
 
-        override def isAlive: IO[Boolean] = RunningProcess.this.isAlive
+        override def isAlive: ProxIO[Boolean] = RunningProcess.this.isAlive
 
-        override def kill(): IO[ProcessResult[O, E]] = RunningProcess.this.kill()
+        override def kill(): ProxIO[ProcessResult[O, E]] = RunningProcess.this.kill()
 
-        override def terminate(): IO[ProcessResult[O, E]] = RunningProcess.this.terminate()
+        override def terminate(): ProxIO[ProcessResult[O, E]] = RunningProcess.this.terminate()
 
-        override def waitForExit(): IO[ProcessResult[O, E]] = RunningProcess.this.waitForExit()
+        override def waitForExit(): ProxIO[ProcessResult[O, E]] = RunningProcess.this.waitForExit()
       }
   }
 
@@ -97,9 +97,9 @@ trait ProcessModule {
     val removedEnvironmentVariables: Set[String]
 
     val outputRedirection: OutputRedirection
-    val runOutputStream: java.io.InputStream => IO[O]
+    val runOutputStream: java.io.InputStream => ProxIO[O]
     val errorRedirection: OutputRedirection
-    val runErrorStream: java.io.InputStream => IO[E]
+    val runErrorStream: java.io.InputStream => ProxIO[E]
     val inputRedirection: InputRedirection
 
     /**
@@ -111,7 +111,7 @@ trait ProcessModule {
       * @tparam Info The runner-specific process info type
       * @return interface for handling the running process
       */
-    def startProcess[Info]()(implicit runner: ProcessRunner[Info]): IO[RunningProcess[O, E, Info]] =
+    def startProcess[Info]()(implicit runner: ProcessRunner[Info]): ProxIO[RunningProcess[O, E, Info]] =
       runner.startProcess(this)
 
     /**
@@ -123,7 +123,7 @@ trait ProcessModule {
       * @param runner  The process runner to be used
       * @return a managed fiber representing the running process
       */
-    def start[Info]()(implicit runner: ProcessRunner[Info]): Resource[Fiber[ProcessResult[O, E]]] =
+    def start[Info]()(implicit runner: ProcessRunner[Info]): ProxResource[ProxFiber[ProcessResult[O, E]]] =
       runner.start(this)
 
     /**
@@ -132,7 +132,7 @@ trait ProcessModule {
       * @param runner  The process runner to be used
       * @return the result of the finished process
       */
-    def run[Info]()(implicit runner: ProcessRunner[Info]): IO[ProcessResult[O, E]] =
+    def run[Info]()(implicit runner: ProcessRunner[Info]): ProxIO[ProcessResult[O, E]] =
       start().use(_.join)
   }
 
@@ -211,9 +211,9 @@ trait ProcessModule {
                                     override val environmentVariables: Map[String, String],
                                     override val removedEnvironmentVariables: Set[String],
                                     override val outputRedirection: OutputRedirection,
-                                    override val runOutputStream: java.io.InputStream => IO[O],
+                                    override val runOutputStream: java.io.InputStream => ProxIO[O],
                                     override val errorRedirection: OutputRedirection,
-                                    override val runErrorStream: java.io.InputStream => IO[E],
+                                    override val runErrorStream: java.io.InputStream => ProxIO[E],
                                     override val inputRedirection: InputRedirection)
       extends Process[O, E] {
 
@@ -230,9 +230,9 @@ trait ProcessModule {
                                 override val environmentVariables: Map[String, String],
                                 override val removedEnvironmentVariables: Set[String],
                                 override val outputRedirection: OutputRedirection,
-                                override val runOutputStream: java.io.InputStream => IO[O],
+                                override val runOutputStream: java.io.InputStream => ProxIO[O],
                                 override val errorRedirection: OutputRedirection,
-                                override val runErrorStream: java.io.InputStream => IO[Unit],
+                                override val runErrorStream: java.io.InputStream => ProxIO[Unit],
                                 override val inputRedirection: InputRedirection)
       extends Process[O, Unit]
         with RedirectableError[ProcessImplIOE[O, *]] {
@@ -264,9 +264,9 @@ trait ProcessModule {
                                 override val environmentVariables: Map[String, String],
                                 override val removedEnvironmentVariables: Set[String],
                                 override val outputRedirection: OutputRedirection,
-                                override val runOutputStream: java.io.InputStream => IO[Unit],
+                                override val runOutputStream: java.io.InputStream => ProxIO[Unit],
                                 override val errorRedirection: OutputRedirection,
-                                override val runErrorStream: java.io.InputStream => IO[E],
+                                override val runErrorStream: java.io.InputStream => ProxIO[E],
                                 override val inputRedirection: InputRedirection)
       extends Process[Unit, E]
         with RedirectableOutput[ProcessImplIOE[*, E]] {
@@ -298,9 +298,9 @@ trait ProcessModule {
                                    override val environmentVariables: Map[String, String],
                                    override val removedEnvironmentVariables: Set[String],
                                    override val outputRedirection: OutputRedirection,
-                                   override val runOutputStream: java.io.InputStream => IO[O],
+                                   override val runOutputStream: java.io.InputStream => ProxIO[O],
                                    override val errorRedirection: OutputRedirection,
-                                   override val runErrorStream: java.io.InputStream => IO[E],
+                                   override val runErrorStream: java.io.InputStream => ProxIO[E],
                                    override val inputRedirection: InputRedirection)
       extends Process[O, E]
         with RedirectableInput[ProcessImplIOE[O, E]] {
@@ -332,9 +332,9 @@ trait ProcessModule {
                                override val environmentVariables: Map[String, String],
                                override val removedEnvironmentVariables: Set[String],
                                override val outputRedirection: OutputRedirection,
-                               override val runOutputStream: java.io.InputStream => IO[O],
+                               override val runOutputStream: java.io.InputStream => ProxIO[O],
                                override val errorRedirection: OutputRedirection,
-                               override val runErrorStream: java.io.InputStream => IO[Unit],
+                               override val runErrorStream: java.io.InputStream => ProxIO[Unit],
                                override val inputRedirection: InputRedirection)
       extends Process[O, Unit]
         with RedirectableError[ProcessImplOE[O, *]]
@@ -381,9 +381,9 @@ trait ProcessModule {
                                override val environmentVariables: Map[String, String],
                                override val removedEnvironmentVariables: Set[String],
                                override val outputRedirection: OutputRedirection,
-                               override val runOutputStream: java.io.InputStream => IO[Unit],
+                               override val runOutputStream: java.io.InputStream => ProxIO[Unit],
                                override val errorRedirection: OutputRedirection,
-                               override val runErrorStream: java.io.InputStream => IO[E],
+                               override val runErrorStream: java.io.InputStream => ProxIO[E],
                                override val inputRedirection: InputRedirection)
       extends Process[Unit, E]
         with RedirectableInput[ProcessImplIE[E]]
@@ -430,9 +430,9 @@ trait ProcessModule {
                             override val environmentVariables: Map[String, String],
                             override val removedEnvironmentVariables: Set[String],
                             override val outputRedirection: OutputRedirection,
-                            override val runOutputStream: java.io.InputStream => IO[Unit],
+                            override val runOutputStream: java.io.InputStream => ProxIO[Unit],
                             override val errorRedirection: OutputRedirection,
-                            override val runErrorStream: java.io.InputStream => IO[Unit],
+                            override val runErrorStream: java.io.InputStream => ProxIO[Unit],
                             override val inputRedirection: InputRedirection)
       extends Process[Unit, Unit]
         with RedirectableOutput[ProcessImplIO[*]]
@@ -479,9 +479,9 @@ trait ProcessModule {
                            override val environmentVariables: Map[String, String],
                            override val removedEnvironmentVariables: Set[String],
                            override val outputRedirection: OutputRedirection,
-                           override val runOutputStream: java.io.InputStream => IO[Unit],
+                           override val runOutputStream: java.io.InputStream => ProxIO[Unit],
                            override val errorRedirection: OutputRedirection,
-                           override val runErrorStream: java.io.InputStream => IO[Unit],
+                           override val runErrorStream: java.io.InputStream => ProxIO[Unit],
                            override val inputRedirection: InputRedirection)
       extends Process[Unit, Unit]
         with RedirectableOutput[ProcessImplO[*]]

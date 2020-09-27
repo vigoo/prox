@@ -24,7 +24,7 @@ trait ProcessRunnerModule {
       * @tparam E Error output type
       * @return interface for handling the running process
       */
-    def startProcess[O, E](process: Process[O, E]): IO[RunningProcess[O, E, Info]]
+    def startProcess[O, E](process: Process[O, E]): ProxIO[RunningProcess[O, E, Info]]
 
     /**
       * Starts the process asynchronously and returns a managed fiber representing it
@@ -37,7 +37,7 @@ trait ProcessRunnerModule {
       * @tparam E Error output type
       * @return interface for handling the running process
       */
-    def start[O, E](process: Process[O, E]): Resource[Fiber[ProcessResult[O, E]]] = {
+    def start[O, E](process: Process[O, E]): ProxResource[ProxFiber[ProcessResult[O, E]]] = {
       val run = startFiber(
         bracket(startProcess(process)) { runningProcess =>
           runningProcess.waitForExit()
@@ -61,7 +61,7 @@ trait ProcessRunnerModule {
       * @tparam E Error output type
       * @return interface for handling the running process group
       */
-    def startProcessGroup[O, E](processGroup: ProcessGroup[O, E]): IO[RunningProcessGroup[O, E, Info]]
+    def startProcessGroup[O, E](processGroup: ProcessGroup[O, E]): ProxIO[RunningProcessGroup[O, E, Info]]
 
     /**
       * Starts the process group asynchronously and returns a managed fiber representing it
@@ -74,7 +74,7 @@ trait ProcessRunnerModule {
       * @tparam E Error output type
       * @return interface for handling the running process
       */
-    def start[O, E](processGroup: ProcessGroup[O, E]): Resource[Fiber[ProcessGroupResult[O, E]]] = {
+    def start[O, E](processGroup: ProcessGroup[O, E]): ProxResource[ProxFiber[ProcessGroupResult[O, E]]] = {
       val run =
         startFiber(
           bracket(startProcessGroup(processGroup)) { runningProcess =>
@@ -97,22 +97,22 @@ trait ProcessRunnerModule {
 
   /** Default implementation of [[RunningProcess]] using the Java process API */
   class JVMRunningProcess[O, E, +Info <: JVMProcessInfo](val nativeProcess: JvmProcess,
-                                                         override val runningInput: Fiber[Unit],
-                                                         override val runningOutput: Fiber[O],
-                                                         override val runningError: Fiber[E],
+                                                         override val runningInput: ProxFiber[Unit],
+                                                         override val runningOutput: ProxFiber[O],
+                                                         override val runningError: ProxFiber[E],
                                                          override val info: Info)
     extends RunningProcess[O, E, Info] {
 
-    def isAlive: IO[Boolean] =
+    def isAlive: ProxIO[Boolean] =
       effect(nativeProcess.isAlive, FailedToQueryState)
 
-    def kill(): IO[ProcessResult[O, E]] =
+    def kill(): ProxIO[ProcessResult[O, E]] =
       effect(nativeProcess.destroyForcibly(), FailedToDestroy).flatMap(_ => waitForExit())
 
-    def terminate(): IO[ProcessResult[O, E]] =
+    def terminate(): ProxIO[ProcessResult[O, E]] =
       effect(nativeProcess.destroy(), FailedToDestroy).flatMap(_ => waitForExit())
 
-    def waitForExit(): IO[ProcessResult[O, E]] = {
+    def waitForExit(): ProxIO[ProcessResult[O, E]] = {
       for {
         exitCode <- effect(nativeProcess.waitFor(), FailedToWaitForExit)
         _ <- runningInput.join
@@ -124,19 +124,19 @@ trait ProcessRunnerModule {
 
   /** Default implementation of [[RunningProcessGroup]] using the Java process API */
   class JVMRunningProcessGroup[O, E, +Info <: JVMProcessInfo](runningProcesses: Map[Process[Unit, Unit], RunningProcess[_, E, Info]],
-                                                              override val runningOutput: Fiber[O])
+                                                              override val runningOutput: ProxFiber[O])
     extends RunningProcessGroup[O, E, Info] {
 
     override val info: Map[Process[Unit, Unit], Info] =
       runningProcesses.map { case (key, value) => (key, value.info) }
 
-    def kill(): IO[ProcessGroupResult[O, E]] =
+    def kill(): ProxIO[ProcessGroupResult[O, E]] =
       traverse(runningProcesses.values.toList)(_.kill().map(_ => ())).flatMap(_ => waitForExit())
 
-    def terminate(): IO[ProcessGroupResult[O, E]] =
+    def terminate(): ProxIO[ProcessGroupResult[O, E]] =
       traverse(runningProcesses.values.toList)(_.terminate().map(_ => ())).flatMap(_ => waitForExit())
 
-    def waitForExit(): IO[ProcessGroupResult[O, E]] =
+    def waitForExit(): ProxIO[ProcessGroupResult[O, E]] =
       for {
         results <- traverse(runningProcesses.toList) { case (spec, rp) =>
           rp.waitForExit().map((result: ProcessResult[_, E]) => spec -> result)
@@ -153,7 +153,7 @@ trait ProcessRunnerModule {
 
     import JVMProcessRunnerBase._
 
-    override def startProcess[O, E](process: Process[O, E]): IO[RunningProcess[O, E, Info]] = {
+    override def startProcess[O, E](process: Process[O, E]): ProxIO[RunningProcess[O, E, Info]] = {
       val builder = withEnvironmentVariables(process,
         withWorkingDirectory(process,
           new ProcessBuilder((process.command :: process.arguments).asJava)))
@@ -175,12 +175,12 @@ trait ProcessRunnerModule {
       } yield new JVMRunningProcess(nativeProcess, runningInput, runningOutput, runningError, processInfo)
     }
 
-    protected def getProcessInfo(process: JvmProcess): IO[Info]
+    protected def getProcessInfo(process: JvmProcess): ProxIO[Info]
 
-    private def connectAndStartProcesses[E](firstProcess: Process[Stream[Byte], E] with RedirectableInput[Process[Stream[Byte], E]],
-                                            previousOutput: Stream[Byte],
-                                            remainingProcesses: List[Process[Stream[Byte], E] with RedirectableInput[Process[Stream[Byte], E]]],
-                                            startedProcesses: List[RunningProcess[_, E, Info]]): IO[(List[RunningProcess[_, E, Info]], Stream[Byte])] = {
+    private def connectAndStartProcesses[E](firstProcess: Process[ProxStream[Byte], E] with RedirectableInput[Process[ProxStream[Byte], E]],
+                                            previousOutput: ProxStream[Byte],
+                                            remainingProcesses: List[Process[ProxStream[Byte], E] with RedirectableInput[Process[ProxStream[Byte], E]]],
+                                            startedProcesses: List[RunningProcess[_, E, Info]]): ProxIO[(List[RunningProcess[_, E, Info]], ProxStream[Byte])] = {
       startProcess(firstProcess.connectInput(InputStream(previousOutput, flushChunks = false))).flatMap { first =>
         first.runningOutput.join.flatMap { firstOutput =>
           val updatedStartedProcesses = first :: startedProcesses
@@ -194,7 +194,7 @@ trait ProcessRunnerModule {
       }
     }
 
-    override def startProcessGroup[O, E](processGroup: ProcessGroup[O, E]): IO[RunningProcessGroup[O, E, Info]] =
+    override def startProcessGroup[O, E](processGroup: ProcessGroup[O, E]): ProxIO[RunningProcessGroup[O, E, Info]] =
       for {
         first <- startProcess(processGroup.firstProcess)
         firstOutput <- first.runningOutput.join
@@ -211,7 +211,7 @@ trait ProcessRunnerModule {
         runningProcesses,
         last.runningOutput)
 
-    private def runInputStream[O, E](process: Process[O, E], nativeProcess: JvmProcess): IO[Unit] = {
+    private def runInputStream[O, E](process: Process[O, E], nativeProcess: JvmProcess): ProxIO[Unit] = {
       process.inputRedirection match {
         case StdIn() => unit
         case InputFile(_) => unit
@@ -260,7 +260,7 @@ trait ProcessRunnerModule {
   class JVMProcessRunner()
     extends JVMProcessRunnerBase[JVMProcessInfo] {
 
-    override protected def getProcessInfo(process: JvmProcess): IO[JVMProcessInfo] =
+    override protected def getProcessInfo(process: JvmProcess): ProxIO[JVMProcessInfo] =
       effect(new JVMProcessInfo(), UnknownProxError)
   }
 

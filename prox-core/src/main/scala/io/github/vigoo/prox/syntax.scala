@@ -16,9 +16,9 @@ trait SyntaxModule {
       * @return Returns a [[ProcessGroup]]
       */
     def pipeInto(other: Process.UnboundProcess,
-                 channel: Pipe[Byte, Byte]): ProcessGroup.ProcessGroupImpl = {
+                 channel: ProxPipe[Byte, Byte]): ProcessGroup.ProcessGroupImpl = {
 
-      val p1 = process.connectOutput(OutputStreamThroughPipe(channel, (stream: Stream[Byte]) => pure(stream)))
+      val p1 = process.connectOutput(OutputStreamThroughPipe(channel, (stream: ProxStream[Byte]) => pure(stream)))
 
       ProcessGroup.ProcessGroupImpl(
         p1,
@@ -48,19 +48,19 @@ trait SyntaxModule {
       * @param channel Pipe between the two processes
       * @return Returns a syntax helper trait that has a [[PipeBuilderSyntax.to]] method to finish the construction
       */
-    def via(channel: Pipe[Byte, Byte]): PipeBuilderSyntax[ProcessGroup.ProcessGroupImpl] =
+    def via(channel: ProxPipe[Byte, Byte]): PipeBuilderSyntax[ProcessGroup.ProcessGroupImpl] =
       new PipeBuilderSyntax(new PipeBuilder[ProcessGroup.ProcessGroupImpl] {
-        override def build(other: Process.UnboundProcess, channel: Pipe[Byte, Byte]): ProcessGroup.ProcessGroupImpl =
+        override def build(other: Process.UnboundProcess, channel: ProxPipe[Byte, Byte]): ProcessGroup.ProcessGroupImpl =
           process.pipeInto(other, channel)
       }, channel)
   }
 
   trait PipeBuilder[P] {
     def build(other: Process.UnboundProcess,
-              channel: Pipe[Byte, Byte]): P
+              channel: ProxPipe[Byte, Byte]): P
   }
 
-  class PipeBuilderSyntax[P](builder: PipeBuilder[P], channel: Pipe[Byte, Byte]) {
+  class PipeBuilderSyntax[P](builder: PipeBuilder[P], channel: ProxPipe[Byte, Byte]) {
     def to(other: Process.UnboundProcess): P =
       builder.build(other, channel)
 

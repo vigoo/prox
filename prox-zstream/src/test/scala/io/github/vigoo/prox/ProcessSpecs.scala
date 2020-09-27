@@ -101,7 +101,7 @@ object ProcessSpecs extends DefaultRunnableSpec with ProxSpecHelpers {
 
         testM("can redirect output to a sink") {
           val builder = new StringBuilder
-          val target: zstream.Sink[Byte] = ZSink.foreach((byte: Byte) => ZIO.effect(builder.append(byte.toChar)).mapError(UnknownProxError))
+          val target: zstream.ProxSink[Byte] = ZSink.foreach((byte: Byte) => ZIO.effect(builder.append(byte.toChar)).mapError(UnknownProxError))
 
           val process = Process("echo", List("Hello world!")) > target
           val program = process.run().as(builder.toString)
@@ -183,7 +183,7 @@ object ProcessSpecs extends DefaultRunnableSpec with ProxSpecHelpers {
 
         testM("can redirect error to a sink") {
           val builder = new StringBuilder
-          val target: zstream.Sink[Byte] = ZSink.foreach((byte: Byte) => ZIO.effect(builder.append(byte.toChar)).mapError(UnknownProxError))
+          val target: zstream.ProxSink[Byte] = ZSink.foreach((byte: Byte) => ZIO.effect(builder.append(byte.toChar)).mapError(UnknownProxError))
 
           val process = Process("perl", List("-e", """print STDERR "Hello"""")) !> target
           val program = process.run().as(builder.toString)

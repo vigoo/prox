@@ -37,7 +37,7 @@ trait RedirectionModule {
       * @param sink Target sink
       * @return Returns a new process or process group with its output redirected and its output redirection capability removed.
       */
-    def >(sink: Sink[Byte]): P[Unit] =
+    def >(sink: ProxSink[Byte]): P[Unit] =
       toSink(sink)
 
     /**
@@ -49,7 +49,7 @@ trait RedirectionModule {
       * @param sink Target sink
       * @return Returns a new process or process group with its output redirected and its output redirection capability removed.
       */
-    def toSink(sink: Sink[Byte]): P[Unit] =
+    def toSink(sink: ProxSink[Byte]): P[Unit] =
       connectOutput(OutputStreamToSink(sink))
 
     /**
@@ -62,7 +62,7 @@ trait RedirectionModule {
       * @tparam O Output type of the pipe. Must have a monoid instance.
       * @return Returns a new process or process group with its output redirected and its output redirection capability removed.
       */
-    def >#[O: Monoid](pipe: Pipe[Byte, O]): P[O] =
+    def >#[O: ProxMonoid](pipe: ProxPipe[Byte, O]): P[O] =
       toFoldMonoid(pipe)
 
     /**
@@ -75,8 +75,8 @@ trait RedirectionModule {
       * @tparam O Output type of the pipe. Must have a monoid instance.
       * @return Returns a new process or process group with its output redirected and its output redirection capability removed.
       */
-    def toFoldMonoid[O: Monoid](pipe: Pipe[Byte, O]): P[O] =
-      connectOutput(OutputStreamThroughPipe(pipe, (s: Stream[O]) => s.foldMonoid))
+    def toFoldMonoid[O: ProxMonoid](pipe: ProxPipe[Byte, O]): P[O] =
+      connectOutput(OutputStreamThroughPipe(pipe, (s: ProxStream[O]) => s.foldMonoid))
 
     /**
       * Redirects the output to a pipe and collects its output to a vector
@@ -88,7 +88,7 @@ trait RedirectionModule {
       * @tparam O Output type of the pipe
       * @return Returns a new process or process group with its output redirected and its output redirection capability removed.
       */
-    def >?[O](pipe: Pipe[Byte, O]): P[Vector[O]] =
+    def >?[O](pipe: ProxPipe[Byte, O]): P[Vector[O]] =
       toVector(pipe)
 
     /**
@@ -101,8 +101,8 @@ trait RedirectionModule {
       * @tparam O Output type of the pipe
       * @return Returns a new process or process group with its output redirected and its output redirection capability removed.
       */
-    def toVector[O](pipe: Pipe[Byte, O]): P[Vector[O]] =
-      connectOutput(OutputStreamThroughPipe(pipe, (s: Stream[O]) => s.toVector))
+    def toVector[O](pipe: ProxPipe[Byte, O]): P[Vector[O]] =
+      connectOutput(OutputStreamThroughPipe(pipe, (s: ProxStream[O]) => s.toVector))
 
     /**
       * Redirects the output to a pipe and drains it regardless of its output type.
@@ -113,8 +113,8 @@ trait RedirectionModule {
       * @tparam O Output type of the pipe
       * @return Returns a new process or process group with its output redirected and its output redirection capability removed.
       */
-    def drainOutput[O](pipe: Pipe[Byte, O]): P[Unit] =
-      connectOutput(OutputStreamThroughPipe(pipe, (s: Stream[O]) => s.drain))
+    def drainOutput[O](pipe: ProxPipe[Byte, O]): P[Unit] =
+      connectOutput(OutputStreamThroughPipe(pipe, (s: ProxStream[O]) => s.drain))
 
     /**
       * Redirects the output to a pipe and folds it with a custom function.
@@ -128,8 +128,8 @@ trait RedirectionModule {
       * @tparam R Result type of the fold
       * @return Returns a new process or process group with its output redirected and its output redirection capability removed.
       */
-    def foldOutput[O, R](pipe: Pipe[Byte, O], init: R, fn: (R, O) => R): P[R] =
-      connectOutput(OutputStreamThroughPipe(pipe, (s: Stream[O]) => s.fold(init, (fn))))
+    def foldOutput[O, R](pipe: ProxPipe[Byte, O], init: R, fn: (R, O) => R): P[R] =
+      connectOutput(OutputStreamThroughPipe(pipe, (s: ProxStream[O]) => s.fold(init, (fn))))
 
     /**
       * Redirects the output to a file natively
@@ -206,7 +206,7 @@ trait RedirectionModule {
       * @param sink Target sink
       * @return Returns a new process with its error output redirected and its error redirection capability removed.
       */
-    def !>(sink: Sink[Byte]): P[Unit] =
+    def !>(sink: ProxSink[Byte]): P[Unit] =
       errorToSink(sink)
 
     /**
@@ -218,7 +218,7 @@ trait RedirectionModule {
       * @param sink Target sink
       * @return Returns a new process with its error output redirected and its error redirection capability removed.
       */
-    def errorToSink(sink: Sink[Byte]): P[Unit] =
+    def errorToSink(sink: ProxSink[Byte]): P[Unit] =
       connectError(OutputStreamToSink(sink))
 
     /**
@@ -231,7 +231,7 @@ trait RedirectionModule {
       * @tparam O Output type of the pipe. Must have a monoid instance.
       * @return Returns a new process with its error output redirected and its error redirection capability removed.
       */
-    def !>#[O: Monoid](pipe: Pipe[Byte, O]): P[O] =
+    def !>#[O: ProxMonoid](pipe: ProxPipe[Byte, O]): P[O] =
       errorToFoldMonoid(pipe)
 
     /**
@@ -244,8 +244,8 @@ trait RedirectionModule {
       * @tparam O Output type of the pipe. Must have a monoid instance.
       * @return Returns a new process with its error output redirected and its error redirection capability removed.
       */
-    def errorToFoldMonoid[O: Monoid](pipe: Pipe[Byte, O]): P[O] =
-      connectError(OutputStreamThroughPipe(pipe, (s: Stream[O]) => s.foldMonoid))
+    def errorToFoldMonoid[O: ProxMonoid](pipe: ProxPipe[Byte, O]): P[O] =
+      connectError(OutputStreamThroughPipe(pipe, (s: ProxStream[O]) => s.foldMonoid))
 
     /**
       * Redirects the error output to a pipe and collects its output to a vector
@@ -257,7 +257,7 @@ trait RedirectionModule {
       * @tparam O Output type of the pipe
       * @return Returns a new process with its error output redirected and its error redirection capability removed.
       */
-    def !>?[O](pipe: Pipe[Byte, O]): P[Vector[O]] =
+    def !>?[O](pipe: ProxPipe[Byte, O]): P[Vector[O]] =
       errorToVector(pipe)
 
     /**
@@ -270,8 +270,8 @@ trait RedirectionModule {
       * @tparam O Output type of the pipe
       * @return Returns a new process with its error output redirected and its error redirection capability removed.
       */
-    def errorToVector[O](pipe: Pipe[Byte, O]): P[Vector[O]] =
-      connectError(OutputStreamThroughPipe(pipe, (s: Stream[O]) => s.toVector))
+    def errorToVector[O](pipe: ProxPipe[Byte, O]): P[Vector[O]] =
+      connectError(OutputStreamThroughPipe(pipe, (s: ProxStream[O]) => s.toVector))
 
     /**
       * Redirects the error output to a pipe and drains it regardless of its output type.
@@ -282,8 +282,8 @@ trait RedirectionModule {
       * @tparam O Output type of the pipe
       * @return Returns a new process with its error output redirected and its error redirection capability removed.
       */
-    def drainError[O](pipe: Pipe[Byte, O]): P[Unit] =
-      connectError(OutputStreamThroughPipe(pipe, (s: Stream[O]) => s.drain))
+    def drainError[O](pipe: ProxPipe[Byte, O]): P[Unit] =
+      connectError(OutputStreamThroughPipe(pipe, (s: ProxStream[O]) => s.drain))
 
     /**
       * Redirects the error output to a pipe and folds it with a custom function.
@@ -297,8 +297,8 @@ trait RedirectionModule {
       * @tparam R Result type of the fold
       * @return Returns a new process with its error output redirected and its error redirection capability removed.
       */
-    def foldError[O, R](pipe: Pipe[Byte, O], init: R, fn: (R, O) => R): P[R] =
-      connectError(OutputStreamThroughPipe(pipe, (s: Stream[O]) => s.fold(init, fn)))
+    def foldError[O, R](pipe: ProxPipe[Byte, O], init: R, fn: (R, O) => R): P[R] =
+      connectError(OutputStreamThroughPipe(pipe, (s: ProxStream[O]) => s.fold(init, fn)))
 
     /**
       * Redirects the error output to a file natively
@@ -390,7 +390,7 @@ trait RedirectionModule {
       * @param sink Target sink
       * @return Returns a new process group with all the error streams redirected and the error redirection capability removed.
       */
-    def !>(sink: Sink[Byte]): P[Unit] =
+    def !>(sink: ProxSink[Byte]): P[Unit] =
       errorsToSink(sink)
 
     /**
@@ -402,7 +402,7 @@ trait RedirectionModule {
       * @param sink Target sink
       * @return Returns a new process group with all the error streams redirected and the error redirection capability removed.
       */
-    def errorsToSink(sink: Sink[Byte]): P[Unit] =
+    def errorsToSink(sink: ProxSink[Byte]): P[Unit] =
       customizedPerProcess.errorsToSink(_ => sink)
 
     /**
@@ -415,7 +415,7 @@ trait RedirectionModule {
       * @tparam O Output type of the pipe. Must have a monoid instance.
       * @return Returns a new process group with all the error streams redirected and the error redirection capability removed.
       */
-    def !>#[O: Monoid](pipe: Pipe[Byte, O]): P[O] =
+    def !>#[O: ProxMonoid](pipe: ProxPipe[Byte, O]): P[O] =
       errorsToFoldMonoid(pipe)
 
     /**
@@ -428,7 +428,7 @@ trait RedirectionModule {
       * @tparam O Output type of the pipe. Must have a monoid instance.
       * @return Returns a new process group with all the error streams redirected and the error redirection capability removed.
       */
-    def errorsToFoldMonoid[O: Monoid](pipe: Pipe[Byte, O]): P[O] =
+    def errorsToFoldMonoid[O: ProxMonoid](pipe: ProxPipe[Byte, O]): P[O] =
       customizedPerProcess.errorsToFoldMonoid(_ => pipe)
 
     /**
@@ -441,7 +441,7 @@ trait RedirectionModule {
       * @tparam O Output type of the pipe
       * @return Returns a new process group with all the error streams redirected and the error redirection capability removed.
       */
-    def !>?[O](pipe: Pipe[Byte, O]): P[Vector[O]] =
+    def !>?[O](pipe: ProxPipe[Byte, O]): P[Vector[O]] =
       errorsToVector(pipe)
 
     /**
@@ -454,7 +454,7 @@ trait RedirectionModule {
       * @tparam O Output type of the pipe
       * @return Returns a new process group with all the error streams redirected and the error redirection capability removed.
       */
-    def errorsToVector[O](pipe: Pipe[Byte, O]): P[Vector[O]] =
+    def errorsToVector[O](pipe: ProxPipe[Byte, O]): P[Vector[O]] =
       customizedPerProcess.errorsToVector(_ => pipe)
 
     /**
@@ -466,7 +466,7 @@ trait RedirectionModule {
       * @tparam O Output type of the pipe
       * @return Returns a new process group with all the error streams redirected and the error redirection capability removed.
       */
-    def drainErrors[O](pipe: Pipe[Byte, O]): P[Unit] =
+    def drainErrors[O](pipe: ProxPipe[Byte, O]): P[Unit] =
       customizedPerProcess.drainErrors(_ => pipe)
 
     /**
@@ -481,7 +481,7 @@ trait RedirectionModule {
       * @tparam R Result type of the fold
       * @return Returns a new process group with all the error streams redirected and the error redirection capability removed.
       */
-    def foldErrors[O, R](pipe: Pipe[Byte, O], init: R, fn: (R, O) => R): P[R] =
+    def foldErrors[O, R](pipe: ProxPipe[Byte, O], init: R, fn: (R, O) => R): P[R] =
       customizedPerProcess.foldErrors(_ => pipe, init, fn)
   }
 
@@ -506,7 +506,7 @@ trait RedirectionModule {
         * @param sinkFn Function to get a sink for each process in the group
         * @return Returns a new process group with all the error streams redirected and the error redirection capability removed.
         */
-      def errorsToSink(sinkFn: Process[_, _] => Sink[Byte]): P[Unit] =
+      def errorsToSink(sinkFn: Process[_, _] => ProxSink[Byte]): P[Unit] =
         connectErrors(AllCapturedToSink(sinkFn))
 
       /**
@@ -518,8 +518,8 @@ trait RedirectionModule {
         * @tparam O Output type of the pipe. Must have a monoid instance.
         * @return Returns a new process group with all the error streams redirected and the error redirection capability removed.
         */
-      def errorsToFoldMonoid[O: Monoid](pipeFn: Process[_, _] => Pipe[Byte, O]): P[O] =
-        connectErrors(AllCapturedThroughPipe(pipeFn, (s: Stream[O]) => s.foldMonoid))
+      def errorsToFoldMonoid[O: ProxMonoid](pipeFn: Process[_, _] => ProxPipe[Byte, O]): P[O] =
+        connectErrors(AllCapturedThroughPipe(pipeFn, (s: ProxStream[O]) => s.foldMonoid))
 
       /**
         * Redirects the error outputs to a pipe and collects its output to a vector
@@ -530,8 +530,8 @@ trait RedirectionModule {
         * @tparam O Output type of the pipe
         * @return Returns a new process group with all the error streams redirected and the error redirection capability removed.
         */
-      def errorsToVector[O](pipeFn: Process[_, _] => Pipe[Byte, O]): P[Vector[O]] =
-        connectErrors(AllCapturedThroughPipe(pipeFn, (s: Stream[O]) => s.toVector))
+      def errorsToVector[O](pipeFn: Process[_, _] => ProxPipe[Byte, O]): P[Vector[O]] =
+        connectErrors(AllCapturedThroughPipe(pipeFn, (s: ProxStream[O]) => s.toVector))
 
       /**
         * Redirects the error outputs to a pipe and drains it regardless of its output type.
@@ -542,8 +542,8 @@ trait RedirectionModule {
         * @tparam O Output type of the pipe
         * @return Returns a new process group with all the error streams redirected and the error redirection capability removed.
         */
-      def drainErrors[O](pipeFn: Process[_, _] => Pipe[Byte, O]): P[Unit] =
-        connectErrors(AllCapturedThroughPipe(pipeFn, (s: Stream[O]) => s.drain))
+      def drainErrors[O](pipeFn: Process[_, _] => ProxPipe[Byte, O]): P[Unit] =
+        connectErrors(AllCapturedThroughPipe(pipeFn, (s: ProxStream[O]) => s.drain))
 
       /**
         * Redirects the error outputs to a pipe and folds it with a custom function.
@@ -557,8 +557,8 @@ trait RedirectionModule {
         * @tparam R Result type of the fold
         * @return Returns a new process group with all the error streams redirected and the error redirection capability removed.
         */
-      def foldErrors[O, R](pipeFn: Process[_, _] => Pipe[Byte, O], init: R, fn: (R, O) => R): P[R] =
-        connectErrors(AllCapturedThroughPipe(pipeFn, (s: Stream[O]) => s.fold(init, fn)))
+      def foldErrors[O, R](pipeFn: Process[_, _] => ProxPipe[Byte, O], init: R, fn: (R, O) => R): P[R] =
+        connectErrors(AllCapturedThroughPipe(pipeFn, (s: ProxStream[O]) => s.fold(init, fn)))
 
       /**
         * Redirects the error outputs to one file per process
@@ -631,7 +631,7 @@ trait RedirectionModule {
       * @param stream Input stream
       * @return A new process or process group with the input redirected and the input redirection capability removed.
       */
-    def <(stream: Stream[Byte]): P =
+    def <(stream: ProxStream[Byte]): P =
       fromStream(stream, flushChunks = false)
 
     /**
@@ -642,7 +642,7 @@ trait RedirectionModule {
       * @param stream Input stream
       * @return A new process or process group with the input redirected and the input redirection capability removed.
       */
-    def !<(stream: Stream[Byte]): P =
+    def !<(stream: ProxStream[Byte]): P =
       fromStream(stream, flushChunks = true)
 
     /**
@@ -654,7 +654,7 @@ trait RedirectionModule {
       * @param flushChunks Flush the process input stream after each chunk
       * @return A new process or process group with the input redirected and the input redirection capability removed.
       */
-    def fromStream(stream: Stream[Byte], flushChunks: Boolean): P =
+    def fromStream(stream: ProxStream[Byte], flushChunks: Boolean): P =
       connectInput(InputStream(stream, flushChunks))
   }
 
@@ -665,11 +665,11 @@ trait RedirectionModule {
 
   case class OutputFile(path: Path, append: Boolean) extends OutputRedirection
 
-  case class OutputStreamThroughPipe[O, OR](pipe: Pipe[Byte, O],
-                                            runner: Stream[O] => IO[OR],
+  case class OutputStreamThroughPipe[O, OR](pipe: ProxPipe[Byte, O],
+                                            runner: ProxStream[O] => ProxIO[OR],
                                             chunkSize: Int = 8192) extends OutputRedirection
 
-  case class OutputStreamToSink(sink: Sink[Byte],
+  case class OutputStreamToSink(sink: ProxSink[Byte],
                                 chunkSize: Int = 8192) extends OutputRedirection
 
   /** Supported process group error redirection types. Should not be used directly, see the redirection traits instead. */
@@ -679,11 +679,11 @@ trait RedirectionModule {
 
   case class AllToFile(pathFn: Process[_, _] => Path, append: Boolean) extends GroupErrorRedirection
 
-  case class AllCapturedThroughPipe[O, OR](pipeFn: Process[_, _] => Pipe[Byte, O],
-                                           runner: Stream[O] => IO[OR],
+  case class AllCapturedThroughPipe[O, OR](pipeFn: Process[_, _] => ProxPipe[Byte, O],
+                                           runner: ProxStream[O] => ProxIO[OR],
                                            chunkSize: Int = 8192) extends GroupErrorRedirection
 
-  case class AllCapturedToSink(sinkFn: Process[_, _] => Sink[Byte],
+  case class AllCapturedToSink(sinkFn: Process[_, _] => ProxSink[Byte],
                                chunkSize: Int = 8192) extends GroupErrorRedirection
 
   /** Supported input redirection types. Should not be used directly, see the redirection traits instead. */
@@ -693,13 +693,13 @@ trait RedirectionModule {
 
   case class InputFile(path: Path) extends InputRedirection
 
-  case class InputStream(stream: Stream[Byte], flushChunks: Boolean) extends InputRedirection
+  case class InputStream(stream: ProxStream[Byte], flushChunks: Boolean) extends InputRedirection
 
   /** Helper type class for output and error redirection dependent typing */
   trait OutputRedirectionType[R] {
     type Out
 
-    def runner(of: R)(nativeStream: java.io.InputStream): IO[Out]
+    def runner(of: R)(nativeStream: java.io.InputStream): ProxIO[Out]
   }
 
   object OutputRedirectionType {
@@ -710,19 +710,19 @@ trait RedirectionModule {
     implicit def outputRedirectionTypeOfStdOut: Aux[StdOut, Unit] = new OutputRedirectionType[StdOut] {
       override type Out = Unit
 
-      override def runner(of: StdOut)(nativeStream: java.io.InputStream): IO[Unit] = unit
+      override def runner(of: StdOut)(nativeStream: java.io.InputStream): ProxIO[Unit] = unit
     }
 
     implicit def outputRedirectionTypeOfFile: Aux[OutputFile, Unit] = new OutputRedirectionType[OutputFile] {
       override type Out = Unit
 
-      override def runner(of: OutputFile)(nativeStream: java.io.InputStream): IO[Unit] = unit
+      override def runner(of: OutputFile)(nativeStream: java.io.InputStream): ProxIO[Unit] = unit
     }
 
     implicit def outputRedirectionTypeOfStreamThroughPipe[O, OR]: Aux[OutputStreamThroughPipe[O, OR], OR] = new OutputRedirectionType[OutputStreamThroughPipe[O, OR]] {
       override type Out = OR
 
-      override def runner(of: OutputStreamThroughPipe[O, OR])(nativeStream: java.io.InputStream): IO[OR] = {
+      override def runner(of: OutputStreamThroughPipe[O, OR])(nativeStream: java.io.InputStream): ProxIO[OR] = {
         of.runner(fromJavaInputStream(nativeStream, of.chunkSize).through(of.pipe))
       }
     }
@@ -730,7 +730,7 @@ trait RedirectionModule {
     implicit def outputRedirectionTypeOfStreamToSink[O]: Aux[OutputStreamToSink, Unit] = new OutputRedirectionType[OutputStreamToSink] {
       override type Out = Unit
 
-      override def runner(of: OutputStreamToSink)(nativeStream: io.InputStream): IO[Unit] =
+      override def runner(of: OutputStreamToSink)(nativeStream: io.InputStream): ProxIO[Unit] =
         fromJavaInputStream(nativeStream, of.chunkSize).run(of.sink)
     }
   }
