@@ -30,7 +30,7 @@ val commonSettings = Seq(
     "dev.zio" %% "zio" % "1.0.1" % "test",
     "dev.zio" %% "zio-test" % "1.0.1" % "test",
     "dev.zio" %% "zio-test-sbt" % "1.0.1" % "test",
-    "dev.zio" %% "zio-interop-cats" % "2.1.4.1" % "test",
+    "dev.zio" %% "zio-interop-cats" % "2.2.0.0" % "test",
   ),
 
   testFrameworks += new TestFramework("zio.test.sbt.ZTestFramework"),
