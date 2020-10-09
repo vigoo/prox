@@ -27,9 +27,9 @@ val commonSettings = Seq(
     "com.chuusai" %% "shapeless" % "2.3.3",
     "org.scala-lang.modules" %% "scala-collection-compat" % "2.2.0",
 
-    "dev.zio" %% "zio" % "1.0.2" % "test",
-    "dev.zio" %% "zio-test" % "1.0.2" % "test",
-    "dev.zio" %% "zio-test-sbt" % "1.0.2" % "test",
+    "dev.zio" %% "zio" % "1.0.3" % "test",
+    "dev.zio" %% "zio-test" % "1.0.3" % "test",
+    "dev.zio" %% "zio-test-sbt" % "1.0.3" % "test",
     "dev.zio" %% "zio-interop-cats" % "2.2.0.1" % "test",
   ),
 
