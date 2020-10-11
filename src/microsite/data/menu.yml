@@ -15,5 +15,7 @@ options:
     url: docs/custom-runners
   - title: Migration
     url: docs/migration
+  - title: Blog posts
+    url: docs/blogposts
   - title: API reference
     url: latest/api/io/github/vigoo/prox/
