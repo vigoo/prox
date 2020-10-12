@@ -12,7 +12,7 @@ ga('send', 'pageview');
 <a href="/prox/" class="brand"><div class="brand-wrapper"></div>
 <span>prox</span></a><button id="main-toggle" class="sidebar-toggle"><span class="close"></span></button>
 </div>
-<div class="sidebar-nav"> <div class="sidebar-nav-item  "><a href="/prox/index" title="Home" class="">Home</a></div> <div class="sidebar-nav-item active "><a href="/prox/docs/" title="Getting started" class="active">Getting started</a></div> <div class="sidebar-nav-item  "><a href="/prox/docs/customize" title="Customizing environment" class="">Customizing environment</a></div> <div class="sidebar-nav-item  "><a href="/prox/docs/redirection" title="Redirection" class="">Redirection</a></div> <div class="sidebar-nav-item  "><a href="/prox/docs/processgroups" title="Process groups" class="">Process groups</a></div> <div class="sidebar-nav-item  "><a href="/prox/docs/running" title="Running processes" class="">Running processes</a></div> <div class="sidebar-nav-item  "><a href="/prox/docs/custom-runners" title="Custom runners" class="">Custom runners</a></div> <div class="sidebar-nav-item  "><a href="/prox/docs/migration" title="Migration" class="">Migration</a></div> <div class="sidebar-nav-item  "><a href="/prox/latest/api/io/github/vigoo/prox/" title="API reference" class="">API reference</a></div>
+<div class="sidebar-nav"> <div class="sidebar-nav-item  "><a href="/prox/index" title="Home" class="">Home</a></div> <div class="sidebar-nav-item active "><a href="/prox/docs/" title="Getting started" class="active">Getting started</a></div> <div class="sidebar-nav-item  "><a href="/prox/docs/customize" title="Customizing environment" class="">Customizing environment</a></div> <div class="sidebar-nav-item  "><a href="/prox/docs/redirection" title="Redirection" class="">Redirection</a></div> <div class="sidebar-nav-item  "><a href="/prox/docs/processgroups" title="Process groups" class="">Process groups</a></div> <div class="sidebar-nav-item  "><a href="/prox/docs/running" title="Running processes" class="">Running processes</a></div> <div class="sidebar-nav-item  "><a href="/prox/docs/custom-runners" title="Custom runners" class="">Custom runners</a></div> <div class="sidebar-nav-item  "><a href="/prox/docs/migration" title="Migration" class="">Migration</a></div> <div class="sidebar-nav-item  "><a href="/prox/docs/blogposts" title="Blog posts" class="">Blog posts</a></div> <div class="sidebar-nav-item  "><a href="/prox/latest/api/io/github/vigoo/prox/" title="API reference" class="">API reference</a></div>
 </div>
 </div>
 <div id="page-content-wrapper">
@@ -72,9 +72,9 @@ redirected.</p>
 <span class="c1">//   environmentVariables = Map(),</span>
 <span class="c1">//   removedEnvironmentVariables = Set(),</span>
 <span class="c1">//   outputRedirection = StdOut(),</span>
-<span class="c1">//   runOutputStream = io.github.vigoo.prox.Process$$$Lambda$9051/0x000000010292f840@75631df2,</span>
+<span class="c1">//   runOutputStream = io.github.vigoo.prox.Process$$$Lambda$9406/1503900884@739f20a0,</span>
 <span class="c1">//   errorRedirection = StdOut(),</span>
-<span class="c1">//   runErrorStream = io.github.vigoo.prox.Process$$$Lambda$9052/0x000000010292fc40@16e57648,</span>
+<span class="c1">//   runErrorStream = io.github.vigoo.prox.Process$$$Lambda$9407/1970784850@4c43f437,</span>
 <span class="c1">//   inputRedirection = StdIn()</span>
 <span class="c1">// )</span>
 </code></pre></div></div>
@@ -91,9 +91,9 @@ redirected.</p>
 <span class="c1">//   environmentVariables = Map(),</span>
 <span class="c1">//   removedEnvironmentVariables = Set(),</span>
 <span class="c1">//   outputRedirection = StdOut(),</span>
-<span class="c1">//   runOutputStream = io.github.vigoo.prox.Process$$$Lambda$9051/0x000000010292f840@35c1b527,</span>
+<span class="c1">//   runOutputStream = io.github.vigoo.prox.Process$$$Lambda$9406/1503900884@39c8c10b,</span>
 <span class="c1">//   errorRedirection = StdOut(),</span>
-<span class="c1">//   runErrorStream = io.github.vigoo.prox.Process$$$Lambda$9052/0x000000010292fc40@2dbb49f9,</span>
+<span class="c1">//   runErrorStream = io.github.vigoo.prox.Process$$$Lambda$9407/1970784850@77944056,</span>
 <span class="c1">//   inputRedirection = StdIn()</span>
 <span class="c1">// )</span>
 </code></pre></div></div>
@@ -116,7 +116,7 @@ IO functions on process.</p>
 <p>But for this we first have to have a <code class="highlighter-rouge">ProcessRunner</code> implementation in scope. The default 
 one is called <code class="highlighter-rouge">JVMProcessRunner</code> and it can be created in the following way:</p>
 
-<div class="language-scala highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="k">implicit</span> <span class="k">val</span> <span class="nv">runner</span><span class="k">:</span> <span class="kt">ProcessRunner</span><span class="o">[</span><span class="kt">IO</span><span class="o">]</span> <span class="k">=</span> <span class="k">new</span> <span class="nc">JVMProcessRunner</span> 
+<div class="language-scala highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="k">implicit</span> <span class="k">val</span> <span class="nv">runner</span><span class="k">:</span> <span class="kt">ProcessRunner</span><span class="o">[</span><span class="kt">IO</span>, <span class="kt">JVMProcessInfo</span><span class="o">]</span> <span class="k">=</span> <span class="k">new</span> <span class="nc">JVMProcessRunner</span> 
 </code></pre></div></div>
 
 <p>Read the <a href="custom-runners">custom process runners</a> page for an example of using a customized runner.</p>
@@ -129,7 +129,7 @@ running:</p>
   <span class="nv">proc1</span><span class="o">.</span><span class="py">run</span><span class="o">(</span><span class="n">blocker</span><span class="o">)</span>
 <span class="o">}</span>
 <span class="c1">// res0: IO[ProcessResult[Unit, Unit]] = Async(</span>
-<span class="c1">//   k = cats.effect.internals.IOAsync$$$Lambda$8979/0x00000001028e5840@32e3b39c,</span>
+<span class="c1">//   k = cats.effect.internals.IOAsync$$$Lambda$9338/1161930225@449752c,</span>
 <span class="c1">//   trampolineAfter = true,</span>
 <span class="c1">//   trace = StackTrace(</span>
 <span class="c1">//     stackTrace = List(</span>
