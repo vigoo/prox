@@ -60,10 +60,42 @@ val commonSettings = Seq(
 lazy val prox = project.in(file("."))
   .aggregate(proxCore, proxFS2, proxZStream, proxJava9)
 
+lazy val proxCore = Project("prox-core", file("prox-core")).settings(commonSettings)
+
+lazy val proxFS2 = Project("prox-fs2", file("prox-fs2")).settings(commonSettings).settings(
+  libraryDependencies ++= Seq(
+    "org.typelevel" %% "cats-effect" % "2.2.0",
+    "co.fs2" %% "fs2-core" % "2.4.4",
+    "co.fs2" %% "fs2-io" % "2.4.4",
+
+    "dev.zio" %% "zio" % "1.0.3" % "test",
+    "dev.zio" %% "zio-test" % "1.0.3" % "test",
+    "dev.zio" %% "zio-test-sbt" % "1.0.3" % "test",
+    "dev.zio" %% "zio-interop-cats" % "2.2.0.1" % "test",
+  ),
+  testFrameworks += new TestFramework("zio.test.sbt.ZTestFramework"),
+).dependsOn(proxCore)
+
+lazy val proxZStream = Project("prox-zstream", file("prox-zstream")).settings(commonSettings).settings(
+  libraryDependencies ++= Seq(
+    "dev.zio" %% "zio" % "1.0.3",
+    "dev.zio" %% "zio-streams" % "1.0.3",
+    "dev.zio" %% "zio-prelude" % "1.0.0-RC1",
+
+    "dev.zio" %% "zio-test" % "1.0.3" % "test",
+    "dev.zio" %% "zio-test-sbt" % "1.0.3" % "test",
+  ),
+  testFrameworks += new TestFramework("zio.test.sbt.ZTestFramework"),
+).dependsOn(proxCore)
+
+lazy val proxJava9 = Project("prox-java9", file("prox-java9")).settings(commonSettings).dependsOn(proxCore)
+
+
 lazy val docs = project
   .enablePlugins(GhpagesPlugin, SiteScaladocPlugin, MicrositesPlugin)
   .settings(
     publishArtifact := false,
+    scalaVersion := scala213,
     name := "prox",
     description := "A Scala library for working with system processes",
     git.remoteRepo := "git@github.com:vigoo/prox.git",
@@ -107,34 +139,4 @@ lazy val docs = project
         }
       }).transform(node).head
     }
-  ).dependsOn(proxFS2, proxZStream, proxJava9)
-
-lazy val proxCore = Project("prox-core", file("prox-core")).settings(commonSettings)
-
-lazy val proxFS2 = Project("prox-fs2", file("prox-fs2")).settings(commonSettings).settings(
-  libraryDependencies ++= Seq(
-    "org.typelevel" %% "cats-effect" % "2.2.0",
-    "co.fs2" %% "fs2-core" % "2.4.4",
-    "co.fs2" %% "fs2-io" % "2.4.4",
-
-    "dev.zio" %% "zio" % "1.0.3" % "test",
-    "dev.zio" %% "zio-test" % "1.0.3" % "test",
-    "dev.zio" %% "zio-test-sbt" % "1.0.3" % "test",
-    "dev.zio" %% "zio-interop-cats" % "2.2.0.1" % "test",
-  ),
-  testFrameworks += new TestFramework("zio.test.sbt.ZTestFramework"),
-).dependsOn(proxCore)
-
-lazy val proxZStream = Project("prox-zstream", file("prox-zstream")).settings(commonSettings).settings(
-  libraryDependencies ++= Seq(
-    "dev.zio" %% "zio" % "1.0.3",
-    "dev.zio" %% "zio-streams" % "1.0.3",
-    "dev.zio" %% "zio-prelude" % "1.0.0-RC1",
-
-    "dev.zio" %% "zio-test" % "1.0.3" % "test",
-    "dev.zio" %% "zio-test-sbt" % "1.0.3" % "test",
-  ),
-  testFrameworks += new TestFramework("zio.test.sbt.ZTestFramework"),
-).dependsOn(proxCore)
-
-lazy val proxJava9 = Project("prox-java9", file("prox-java9")).settings(commonSettings).dependsOn(proxCore)
+  ).dependsOn(proxCore, proxFS2, proxZStream, proxJava9)
