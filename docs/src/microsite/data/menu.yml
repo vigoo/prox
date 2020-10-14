@@ -36,7 +36,9 @@ options:
   - title: Migration
     url: docs/migration
     menu_section: migration
-
+  - title: Blog posts
+    url: docs/blogposts
+    menu_section: blogposts
   - title: API reference
     url: latest/api/io/github/vigoo/prox/
     menu_section: apireference
