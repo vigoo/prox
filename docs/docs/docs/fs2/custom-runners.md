@@ -1,7 +1,6 @@
 ---
 layout: docs
 title: Custom runners
-section: fs2
 ---
 
 # Customizing the runner

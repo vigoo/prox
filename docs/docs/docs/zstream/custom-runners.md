@@ -1,7 +1,6 @@
 ---
 layout: docs
 title: Custom runners
-section: zstream
 ---
 
 # Customizing the runner

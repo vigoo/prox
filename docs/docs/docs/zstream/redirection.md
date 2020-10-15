@@ -1,7 +1,6 @@
 ---
 layout: docs
 title: Redirection
-section: zstream
 ---
 
 # Redirecting input, output and error

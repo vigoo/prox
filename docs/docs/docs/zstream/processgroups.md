@@ -1,7 +1,6 @@
 ---
 layout: docs
 title: Process groups
-section: zstream
 ---
 
 # Connecting processes together via pipes

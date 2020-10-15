@@ -1,7 +1,6 @@
 ---
 layout: docs
 title: Running processes
-section: zstream
 ---
 
 # Running processes and process groups

@@ -95,7 +95,7 @@ lazy val proxJava9 = Project("prox-java9", file("prox-java9")).settings(commonSe
 
 
 lazy val docs = project
-  .enablePlugins(GhpagesPlugin, SiteScaladocPlugin, MicrositesPlugin)
+  .enablePlugins(GhpagesPlugin, SiteScaladocPlugin, ScalaUnidocPlugin, MicrositesPlugin)
   .settings(
     publishArtifact := false,
     skip in publish := true,
@@ -103,6 +103,8 @@ lazy val docs = project
     name := "prox",
     description := "A Scala library for working with system processes",
     git.remoteRepo := "git@github.com:vigoo/prox.git",
+    siteSubdirName in ScalaUnidoc := "api",
+    addMappingsToSiteDir(mappings in (ScalaUnidoc, packageDoc), siteSubdirName in ScalaUnidoc),
     micrositeUrl := "https://vigoo.github.io",
     micrositeBaseUrl := "/prox",
     micrositeHomepage := "https://vigoo.github.io/prox/",

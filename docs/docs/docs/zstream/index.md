@@ -1,7 +1,6 @@
 ---
 layout: docs
 title: Getting started
-section: zstream
 ---
 
 # Getting started with prox

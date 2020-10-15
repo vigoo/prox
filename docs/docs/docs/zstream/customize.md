@@ -1,7 +1,6 @@
 ---
 layout: docs
 title: Customizing environment
-section: zstream
 ---
 
 # Customizing the environment

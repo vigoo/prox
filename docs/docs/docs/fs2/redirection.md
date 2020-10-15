@@ -1,7 +1,6 @@
 ---
 layout: docs
 title: Redirection
-section: fs2
 ---
 
 # Redirecting input, output and error

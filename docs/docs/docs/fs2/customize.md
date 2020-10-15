@@ -1,7 +1,6 @@
 ---
 layout: docs
 title: Customizing environment
-section: fs2
 ---
 
 # Customizing the environment

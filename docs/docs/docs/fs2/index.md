@@ -1,7 +1,6 @@
 ---
 layout: docs
 title: Getting started
-section: fs2
 ---
 
 # Getting started with prox

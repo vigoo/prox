@@ -2,43 +2,47 @@ options:
   - title: Home
     url: index
   - title: Cats Effect / FS2
-    url: docs/fs2/index
+    url: docs/fs2/index.html
     menu_section: fs2
 
     nested_options:
+      - title: Getting started
+        url: docs/fs2/index.html
       - title: Customizing environment
-        url: docs/fs2/customize
+        url: docs/fs2/customize.html
       - title: Redirection
-        url: docs/fs2/redirection
+        url: docs/fs2/redirection.html
       - title: Process groups
-        url: docs/fs2/processgroups
+        url: docs/fs2/processgroups.html
       - title: Running processes
-        url: docs/fs2/running
+        url: docs/fs2/running.html
       - title: Custom runners
-        url: docs/fs2/custom-runners
+        url: docs/fs2/custom-runners.html
 
   - title: ZIO / ZStream
-    url: docs/zstream/index
+    url: docs/zstream/index.html
     menu_section: zstream
 
     nested_options:
+      - title: Getting started
+        url: docs/zstream/index.html
       - title: Customizing environment
-        url: docs/zstream/customize
+        url: docs/zstream/customize.html
       - title: Redirection
-        url: docs/zstream/redirection
+        url: docs/zstream/redirection.html
       - title: Process groups
-        url: docs/zstream/processgroups
+        url: docs/zstream/processgroups.html
       - title: Running processes
-        url: docs/zstream/running
+        url: docs/zstream/running.html
       - title: Custom runners
-        url: docs/zstream/custom-runners
+        url: docs/zstream/custom-runners.html
 
   - title: Migration
-    url: docs/migration
+    url: docs/migration.html
     menu_section: migration
   - title: Blog posts
-    url: docs/blogposts
+    url: docs/blogposts.html
     menu_section: blogposts
   - title: API reference
-    url: latest/api/io/github/vigoo/prox/
+    url: api/io/github/vigoo/prox/
     menu_section: apireference

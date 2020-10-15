@@ -1,7 +1,6 @@
 ---
 layout: docs
 title: Running processes
-section: fs2
 ---
 
 # Running processes and process groups

@@ -1,7 +1,6 @@
 ---
 layout: docs
 title: Process groups
-section: fs2
 ---
 
 # Connecting processes together via pipes
