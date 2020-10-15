@@ -58,6 +58,9 @@ val commonSettings = Seq(
 )
 
 lazy val prox = project.in(file("."))
+  .settings(
+    skip in publish := true
+  )
   .aggregate(proxCore, proxFS2, proxZStream, proxJava9)
 
 lazy val proxCore = Project("prox-core", file("prox-core")).settings(commonSettings)
@@ -95,6 +98,7 @@ lazy val docs = project
   .enablePlugins(GhpagesPlugin, SiteScaladocPlugin, MicrositesPlugin)
   .settings(
     publishArtifact := false,
+    skip in publish := true,
     scalaVersion := scala213,
     name := "prox",
     description := "A Scala library for working with system processes",
