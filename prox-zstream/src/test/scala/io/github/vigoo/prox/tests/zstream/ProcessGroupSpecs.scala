@@ -1,17 +1,18 @@
-package io.github.vigoo.prox
+package io.github.vigoo.prox.tests.zstream
 
 import java.nio.charset.StandardCharsets
 import java.nio.file.Files
 
-import zio._
-import zio.clock.Clock
-import zio.duration._
-import zio.test.Assertion._
-import zio.test.TestAspect.{sequential, timeoutWarning}
-import zio.test._
+import io.github.vigoo.prox.{ProxError, UnknownProxError, zstream}
 import io.github.vigoo.prox.zstream._
 import zio.blocking.Blocking
+import zio.clock.Clock
+import zio.duration._
 import zio.stream.{ZSink, ZStream, ZTransducer}
+import zio.test.Assertion._
+import zio.test.TestAspect._
+import zio.test._
+import zio.{ExitCode, ZIO}
 
 object ProcessGroupSpecs extends DefaultRunnableSpec with ProxSpecHelpers {
   implicit val processRunner: ProcessRunner[JVMProcessInfo] = new JVMProcessRunner
@@ -45,15 +46,15 @@ object ProcessGroupSpecs extends DefaultRunnableSpec with ProxSpecHelpers {
 
         testM("is customizable with pipes") {
           val customPipe = (s: zstream.ProxStream[Byte]) => s
-              .transduce(ZTransducer.utf8Decode >>> ZTransducer.splitLines)
-              .map(_.split(' ').toVector)
-              .map(v => v.map(_ + " !!!").mkString(" "))
-              .intersperse("\n")
-              .flatMap(s => ZStream.fromIterable(s.getBytes(StandardCharsets.UTF_8)))
+            .transduce(ZTransducer.utf8Decode >>> ZTransducer.splitLines)
+            .map(_.split(' ').toVector)
+            .map(v => v.map(_ + " !!!").mkString(" "))
+            .intersperse("\n")
+            .flatMap(s => ZStream.fromIterable(s.getBytes(StandardCharsets.UTF_8)))
           val processGroup = (Process("echo", List("This is a test string")).via(customPipe).to(Process("wc", List("-w")))) ># ZTransducer.utf8Decode
           val program = processGroup.run().map(_.output.trim)
 
-          assertM(program)(equalTo("11"))
+          assertM(program)(equalTo("10"))
         },
 
         testM("can be mapped") {
@@ -97,7 +98,7 @@ object ProcessGroupSpecs extends DefaultRunnableSpec with ProxSpecHelpers {
             result <- runningProcesses.terminate()
           } yield result.exitCodes.toList
 
-          assertM(program)(contains[(Process[Unit, Unit], ProxExitCode)](p1 -> ExitCode(1)))
+          assertM(program.provideSomeLayer[Blocking](Clock.live))(contains[(Process[Unit, Unit], ProxExitCode)](p1 -> ExitCode(1)))
         },
 
         testM("can be killed") {
@@ -108,11 +109,11 @@ object ProcessGroupSpecs extends DefaultRunnableSpec with ProxSpecHelpers {
 
           val program = for {
             runningProcesses <- processGroup.startProcessGroup()
-            _ <- ZIO(Thread.sleep(250))
+            _ <- ZIO.sleep(250.millis)
             result <- runningProcesses.kill()
           } yield result.exitCodes
 
-          assertM(program)(equalTo(Map[Process[Unit, Unit], ProxExitCode](
+          assertM(program.provideSomeLayer[Blocking](Clock.live))(equalTo(Map[Process[Unit, Unit], ProxExitCode](
             p1 -> ExitCode(137),
             p2 -> ExitCode(137)
           )))

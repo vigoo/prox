@@ -1,15 +1,14 @@
-package io.github.vigoo.prox
+package io.github.vigoo.prox.tests.fs2
 
 import java.nio.file.Files
 
 import cats.effect.ExitCode
-import zio._
 import zio.clock.Clock
 import zio.duration._
-import zio.interop.catz._
 import zio.test.Assertion._
-import zio.test._
 import zio.test.TestAspect._
+import zio.test._
+import zio.{IO, Task, ZIO}
 
 object ProcessGroupSpecs extends DefaultRunnableSpec with ProxSpecHelpers {
 
@@ -18,6 +17,7 @@ object ProcessGroupSpecs extends DefaultRunnableSpec with ProxSpecHelpers {
       suite("Piping")(
         proxTest("is possible with two") { prox =>
           import prox._
+
           implicit val processRunner: ProcessRunner[JVMProcessInfo] = new JVMProcessRunner
 
           val processGroup = (Process("echo", List("This is a test string")) | Process("wc", List("-w"))) ># fs2.text.utf8Decode
@@ -28,6 +28,7 @@ object ProcessGroupSpecs extends DefaultRunnableSpec with ProxSpecHelpers {
 
         proxTest("is possible with multiple") { prox =>
           import prox._
+
           implicit val processRunner: ProcessRunner[JVMProcessInfo] = new JVMProcessRunner
 
           val processGroup = (
@@ -46,6 +47,7 @@ object ProcessGroupSpecs extends DefaultRunnableSpec with ProxSpecHelpers {
 
         proxTest("is customizable with pipes") { prox =>
           import prox._
+
           implicit val processRunner: ProcessRunner[JVMProcessInfo] = new JVMProcessRunner
 
 
@@ -66,14 +68,16 @@ object ProcessGroupSpecs extends DefaultRunnableSpec with ProxSpecHelpers {
 
         proxTest("can be mapped") { prox =>
           import prox._
-          import Process._
+
           implicit val processRunner: ProcessRunner[JVMProcessInfo] = new JVMProcessRunner
 
           val processGroup1 = (Process("!echo", List("This is a test string")) | Process("!wc", List("-w"))) ># fs2.text.utf8Decode
           val processGroup2 = processGroup1.map(new ProcessGroup.Mapper[String, Unit] {
             override def mapFirst[P <: Process[fs2.Stream[Task, Byte], Unit]](process: P): P = process.withCommand(process.command.tail).asInstanceOf[P]
-            override def mapInnerWithIdx[P <: UnboundIProcess[fs2.Stream[Task, Byte], Unit]](process: P, idx: Int): P = process.withCommand(process.command.tail).asInstanceOf[P]
-            override def mapLast[P <: UnboundIProcess[String, Unit]](process: P): P = process.withCommand(process.command.tail).asInstanceOf[P]
+
+            override def mapInnerWithIdx[P <: Process.UnboundIProcess[fs2.Stream[Task, Byte], Unit]](process: P, idx: Int): P = process.withCommand(process.command.tail).asInstanceOf[P]
+
+            override def mapLast[P <: Process.UnboundIProcess[String, Unit]](process: P): P = process.withCommand(process.command.tail).asInstanceOf[P]
           })
 
           val program = processGroup2.run().map(_.output.trim)
@@ -85,6 +89,7 @@ object ProcessGroupSpecs extends DefaultRunnableSpec with ProxSpecHelpers {
       suite("Termination")(
         proxTest("can be terminated with cancellation") { prox =>
           import prox._
+
           implicit val processRunner: ProcessRunner[JVMProcessInfo] = new JVMProcessRunner
 
           val processGroup =
@@ -97,6 +102,7 @@ object ProcessGroupSpecs extends DefaultRunnableSpec with ProxSpecHelpers {
 
         proxTest[Clock, Throwable]("can be terminated") { prox =>
           import prox._
+
           implicit val processRunner: ProcessRunner[JVMProcessInfo] = new JVMProcessRunner
 
           val p1 = Process("perl", List("-e", """$SIG{TERM} = sub { exit 1 }; sleep 30; exit 0"""))
@@ -114,6 +120,7 @@ object ProcessGroupSpecs extends DefaultRunnableSpec with ProxSpecHelpers {
 
         proxTest("can be killed") { prox =>
           import prox._
+
           implicit val processRunner: ProcessRunner[JVMProcessInfo] = new JVMProcessRunner
 
           val p1 = Process("perl", List("-e", """$SIG{TERM} = 'IGNORE'; sleep 30; exit 2"""))
@@ -136,6 +143,7 @@ object ProcessGroupSpecs extends DefaultRunnableSpec with ProxSpecHelpers {
       suite("Input redirection")(
         proxTest("can be fed with an input stream") { prox =>
           import prox._
+
           implicit val processRunner: ProcessRunner[JVMProcessInfo] = new JVMProcessRunner
 
           val stream = fs2.Stream("This is a test string").through(fs2.text.utf8Encode)
@@ -147,6 +155,7 @@ object ProcessGroupSpecs extends DefaultRunnableSpec with ProxSpecHelpers {
 
         proxTest("can be fed with an input file") { prox =>
           import prox._
+
           implicit val processRunner: ProcessRunner[JVMProcessInfo] = new JVMProcessRunner
 
           withTempFile { tempFile =>
@@ -163,6 +172,7 @@ object ProcessGroupSpecs extends DefaultRunnableSpec with ProxSpecHelpers {
       suite("Output redirection")(
         proxTest("output can be redirected to file") { prox =>
           import prox._
+
           implicit val processRunner: ProcessRunner[JVMProcessInfo] = new JVMProcessRunner
 
           withTempFile { tempFile =>
@@ -180,6 +190,7 @@ object ProcessGroupSpecs extends DefaultRunnableSpec with ProxSpecHelpers {
       suite("Error redirection")(
         proxTest("can redirect each error output to a stream") { prox =>
           import prox._
+
           implicit val processRunner: ProcessRunner[JVMProcessInfo] = new JVMProcessRunner
 
           val p1 = Process("perl", List("-e", """print STDERR "Hello""""))
@@ -198,6 +209,7 @@ object ProcessGroupSpecs extends DefaultRunnableSpec with ProxSpecHelpers {
 
         proxTest("can redirect each error output to a sink") { prox =>
           import prox._
+
           implicit val processRunner: ProcessRunner[JVMProcessInfo] = new JVMProcessRunner
 
 
@@ -223,6 +235,7 @@ object ProcessGroupSpecs extends DefaultRunnableSpec with ProxSpecHelpers {
 
         proxTest("can redirect each error output to a vector") { prox =>
           import prox._
+
           implicit val processRunner: ProcessRunner[JVMProcessInfo] = new JVMProcessRunner
 
           val p1 = Process("perl", List("-e", """print STDERR "Hello""""))
@@ -246,6 +259,7 @@ object ProcessGroupSpecs extends DefaultRunnableSpec with ProxSpecHelpers {
 
         proxTest("can drain each error output") { prox =>
           import prox._
+
           implicit val processRunner: ProcessRunner[JVMProcessInfo] = new JVMProcessRunner
 
           val p1 = Process("perl", List("-e", """print STDERR "Hello""""))
@@ -264,6 +278,7 @@ object ProcessGroupSpecs extends DefaultRunnableSpec with ProxSpecHelpers {
 
         proxTest("can fold each error output") { prox =>
           import prox._
+
           implicit val processRunner: ProcessRunner[JVMProcessInfo] = new JVMProcessRunner
 
           val p1 = Process("perl", List("-e", "print STDERR 'Hello\nworld'"))
@@ -287,6 +302,7 @@ object ProcessGroupSpecs extends DefaultRunnableSpec with ProxSpecHelpers {
       suite("Error redirection customized per process")(
         proxTest("can redirect each error output to a stream customized per process") { prox =>
           import prox._
+
           implicit val processRunner: ProcessRunner[JVMProcessInfo] = new JVMProcessRunner
 
           val p1 = Process("perl", List("-e", """print STDERR "Hello""""))
@@ -308,6 +324,7 @@ object ProcessGroupSpecs extends DefaultRunnableSpec with ProxSpecHelpers {
 
         proxTest("can redirect each error output to a sink customized per process") { prox =>
           import prox._
+
           implicit val processRunner: ProcessRunner[JVMProcessInfo] = new JVMProcessRunner
 
 
@@ -340,6 +357,7 @@ object ProcessGroupSpecs extends DefaultRunnableSpec with ProxSpecHelpers {
 
         proxTest("can redirect each error output to a vector customized per process") { prox =>
           import prox._
+
           implicit val processRunner: ProcessRunner[JVMProcessInfo] = new JVMProcessRunner
 
           val p1 = Process("perl", List("-e", """print STDERR "Hello""""))
@@ -366,6 +384,7 @@ object ProcessGroupSpecs extends DefaultRunnableSpec with ProxSpecHelpers {
 
         proxTest("can drain each error output customized per process") { prox =>
           import prox._
+
           implicit val processRunner: ProcessRunner[JVMProcessInfo] = new JVMProcessRunner
 
           val p1 = Process("perl", List("-e", """print STDERR "Hello""""))
@@ -384,6 +403,7 @@ object ProcessGroupSpecs extends DefaultRunnableSpec with ProxSpecHelpers {
 
         proxTest("can fold each error output customized per process") { prox =>
           import prox._
+
           implicit val processRunner: ProcessRunner[JVMProcessInfo] = new JVMProcessRunner
 
           val p1 = Process("perl", List("-e", "print STDERR 'Hello\nworld'"))
@@ -412,6 +432,7 @@ object ProcessGroupSpecs extends DefaultRunnableSpec with ProxSpecHelpers {
 
         proxTest("can redirect each error output to file") { prox =>
           import prox._
+
           implicit val processRunner: ProcessRunner[JVMProcessInfo] = new JVMProcessRunner
 
           withTempFile { tempFile1 =>
@@ -437,6 +458,7 @@ object ProcessGroupSpecs extends DefaultRunnableSpec with ProxSpecHelpers {
       suite("Redirection ordering")(
         proxTest("can redirect each error output to a stream if fed with an input stream and redirected to an output stream") { prox =>
           import prox._
+
           implicit val processRunner: ProcessRunner[JVMProcessInfo] = new JVMProcessRunner
 
           val stream = fs2.Stream("This is a test string").through(fs2.text.utf8Encode)
@@ -456,6 +478,7 @@ object ProcessGroupSpecs extends DefaultRunnableSpec with ProxSpecHelpers {
 
         proxTest("can redirect output if each error output and input are already redirected") { prox =>
           import prox._
+
           implicit val processRunner: ProcessRunner[JVMProcessInfo] = new JVMProcessRunner
 
           val stream = fs2.Stream("This is a test string").through(fs2.text.utf8Encode)
@@ -475,6 +498,7 @@ object ProcessGroupSpecs extends DefaultRunnableSpec with ProxSpecHelpers {
 
         proxTest("can attach output and then input stream if each error output and standard output are already redirected") { prox =>
           import prox._
+
           implicit val processRunner: ProcessRunner[JVMProcessInfo] = new JVMProcessRunner
 
           val stream = fs2.Stream("This is a test string").through(fs2.text.utf8Encode)
@@ -494,6 +518,7 @@ object ProcessGroupSpecs extends DefaultRunnableSpec with ProxSpecHelpers {
 
         proxTest("can attach input and then output stream if each error output and standard output are already redirected") { prox =>
           import prox._
+
           implicit val processRunner: ProcessRunner[JVMProcessInfo] = new JVMProcessRunner
 
           val stream = fs2.Stream("This is a test string").through(fs2.text.utf8Encode)
@@ -513,6 +538,7 @@ object ProcessGroupSpecs extends DefaultRunnableSpec with ProxSpecHelpers {
 
         proxTest("can attach input stream and errors if standard output is already redirected") { prox =>
           import prox._
+
           implicit val processRunner: ProcessRunner[JVMProcessInfo] = new JVMProcessRunner
 
           val stream = fs2.Stream("This is a test string").through(fs2.text.utf8Encode)
@@ -532,6 +558,7 @@ object ProcessGroupSpecs extends DefaultRunnableSpec with ProxSpecHelpers {
 
         proxTest("can attach errors and finally input stream if standard output is already redirected") { prox =>
           import prox._
+
           implicit val processRunner: ProcessRunner[JVMProcessInfo] = new JVMProcessRunner
 
           val stream = fs2.Stream("This is a test string").through(fs2.text.utf8Encode)
@@ -556,5 +583,5 @@ object ProcessGroupSpecs extends DefaultRunnableSpec with ProxSpecHelpers {
           isLeft(anything)
         )
       }
-    ) @@ timeoutWarning(60.seconds) @@ sequential
+    ) @@ timeout(60.seconds) @@ sequential
 }

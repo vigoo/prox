@@ -69,7 +69,7 @@ trait ProxZStream extends Prox {
             fin(value, Failed(cause.failures ++ cause.defects.map(UnknownProxError))).mapError(_.toThrowable).orDie
           }
       }
-    }(use)
+    }(a => ZIO.allowInterrupt *> use(a))
   }
 
   protected override final def makeResource[A](acquire: ProxIO[A], release: A => ProxIO[Unit]): ProxResource[A] =
@@ -106,24 +106,31 @@ trait ProxZStream extends Prox {
     ZStream.fromInputStream(input, chunkSize).mapError(FailedToReadProcessOutput)
 
   protected override final def drainToJavaOutputStream(stream: ProxStream[Byte], output: io.OutputStream, flushChunks: Boolean): ProxIO[Unit] = {
+    val managedOutput = ZManaged.make(ZIO.succeed(output))(s => ZIO.effect(s.close()).orDie)
     if (flushChunks) {
-      stream.run(flushingOutputStreamSink(output).mapError(FailedToWriteProcessInput)).unit
+      stream.run(flushingOutputStreamSink(managedOutput).mapError(FailedToWriteProcessInput)).unit
     } else {
-      stream.run(ZSink.fromOutputStream(output).mapError(FailedToWriteProcessInput)).unit
+      stream
+        .run(ZSink
+          .fromOutputStreamManaged(managedOutput)
+          .mapError(FailedToWriteProcessInput)).unit
     }
   }
 
-  private final def flushingOutputStreamSink(os: io.OutputStream): ZSink[Blocking, IOException, Byte, Byte, Long] =
-    ZSink.foldLeftChunksM(0L) { (bytesWritten, byteChunk: Chunk[Byte]) =>
-      blocking.effectBlockingInterrupt {
-        val bytes = byteChunk.toArray
-        os.write(bytes)
-        os.flush()
-        bytesWritten + bytes.length
-      }.refineOrDie {
-        case e: IOException => e
+  private final def flushingOutputStreamSink(managedOutput: ZManaged[Blocking, Nothing, io.OutputStream]): ZSink[Blocking, IOException, Byte, Byte, Long] = {
+    ZSink.managed(managedOutput) { os =>
+      ZSink.foldLeftChunksM(0L) { (bytesWritten, byteChunk: Chunk[Byte]) =>
+        blocking.effectBlockingInterrupt {
+          val bytes = byteChunk.toArray
+          os.write(bytes)
+          os.flush()
+          bytesWritten + bytes.length
+        }.refineOrDie {
+          case e: IOException => e
+        }
       }
     }
+  }
 
   protected override final def startFiber[A](f: ProxIO[A]): ProxIO[ProxFiber[A]] =
     f.fork

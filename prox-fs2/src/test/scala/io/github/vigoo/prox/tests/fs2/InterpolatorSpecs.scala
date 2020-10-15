@@ -1,8 +1,8 @@
-package io.github.vigoo.prox
+package io.github.vigoo.prox.tests.fs2
 
 import zio.ZIO
-import zio.test.Assertion._
-import zio.test._
+import zio.test.Assertion.{equalTo, isEmpty}
+import zio.test.{DefaultRunnableSpec, ZSpec, assert, suite}
 
 object InterpolatorSpecs extends DefaultRunnableSpec with ProxSpecHelpers {
   override val spec: ZSpec[_root_.zio.test.environment.TestEnvironment, Any] =
@@ -10,6 +10,7 @@ object InterpolatorSpecs extends DefaultRunnableSpec with ProxSpecHelpers {
       suite("cats-effect process interpolator")(
         proxTest("works with single-word process names") { prox =>
           import prox._
+
           val process = proc"ls"
 
           ZIO.succeed(
@@ -18,6 +19,7 @@ object InterpolatorSpecs extends DefaultRunnableSpec with ProxSpecHelpers {
 
         proxTest("works with interpolated process name") { prox =>
           import prox._
+
           val cmd = "ls"
           val process = proc"$cmd"
 
@@ -27,6 +29,7 @@ object InterpolatorSpecs extends DefaultRunnableSpec with ProxSpecHelpers {
 
         proxTest("works with static parameters") { prox =>
           import prox._
+
           val process = proc"ls -hal tmp"
 
           ZIO.succeed(
@@ -35,6 +38,7 @@ object InterpolatorSpecs extends DefaultRunnableSpec with ProxSpecHelpers {
 
         proxTest("works with static parameters and interpolated process name") { prox =>
           import prox._
+
           val cmd = "ls"
           val process = proc"$cmd -hal tmp"
 
@@ -44,6 +48,7 @@ object InterpolatorSpecs extends DefaultRunnableSpec with ProxSpecHelpers {
 
         proxTest("works with static process name and interpolated parameters") { prox =>
           import prox._
+
           val p1 = "-hal"
           val p2 = "tmp"
           val process = proc"ls $p1 $p2"
@@ -54,6 +59,7 @@ object InterpolatorSpecs extends DefaultRunnableSpec with ProxSpecHelpers {
 
         proxTest("works with interpolated name and parameters") { prox =>
           import prox._
+
           val cmd = "ls"
           val p1 = "-hal"
           val p2 = "tmp"
@@ -65,6 +71,7 @@ object InterpolatorSpecs extends DefaultRunnableSpec with ProxSpecHelpers {
 
         proxTest("works with mixed static and interpolated parameters") { prox =>
           import prox._
+
           val p1 = "hello"
           val p2 = "dear visitor"
           val process = proc"echo $p1, $p2!!!"

@@ -1,11 +1,12 @@
-package io.github.vigoo.prox
+package io.github.vigoo.prox.tests.fs2
 
 import java.io.File
 
 import cats.effect.Blocker
-import zio._
+import io.github.vigoo.prox.ProxFS2
 import zio.interop.catz._
-import zio.test._
+import zio.test.{TestResult, ZSpec, testM}
+import zio.{Task, URIO}
 
 trait ProxSpecHelpers {
 

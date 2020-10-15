@@ -1,17 +1,19 @@
-package io.github.vigoo.prox
+package io.github.vigoo.prox.tests.zstream
 
 import java.nio.charset.StandardCharsets
 import java.nio.file.Files
 
-import zio._
-import zio.clock.Clock
-import zio.duration._
-import zio.test.Assertion._
-import zio.test._
-import zio.stream._
+import io.github.vigoo.prox.{ProxError, UnknownProxError, zstream}
 import io.github.vigoo.prox.zstream._
 import zio.blocking.Blocking
-import zio.test.TestAspect.{sequential, timeoutWarning}
+import zio.clock.Clock
+import zio.duration._
+import zio.stream.{ZSink, ZStream, ZTransducer}
+import zio.test.Assertion.{anything, equalTo, hasSameElements, isLeft}
+import zio.test.TestAspect._
+import zio.test._
+import zio.test.environment.Live
+import zio.{ExitCode, ZIO}
 
 object ProcessSpecs extends DefaultRunnableSpec with ProxSpecHelpers {
   implicit val processRunner: ProcessRunner[JVMProcessInfo] = new JVMProcessRunner
@@ -78,7 +80,7 @@ object ProcessSpecs extends DefaultRunnableSpec with ProxSpecHelpers {
           val process = Process("echo", List("Hello\nworld!")) >? stream
           val program = process.run().map(_.output)
 
-          assertM(program)(hasSameElements(List(StringLength(5), StringLength(6), StringLength(0))))
+          assertM(program)(hasSameElements(List(StringLength(5), StringLength(6))))
         },
 
         testM("can redirect output to stream and ignore it's result") {
@@ -96,7 +98,7 @@ object ProcessSpecs extends DefaultRunnableSpec with ProxSpecHelpers {
           )
           val program = process.run().map(_.output)
 
-          assertM(program)(equalTo(Vector(Some('H'), Some('w'), None)))
+          assertM(program)(equalTo(Vector(Some('H'), Some('w'))))
         },
 
         testM("can redirect output to a sink") {
@@ -280,7 +282,7 @@ object ProcessSpecs extends DefaultRunnableSpec with ProxSpecHelpers {
             result <- runningProcess.terminate()
           } yield result.exitCode
 
-          assertM(program)(equalTo(ExitCode(1)))
+          assertM(program.provideSomeLayer[Blocking](Clock.live))(equalTo(ExitCode(1)))
         },
 
         testM("can be killed") {
@@ -291,7 +293,7 @@ object ProcessSpecs extends DefaultRunnableSpec with ProxSpecHelpers {
             result <- runningProcess.kill()
           } yield result.exitCode
 
-          assertM(program)(equalTo(ExitCode(137)))
+          assertM(program.provideSomeLayer[Blocking](Clock.live))(equalTo(ExitCode(137)))
         },
 
         testM("can be checked if is alive") {
@@ -439,5 +441,5 @@ object ProcessSpecs extends DefaultRunnableSpec with ProxSpecHelpers {
           isLeft(anything)
         )
       }
-    ) @@ timeoutWarning(60.seconds) @@ sequential
+    ) @@ timeout(60.seconds) @@ sequential
 }

@@ -1,8 +1,9 @@
-package io.github.vigoo.prox
+package io.github.vigoo.prox.tests.zstream
 
 import java.io.File
 
-import zio._
+import io.github.vigoo.prox.{ProxError, UnknownProxError}
+import zio.ZIO
 import zio.blocking.Blocking
 
 trait ProxSpecHelpers {
@@ -12,6 +13,6 @@ trait ProxSpecHelpers {
       .mapError(UnknownProxError)
       .bracket(
         file => ZIO.effect(file.delete()).orDie,
-      inner)
+        inner)
 
 }
