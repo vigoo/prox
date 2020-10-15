@@ -59,6 +59,8 @@ val commonSettings = Seq(
 
 lazy val prox = project.in(file("."))
   .settings(
+    name := "prox",
+    organization := "io.github.vigoo",
     skip in publish := true
   )
   .aggregate(proxCore, proxFS2, proxZStream, proxJava9)
