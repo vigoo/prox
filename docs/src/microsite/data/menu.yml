@@ -1,0 +1,44 @@
+options:
+  - title: Home
+    url: index
+  - title: Cats Effect / FS2
+    url: docs/fs2/index
+    menu_section: fs2
+
+    nested_options:
+      - title: Customizing environment
+        url: docs/fs2/customize
+      - title: Redirection
+        url: docs/fs2/redirection
+      - title: Process groups
+        url: docs/fs2/processgroups
+      - title: Running processes
+        url: docs/fs2/running
+      - title: Custom runners
+        url: docs/fs2/custom-runners
+
+  - title: ZIO / ZStream
+    url: docs/zstream/index
+    menu_section: zstream
+
+    nested_options:
+      - title: Customizing environment
+        url: docs/zstream/customize
+      - title: Redirection
+        url: docs/zstream/redirection
+      - title: Process groups
+        url: docs/zstream/processgroups
+      - title: Running processes
+        url: docs/zstream/running
+      - title: Custom runners
+        url: docs/zstream/custom-runners
+
+  - title: Migration
+    url: docs/migration
+    menu_section: migration
+  - title: Blog posts
+    url: docs/blogposts
+    menu_section: blogposts
+  - title: API reference
+    url: latest/api/io/github/vigoo/prox/
+    menu_section: apireference

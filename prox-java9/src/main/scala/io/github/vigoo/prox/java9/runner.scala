@@ -2,14 +2,17 @@ package io.github.vigoo.prox.java9
 
 import java.lang.{Process => JvmProcess}
 
-import cats.effect.{Concurrent, ContextShift, Sync}
-import io.github.vigoo.prox._
+import io.github.vigoo.prox.{FailedToQueryState, Prox}
 
-case class JVM9ProcessInfo(pid: Long) extends JVMProcessInfo
+trait Java9Module {
+  this: Prox =>
 
-class JVM9ProcessRunner[F[_]](implicit concurrent: Concurrent[F], contextShift: ContextShift[F])
-  extends JVMProcessRunnerBase[F, JVM9ProcessInfo] {
+  case class JVM9ProcessInfo(pid: Long) extends JVMProcessInfo
 
-  override protected def getProcessInfo(process: JvmProcess): F[JVM9ProcessInfo] =
-    Sync[F].delay(process.pid()).map(pid => JVM9ProcessInfo(pid))
+  class JVM9ProcessRunner()
+    extends JVMProcessRunnerBase[JVM9ProcessInfo] {
+
+    override protected def getProcessInfo(process: JvmProcess): ProxIO[JVM9ProcessInfo] =
+      effect(process.pid(), FailedToQueryState).map(pid => JVM9ProcessInfo(pid))
+  }
 }
