@@ -17,7 +17,7 @@ ga('send', 'pageview');
 the <code class="highlighter-rouge">Prox</code> module:</p>
 
 <div class="language-scala highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="k">val</span> <span class="nv">prox</span> <span class="k">=</span> <span class="nc">ProxFS2</span><span class="o">[</span><span class="kt">IO</span><span class="o">](</span><span class="n">blocker</span><span class="o">)</span>
-<span class="c1">// prox: ProxFS2[IO] = io.github.vigoo.prox.ProxFS2$$anon$1@681a68f1</span>
+<span class="c1">// prox: ProxFS2[IO] = io.github.vigoo.prox.ProxFS2$$anon$1@4a1995b7</span>
 <span class="k">import</span> <span class="nn">prox._</span>
 </code></pre></div></div>
 
@@ -43,9 +43,9 @@ The type parameters have the following meaning:</p>
 <span class="c1">//   environmentVariables = Map(),</span>
 <span class="c1">//   removedEnvironmentVariables = Set(),</span>
 <span class="c1">//   outputRedirection = StdOut(),</span>
-<span class="c1">//   runOutputStream = io.github.vigoo.prox.ProcessModule$Process$$$Lambda$9610/1646617428@2789cef2,</span>
+<span class="c1">//   runOutputStream = io.github.vigoo.prox.ProcessModule$Process$$$Lambda$9608/1130987652@19cdaf3,</span>
 <span class="c1">//   errorRedirection = StdOut(),</span>
-<span class="c1">//   runErrorStream = io.github.vigoo.prox.ProcessModule$Process$$$Lambda$9611/788869328@114d9023,</span>
+<span class="c1">//   runErrorStream = io.github.vigoo.prox.ProcessModule$Process$$$Lambda$9609/5784486@4ece04cf,</span>
 <span class="c1">//   inputRedirection = StdIn()</span>
 <span class="c1">// )</span>
 </code></pre></div></div>
@@ -60,9 +60,9 @@ The type parameters have the following meaning:</p>
 <span class="c1">//   environmentVariables = Map(),</span>
 <span class="c1">//   removedEnvironmentVariables = Set(),</span>
 <span class="c1">//   outputRedirection = StdOut(),</span>
-<span class="c1">//   runOutputStream = io.github.vigoo.prox.ProcessModule$Process$$$Lambda$9610/1646617428@2ecf4910,</span>
+<span class="c1">//   runOutputStream = io.github.vigoo.prox.ProcessModule$Process$$$Lambda$9608/1130987652@54ca1043,</span>
 <span class="c1">//   errorRedirection = StdOut(),</span>
-<span class="c1">//   runErrorStream = io.github.vigoo.prox.ProcessModule$Process$$$Lambda$9611/788869328@15a9e1d8,</span>
+<span class="c1">//   runErrorStream = io.github.vigoo.prox.ProcessModule$Process$$$Lambda$9609/5784486@52789340,</span>
 <span class="c1">//   inputRedirection = StdIn()</span>
 <span class="c1">// )</span>
 </code></pre></div></div>
@@ -95,7 +95,7 @@ running:</p>
 
 <div class="language-scala highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="nv">proc1</span><span class="o">.</span><span class="py">run</span><span class="o">()</span>
 <span class="c1">// res0: ProxIO[ProcessResult[Unit, Unit]] = Async(</span>
-<span class="c1">//   k = cats.effect.internals.IOAsync$$$Lambda$9554/364193500@fa1ca57,</span>
+<span class="c1">//   k = cats.effect.internals.IOAsync$$$Lambda$9553/599798911@19ba33b6,</span>
 <span class="c1">//   trampolineAfter = true,</span>
 <span class="c1">//   trace = StackTrace(</span>
 <span class="c1">//     stackTrace = List(</span>
@@ -107,9 +107,10 @@ running:</p>
 <span class="c1">//       cats.effect.IO.bracketCase(IO.scala:613),</span>
 <span class="c1">//       cats.effect.IOLowPriorityInstances$IOEffect.bracketCase(IO.scala:904),</span>
 <span class="c1">//       cats.effect.IOLowPriorityInstances$IOEffect.bracketCase(IO.scala:863),</span>
-<span class="c1">//       cats.effect.Resource.loop$1(Resource.scala:121),</span>
-<span class="c1">//       cats.effect.Resource.fold(Resource.scala:130),</span>
-<span class="c1">//       cats.effect.Resource.use(Resource.scala:142),</span>
+<span class="c1">//       cats.effect.Resource.loop$1(Resource.scala:126),</span>
+<span class="c1">//       cats.effect.Resource.fold(Resource.scala:135),</span>
+<span class="c1">//       cats.effect.Resource.use_(Resource.scala:142),</span>
+<span class="c1">//       cats.effect.ResourceLike.use(ResourceLike.scala:33),</span>
 <span class="c1">//       io.github.vigoo.prox.ProxFS2.useResource(ProxFS2.scala:58),</span>
 <span class="c1">//       io.github.vigoo.prox.ProxFS2.useResource$(ProxFS2.scala:58),</span>
 <span class="c1">//       io.github.vigoo.prox.ProxFS2$$anon$1.useResource(ProxFS2.scala:117),</span>
@@ -136,8 +137,7 @@ running:</p>
 <span class="c1">//       mdoc.internal.markdown.Markdown$.toMarkdown(Markdown.scala:131),</span>
 <span class="c1">//       mdoc.internal.cli.MainOps.handleMarkdown(MainOps.scala:82),</span>
 <span class="c1">//       mdoc.internal.cli.MainOps.handleFile(MainOps.scala:110),</span>
-<span class="c1">//       mdoc.internal.cli.MainOps.$anonfun$generateCompleteSite$1(MainOps.scala:156),</span>
-<span class="c1">// ...</span>
+<span class="c1">//       mdoc.internal.cli.MainOps.$anonfun$generateCompleteSite$1(MainOps.scala:15...</span>
 </code></pre></div></div>
 
 <p>The result of this IO action is a <code class="highlighter-rouge">ProcessResult[O, E]</code>, with the ability to observe the 
