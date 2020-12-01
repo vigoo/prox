@@ -17,7 +17,7 @@ val commonSettings = Seq(
   organization := "io.github.vigoo",
   scalaVersion := scala213,
   crossScalaVersions := List(scala212, scala213),
-  addCompilerPlugin("org.typelevel" %% s"kind-projector" % "0.11.1" cross CrossVersion.full),
+  addCompilerPlugin("org.typelevel" %% s"kind-projector" % "0.11.2" cross CrossVersion.full),
   scalacOptions += "-target:jvm-1.8",
 
   libraryDependencies ++= Seq(
@@ -99,7 +99,7 @@ lazy val proxJava9 = Project("prox-java9", file("prox-java9")).settings(commonSe
 lazy val docs = project
   .enablePlugins(GhpagesPlugin, SiteScaladocPlugin, ScalaUnidocPlugin, MicrositesPlugin)
   .settings(
-    addCompilerPlugin("org.typelevel" %% s"kind-projector" % "0.11.1" cross CrossVersion.full),
+    addCompilerPlugin("org.typelevel" %% s"kind-projector" % "0.11.2" cross CrossVersion.full),
     publishArtifact := false,
     skip in publish := true,
     scalaVersion := scala213,
