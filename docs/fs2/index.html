@@ -17,7 +17,7 @@ ga('send', 'pageview');
 the <code class="highlighter-rouge">Prox</code> module:</p>
 
 <div class="language-scala highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="k">val</span> <span class="nv">prox</span> <span class="k">=</span> <span class="nc">ProxFS2</span><span class="o">[</span><span class="kt">IO</span><span class="o">](</span><span class="n">blocker</span><span class="o">)</span>
-<span class="c1">// prox: ProxFS2[IO] = io.github.vigoo.prox.ProxFS2$$anon$1@7967ba07</span>
+<span class="c1">// prox: ProxFS2[IO] = io.github.vigoo.prox.ProxFS2$$anon$1@532aede6</span>
 <span class="k">import</span> <span class="nn">prox._</span>
 </code></pre></div></div>
 
@@ -43,9 +43,9 @@ The type parameters have the following meaning:</p>
 <span class="c1">//   environmentVariables = Map(),</span>
 <span class="c1">//   removedEnvironmentVariables = Set(),</span>
 <span class="c1">//   outputRedirection = StdOut(),</span>
-<span class="c1">//   runOutputStream = io.github.vigoo.prox.ProcessModule$Process$$$Lambda$9603/122159895@970d9e1,</span>
+<span class="c1">//   runOutputStream = io.github.vigoo.prox.ProcessModule$Process$$$Lambda$9582/604504598@3c706284,</span>
 <span class="c1">//   errorRedirection = StdOut(),</span>
-<span class="c1">//   runErrorStream = io.github.vigoo.prox.ProcessModule$Process$$$Lambda$9604/806481118@2d48650,</span>
+<span class="c1">//   runErrorStream = io.github.vigoo.prox.ProcessModule$Process$$$Lambda$9583/1000914748@fe9b52e,</span>
 <span class="c1">//   inputRedirection = StdIn()</span>
 <span class="c1">// )</span>
 </code></pre></div></div>
@@ -60,9 +60,9 @@ The type parameters have the following meaning:</p>
 <span class="c1">//   environmentVariables = Map(),</span>
 <span class="c1">//   removedEnvironmentVariables = Set(),</span>
 <span class="c1">//   outputRedirection = StdOut(),</span>
-<span class="c1">//   runOutputStream = io.github.vigoo.prox.ProcessModule$Process$$$Lambda$9603/122159895@29fdbb8c,</span>
+<span class="c1">//   runOutputStream = io.github.vigoo.prox.ProcessModule$Process$$$Lambda$9582/604504598@65a5e4af,</span>
 <span class="c1">//   errorRedirection = StdOut(),</span>
-<span class="c1">//   runErrorStream = io.github.vigoo.prox.ProcessModule$Process$$$Lambda$9604/806481118@6d8e9b36,</span>
+<span class="c1">//   runErrorStream = io.github.vigoo.prox.ProcessModule$Process$$$Lambda$9583/1000914748@61e46020,</span>
 <span class="c1">//   inputRedirection = StdIn()</span>
 <span class="c1">// )</span>
 </code></pre></div></div>
@@ -95,7 +95,7 @@ running:</p>
 
 <div class="language-scala highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="nv">proc1</span><span class="o">.</span><span class="py">run</span><span class="o">()</span>
 <span class="c1">// res0: ProxIO[ProcessResult[Unit, Unit]] = Async(</span>
-<span class="c1">//   k = cats.effect.internals.IOAsync$$$Lambda$9548/2031914852@19558a70,</span>
+<span class="c1">//   k = cats.effect.internals.IOAsync$$$Lambda$9527/1197454878@14d054cc,</span>
 <span class="c1">//   trampolineAfter = true,</span>
 <span class="c1">//   trace = StackTrace(</span>
 <span class="c1">//     stackTrace = List(</span>
@@ -131,9 +131,9 @@ running:</p>
 <span class="c1">//       scala.Console$.withOut(Console.scala:164),</span>
 <span class="c1">//       mdoc.internal.document.DocumentBuilder$$doc$.build(DocumentBuilder.scala:88),</span>
 <span class="c1">//       mdoc.internal.markdown.MarkdownBuilder$.buildDocument(MarkdownBuilder.scala:44),</span>
-<span class="c1">//       mdoc.internal.markdown.Processor.processScalaInputs(Processor.scala:185),</span>
-<span class="c1">//       mdoc.internal.markdown.Processor.processScalaInputs(Processor.scala:152),</span>
-<span class="c1">//       mdoc.internal.markdown.Processor.processDocument(Processor.scala:52),</span>
+<span class="c1">//       mdoc.internal.markdown.Processor.processScalaInputs(Processor.scala:182),</span>
+<span class="c1">//       mdoc.internal.markdown.Processor.processScalaInputs(Processor.scala:149),</span>
+<span class="c1">//       mdoc.internal.markdown.Processor.processDocument(Processor.scala:49),</span>
 <span class="c1">//       mdoc.internal.markdown.Markdown$.toMarkdown(Markdown.scala:131),</span>
 <span class="c1">//       mdoc.internal.cli.MainOps.handleMarkdown(MainOps.scala:82),</span>
 <span class="c1">//       mdoc.internal.cli.MainOps.handleFile(MainOps.scala:110),</span>
