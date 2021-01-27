@@ -21,7 +21,7 @@ val commonSettings = Seq(
   scalacOptions += "-target:jvm-1.8",
 
   libraryDependencies ++= Seq(
-    "org.scala-lang.modules" %% "scala-collection-compat" % "2.3.2"
+    "org.scala-lang.modules" %% "scala-collection-compat" % "2.4.0"
   ),
 
   coverageEnabled in(Test, compile) := true,
