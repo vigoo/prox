@@ -70,8 +70,8 @@ lazy val proxCore = Project("prox-core", file("prox-core")).settings(commonSetti
 lazy val proxFS2 = Project("prox-fs2", file("prox-fs2")).settings(commonSettings).settings(
   libraryDependencies ++= Seq(
     "org.typelevel" %% "cats-effect" % "2.3.3",
-    "co.fs2" %% "fs2-core" % "2.5.1",
-    "co.fs2" %% "fs2-io" % "2.5.1",
+    "co.fs2" %% "fs2-core" % "2.5.2",
+    "co.fs2" %% "fs2-io" % "2.5.2",
 
     "dev.zio" %% "zio" % "1.0.4-2" % "test",
     "dev.zio" %% "zio-test" % "1.0.4-2" % "test",
