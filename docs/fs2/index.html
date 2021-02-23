@@ -17,7 +17,7 @@ ga('send', 'pageview');
 the <code class="highlighter-rouge">Prox</code> module:</p>
 
 <div class="language-scala highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="k">val</span> <span class="nv">prox</span> <span class="k">=</span> <span class="nc">ProxFS2</span><span class="o">[</span><span class="kt">IO</span><span class="o">](</span><span class="n">blocker</span><span class="o">)</span>
-<span class="c1">// prox: ProxFS2[IO] = io.github.vigoo.prox.ProxFS2$$anon$1@2ff547cd</span>
+<span class="c1">// prox: ProxFS2[IO] = io.github.vigoo.prox.ProxFS2$$anon$1@6e7f06fc</span>
 <span class="k">import</span> <span class="nn">prox._</span>
 </code></pre></div></div>
 
@@ -43,9 +43,9 @@ The type parameters have the following meaning:</p>
 <span class="c1">//   environmentVariables = Map(),</span>
 <span class="c1">//   removedEnvironmentVariables = Set(),</span>
 <span class="c1">//   outputRedirection = StdOut(),</span>
-<span class="c1">//   runOutputStream = io.github.vigoo.prox.ProcessModule$Process$$$Lambda$9542/2052821530@47b4d430,</span>
+<span class="c1">//   runOutputStream = io.github.vigoo.prox.ProcessModule$Process$$$Lambda$9570/473469512@277620c0,</span>
 <span class="c1">//   errorRedirection = StdOut(),</span>
-<span class="c1">//   runErrorStream = io.github.vigoo.prox.ProcessModule$Process$$$Lambda$9543/30789364@184a6eab,</span>
+<span class="c1">//   runErrorStream = io.github.vigoo.prox.ProcessModule$Process$$$Lambda$9571/1831630502@6a2cd8e8,</span>
 <span class="c1">//   inputRedirection = StdIn()</span>
 <span class="c1">// )</span>
 </code></pre></div></div>
@@ -60,9 +60,9 @@ The type parameters have the following meaning:</p>
 <span class="c1">//   environmentVariables = Map(),</span>
 <span class="c1">//   removedEnvironmentVariables = Set(),</span>
 <span class="c1">//   outputRedirection = StdOut(),</span>
-<span class="c1">//   runOutputStream = io.github.vigoo.prox.ProcessModule$Process$$$Lambda$9542/2052821530@20d63314,</span>
+<span class="c1">//   runOutputStream = io.github.vigoo.prox.ProcessModule$Process$$$Lambda$9570/473469512@1ae2a42d,</span>
 <span class="c1">//   errorRedirection = StdOut(),</span>
-<span class="c1">//   runErrorStream = io.github.vigoo.prox.ProcessModule$Process$$$Lambda$9543/30789364@2598d3ec,</span>
+<span class="c1">//   runErrorStream = io.github.vigoo.prox.ProcessModule$Process$$$Lambda$9571/1831630502@cbc196b,</span>
 <span class="c1">//   inputRedirection = StdIn()</span>
 <span class="c1">// )</span>
 </code></pre></div></div>
@@ -95,7 +95,7 @@ running:</p>
 
 <div class="language-scala highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="nv">proc1</span><span class="o">.</span><span class="py">run</span><span class="o">()</span>
 <span class="c1">// res0: ProxIO[ProcessResult[Unit, Unit]] = Async(</span>
-<span class="c1">//   k = cats.effect.internals.IOAsync$$$Lambda$9487/1536147317@7da3fcc8,</span>
+<span class="c1">//   k = cats.effect.internals.IOAsync$$$Lambda$9515/221269092@756a1015,</span>
 <span class="c1">//   trampolineAfter = true,</span>
 <span class="c1">//   trace = StackTrace(</span>
 <span class="c1">//     stackTrace = List(</span>
