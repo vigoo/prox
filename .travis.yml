@@ -24,13 +24,13 @@ script: sbt ++$TRAVIS_SCALA_VERSION clean coverage test coverageReport && bash <
 jobs:
   include:
     - scala: 2.12.12
-    - scala: 2.13.3
+    - scala: 2.13.5
     - stage: release
-      scala: 2.13.3
+      scala: 2.13.5
       name: "Release"              
       script: sbt ci-release
     - stage: microsite
-      scala: 2.13.3
+      scala: 2.13.5
       name: "Publish microsite"
       install:
         - rvm use 2.6.0 --install --fuzzy
