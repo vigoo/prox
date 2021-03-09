@@ -21,7 +21,7 @@ val commonSettings = Seq(
   scalacOptions += "-target:jvm-1.8",
 
   libraryDependencies ++= Seq(
-    "org.scala-lang.modules" %% "scala-collection-compat" % "2.4.1"
+    "org.scala-lang.modules" %% "scala-collection-compat" % "2.4.2"
   ),
 
   coverageEnabled in(Test, compile) := true,
@@ -69,26 +69,26 @@ lazy val proxCore = Project("prox-core", file("prox-core")).settings(commonSetti
 
 lazy val proxFS2 = Project("prox-fs2", file("prox-fs2")).settings(commonSettings).settings(
   libraryDependencies ++= Seq(
-    "org.typelevel" %% "cats-effect" % "2.3.1",
-    "co.fs2" %% "fs2-core" % "2.5.0",
-    "co.fs2" %% "fs2-io" % "2.5.0",
+    "org.typelevel" %% "cats-effect" % "2.3.3",
+    "co.fs2" %% "fs2-core" % "2.5.3",
+    "co.fs2" %% "fs2-io" % "2.5.3",
 
-    "dev.zio" %% "zio" % "1.0.4-2" % "test",
-    "dev.zio" %% "zio-test" % "1.0.4-2" % "test",
-    "dev.zio" %% "zio-test-sbt" % "1.0.4-2" % "test",
-    "dev.zio" %% "zio-interop-cats" % "2.2.0.1" % "test",
+    "dev.zio" %% "zio" % "1.0.5" % "test",
+    "dev.zio" %% "zio-test" % "1.0.5" % "test",
+    "dev.zio" %% "zio-test-sbt" % "1.0.5" % "test",
+    "dev.zio" %% "zio-interop-cats" % "2.3.1.0" % "test",
   ),
   testFrameworks += new TestFramework("zio.test.sbt.ZTestFramework"),
 ).dependsOn(proxCore)
 
 lazy val proxZStream = Project("prox-zstream", file("prox-zstream")).settings(commonSettings).settings(
   libraryDependencies ++= Seq(
-    "dev.zio" %% "zio" % "1.0.4-2",
-    "dev.zio" %% "zio-streams" % "1.0.4-2",
-    "dev.zio" %% "zio-prelude" % "1.0.0-RC2",
+    "dev.zio" %% "zio" % "1.0.5",
+    "dev.zio" %% "zio-streams" % "1.0.5",
+    "dev.zio" %% "zio-prelude" % "1.0.0-RC1",
 
-    "dev.zio" %% "zio-test" % "1.0.4-2" % "test",
-    "dev.zio" %% "zio-test-sbt" % "1.0.4-2" % "test",
+    "dev.zio" %% "zio-test" % "1.0.5" % "test",
+    "dev.zio" %% "zio-test-sbt" % "1.0.5" % "test",
   ),
   testFrameworks += new TestFramework("zio.test.sbt.ZTestFramework"),
 ).dependsOn(proxCore)
