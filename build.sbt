@@ -1,5 +1,5 @@
-val scala212 = "2.12.13"
-val scala213 = "2.13.3"
+val scala212 = "2.12.12"
+val scala213 = "2.13.5"
 
 val scalacOptions212 = Seq("-Ypartial-unification", "-deprecation")
 val scalacOptions213 = Seq("-deprecation")
@@ -73,9 +73,9 @@ lazy val proxFS2 = Project("prox-fs2", file("prox-fs2")).settings(commonSettings
     "co.fs2" %% "fs2-core" % "2.5.3",
     "co.fs2" %% "fs2-io" % "2.5.3",
 
-    "dev.zio" %% "zio" % "1.0.4-2" % "test",
-    "dev.zio" %% "zio-test" % "1.0.4-2" % "test",
-    "dev.zio" %% "zio-test-sbt" % "1.0.4-2" % "test",
+    "dev.zio" %% "zio" % "1.0.5" % "test",
+    "dev.zio" %% "zio-test" % "1.0.5" % "test",
+    "dev.zio" %% "zio-test-sbt" % "1.0.5" % "test",
     "dev.zio" %% "zio-interop-cats" % "2.3.1.0" % "test",
   ),
   testFrameworks += new TestFramework("zio.test.sbt.ZTestFramework"),
@@ -83,12 +83,12 @@ lazy val proxFS2 = Project("prox-fs2", file("prox-fs2")).settings(commonSettings
 
 lazy val proxZStream = Project("prox-zstream", file("prox-zstream")).settings(commonSettings).settings(
   libraryDependencies ++= Seq(
-    "dev.zio" %% "zio" % "1.0.4-2",
-    "dev.zio" %% "zio-streams" % "1.0.4-2",
-    "dev.zio" %% "zio-prelude" % "1.0.0-RC1",
+    "dev.zio" %% "zio" % "1.0.5",
+    "dev.zio" %% "zio-streams" % "1.0.5",
+    "dev.zio" %% "zio-prelude" % "1.0.0-RC2",
 
-    "dev.zio" %% "zio-test" % "1.0.4-2" % "test",
-    "dev.zio" %% "zio-test-sbt" % "1.0.4-2" % "test",
+    "dev.zio" %% "zio-test" % "1.0.5" % "test",
+    "dev.zio" %% "zio-test-sbt" % "1.0.5" % "test",
   ),
   testFrameworks += new TestFramework("zio.test.sbt.ZTestFramework"),
 ).dependsOn(proxCore)
