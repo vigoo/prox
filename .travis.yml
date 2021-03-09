@@ -23,7 +23,7 @@ script: sbt ++$TRAVIS_SCALA_VERSION clean coverage test coverageReport && bash <
 
 jobs:
   include:
-    - scala: 2.12.12
+    - scala: 2.12.13
     - scala: 2.13.5
     - stage: release
       scala: 2.13.5
