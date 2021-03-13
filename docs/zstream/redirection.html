@@ -36,9 +36,9 @@ implements the given capability.</p>
 <span class="c1">//   environmentVariables = Map(),</span>
 <span class="c1">//   removedEnvironmentVariables = Set(),</span>
 <span class="c1">//   outputRedirection = StdOut(),</span>
-<span class="c1">//   runOutputStream = io.github.vigoo.prox.ProcessModule$Process$$$Lambda$9552/1196936690@354f06db,</span>
+<span class="c1">//   runOutputStream = io.github.vigoo.prox.ProcessModule$Process$$$Lambda$9543/203523131@10f29b57,</span>
 <span class="c1">//   errorRedirection = StdOut(),</span>
-<span class="c1">//   runErrorStream = io.github.vigoo.prox.ProcessModule$Process$$$Lambda$9553/346398179@43ae75c7,</span>
+<span class="c1">//   runErrorStream = io.github.vigoo.prox.ProcessModule$Process$$$Lambda$9544/46039707@760d5284,</span>
 <span class="c1">//   inputRedirection = StdIn()</span>
 <span class="c1">// )</span>
 <span class="k">val</span> <span class="nv">proc2</span> <span class="k">=</span> <span class="n">proc1</span> <span class="o">&gt;#</span> <span class="nv">ZTransducer</span><span class="o">.</span><span class="py">utf8Decode</span>
@@ -49,13 +49,13 @@ implements the given capability.</p>
 <span class="c1">//   environmentVariables = Map(),</span>
 <span class="c1">//   removedEnvironmentVariables = Set(),</span>
 <span class="c1">//   outputRedirection = OutputStreamThroughPipe(</span>
-<span class="c1">//     pipe = io.github.vigoo.prox.ProxZStream$$Lambda$9818/1042368023@5969ace6,</span>
-<span class="c1">//     runner = io.github.vigoo.prox.RedirectionModule$RedirectableOutput$$Lambda$9720/1541591220@14dd10ce,</span>
+<span class="c1">//     pipe = io.github.vigoo.prox.ProxZStream$$Lambda$9807/1859238730@1613f75f,</span>
+<span class="c1">//     runner = io.github.vigoo.prox.RedirectionModule$RedirectableOutput$$Lambda$9711/1717404398@123feee9,</span>
 <span class="c1">//     chunkSize = 8192</span>
 <span class="c1">//   ),</span>
-<span class="c1">//   runOutputStream = io.github.vigoo.prox.ProcessModule$Process$ProcessImpl$$Lambda$9556/1447058084@246d5fdf,</span>
+<span class="c1">//   runOutputStream = io.github.vigoo.prox.ProcessModule$Process$ProcessImpl$$Lambda$9547/880205956@e3a1758,</span>
 <span class="c1">//   errorRedirection = StdOut(),</span>
-<span class="c1">//   runErrorStream = io.github.vigoo.prox.ProcessModule$Process$$$Lambda$9553/346398179@43ae75c7,</span>
+<span class="c1">//   runErrorStream = io.github.vigoo.prox.ProcessModule$Process$$$Lambda$9544/46039707@760d5284,</span>
 <span class="c1">//   inputRedirection = StdIn()</span>
 <span class="c1">// )</span>
 </code></pre></div></div>
@@ -63,12 +63,6 @@ implements the given capability.</p>
 <p>It is no longer possible to redirect the output of <code class="highlighter-rouge">proc2</code>:</p>
 
 <div class="language-scala highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="k">val</span> <span class="nv">proc3</span> <span class="k">=</span> <span class="n">proc2</span> <span class="o">&gt;?</span> <span class="o">(</span><span class="nv">ZTransducer</span><span class="o">.</span><span class="py">utf8Decode</span> <span class="o">&gt;&gt;&gt;</span> <span class="nv">ZTransducer</span><span class="o">.</span><span class="py">splitLines</span><span class="o">)</span> 
-<span class="c1">// error: Symbol 'term scala.collection.parallel.immutable' is missing from the classpath.</span>
-<span class="c1">// This symbol is required by 'value zio.prelude.PlatformSpecificIdentitySyntax.p'.</span>
-<span class="c1">// Make sure that term immutable is in your classpath and check for conflicting dependencies with `-Ylog-classpath`.</span>
-<span class="c1">// A full rebuild may help if 'PlatformSpecificIdentitySyntax.class' was compiled against an incompatible version of scala.collection.parallel.</span>
-<span class="c1">// (NOTE: It looks like the scala-parallel-collections module is missing; try adding a dependency on "org.scala-lang.modules" : "scala-parallel-collections".</span>
-<span class="c1">//        See https://docs.scala-lang.org/overviews/ for more information.)</span>
 <span class="c1">// error: value &gt;? is not a member of io.github.vigoo.prox.zstream.Process.ProcessImplO[String]</span>
 <span class="c1">// did you mean !&gt;#, !&gt;&gt;, or !&gt;??</span>
 <span class="c1">// val proc3 = proc2 &gt;? (ZTransducer.utf8Decode &gt;&gt;&gt; ZTransducer.splitLines) </span>
@@ -446,15 +440,15 @@ defined as follows:</p>
 <span class="c1">//   environmentVariables = Map(),</span>
 <span class="c1">//   removedEnvironmentVariables = Set(),</span>
 <span class="c1">//   outputRedirection = StdOut(),</span>
-<span class="c1">//   runOutputStream = io.github.vigoo.prox.ProcessModule$Process$$$Lambda$9552/1196936690@103a41c7,</span>
+<span class="c1">//   runOutputStream = io.github.vigoo.prox.ProcessModule$Process$$$Lambda$9543/203523131@4726eadc,</span>
 <span class="c1">//   errorRedirection = OutputStreamToSink(</span>
 <span class="c1">//     sink = TransformAndSink(</span>
-<span class="c1">//       transform = io.github.vigoo.prox.ProxZStream$TransformAndSink$$$Lambda$9832/347412691@4bd2d95d,</span>
-<span class="c1">//       sink = zio.stream.ZSink$$anon$1@ef85165</span>
+<span class="c1">//       transform = io.github.vigoo.prox.ProxZStream$TransformAndSink$$$Lambda$9821/1137128630@28029cdd,</span>
+<span class="c1">//       sink = zio.stream.ZSink$$anon$1@5416781</span>
 <span class="c1">//     ),</span>
 <span class="c1">//     chunkSize = 8192</span>
 <span class="c1">//   ),</span>
-<span class="c1">//   runErrorStream = io.github.vigoo.prox.ProcessModule$Process$ProcessImpl$$Lambda$9727/335005106@7e9caea0,</span>
+<span class="c1">//   runErrorStream = io.github.vigoo.prox.ProcessModule$Process$ProcessImpl$$Lambda$9718/672046722@7134599f,</span>
 <span class="c1">//   inputRedirection = StdIn()</span>
 <span class="c1">// )</span>
 </code></pre></div></div>
