@@ -81,6 +81,20 @@ lazy val proxFS2 = Project("prox-fs2", file("prox-fs2")).settings(commonSettings
   testFrameworks += new TestFramework("zio.test.sbt.ZTestFramework"),
 ).dependsOn(proxCore)
 
+lazy val proxFS23 = Project("prox-fs2-3", file("prox-fs2-3")).settings(commonSettings).settings(
+  libraryDependencies ++= Seq(
+    "co.fs2" %% "fs2-core" % "3.0.0-M9",
+    "co.fs2" %% "fs2-io" % "3.0.0-M9",
+
+    // need the zio interops to be published for ce3
+    // "dev.zio" %% "zio" % "1.0.5" % "test",
+    // "dev.zio" %% "zio-test" % "1.0.5" % "test",
+    // "dev.zio" %% "zio-test-sbt" % "1.0.5" % "test",
+    // "dev.zio" %% "zio-interop-cats" % "2.3.1.0" % "test",
+  ),
+  testFrameworks += new TestFramework("zio.test.sbt.ZTestFramework"),
+).dependsOn(proxCore)
+
 lazy val proxZStream = Project("prox-zstream", file("prox-zstream")).settings(commonSettings).settings(
   libraryDependencies ++= Seq(
     "dev.zio" %% "zio" % "1.0.5",
@@ -148,4 +162,4 @@ lazy val docs = project
         }
       }).transform(node).head
     }
-  ).dependsOn(proxCore, proxFS2, proxZStream, proxJava9)
+  ).dependsOn(proxCore, proxFS2, proxFS23, proxZStream, proxJava9)

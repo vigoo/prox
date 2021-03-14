@@ -100,13 +100,9 @@ trait ProxFS2[F[_]] extends Prox {
         .bracket(Applicative[F].pure(stream))(os => Sync[F].delay(os.close()))
         .flatMap { os =>
           s.chunks.evalMap { chunk =>
-            blocker.blockOn {
-              Sync[F].delay {
-                blocking {
-                  os.write(chunk.toArray)
-                  os.flush()
-                }
-              }
+            blocker.delay {
+              os.write(chunk.toArray)
+              os.flush()
             }
           }
         }
