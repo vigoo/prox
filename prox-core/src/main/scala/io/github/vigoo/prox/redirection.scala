@@ -4,7 +4,7 @@ import java.io
 import java.nio.file.Path
 
 trait RedirectionModule {
-  this: ProxRuntime with CommonModule with ProcessModule with ProcessGroupModule =>
+  this: Prox =>
 
   /**
     * The capability to redirect the output of a process or a process group

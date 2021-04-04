@@ -3,7 +3,7 @@ package io.github.vigoo.prox
 import java.nio.file.Path
 
 trait ProcessModule {
-  this: ProxRuntime with CommonModule with ProcessRunnerModule with RedirectionModule =>
+  this: Prox =>
 
   /**
     * Result of a finished process
@@ -143,7 +143,7 @@ trait ProcessModule {
   trait ProcessConfiguration extends ProcessLikeConfiguration {
     this: Process[_, _] =>
 
-    override type Self <: ProcessConfiguration
+//    override type Self <: ProcessConfiguration
 
     override protected def applyConfiguration(workingDirectory: Option[Path], environmentVariables: Map[String, String], removedEnvironmentVariables: Set[String]): Self =
       selfCopy(command, arguments, workingDirectory, environmentVariables, removedEnvironmentVariables)

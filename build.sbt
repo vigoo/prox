@@ -1,8 +1,10 @@
 val scala212 = "2.12.12"
 val scala213 = "2.13.5"
+val scala3 = "3.0.0-RC1"
 
-val scalacOptions212 = Seq("-Ypartial-unification", "-deprecation")
-val scalacOptions213 = Seq("-deprecation")
+val scalacOptions212 = Seq("-Ypartial-unification", "-deprecation", "-target:jvm-1.8")
+val scalacOptions213 = Seq("-deprecation", "-target:jvm-1.8")
+val scalacOptions3 = Seq("-deprecation", "-Ykind-projector", "-release", "8")
 
 import microsites.ConfigYml
 import sbt.enablePlugins
@@ -16,10 +18,15 @@ dynverSonatypeSnapshots in ThisBuild := true
 val commonSettings = Seq(
   organization := "io.github.vigoo",
   scalaVersion := scala213,
-  crossScalaVersions := List(scala212, scala213),
-  addCompilerPlugin("org.typelevel" %% s"kind-projector" % "0.11.3" cross CrossVersion.full),
-  scalacOptions += "-target:jvm-1.8",
-
+  crossScalaVersions := List(scala212, scala213, scala3),
+  libraryDependencies ++= {
+    if (isDotty.value)
+      Seq.empty
+    else
+      Seq(
+        compilerPlugin("org.typelevel" % "kind-projector" % "0.11.3" cross CrossVersion.full),
+      )
+  },
   libraryDependencies ++= Seq(
     "org.scala-lang.modules" %% "scala-collection-compat" % "2.4.3"
   ),
@@ -30,6 +37,7 @@ val commonSettings = Seq(
   scalacOptions ++= (CrossVersion.partialVersion(scalaVersion.value) match {
     case Some((2, 12)) => scalacOptions212
     case Some((2, 13)) => scalacOptions213
+    case Some((3, _)) => scalacOptions3
     case _ => Nil
   }),
 
