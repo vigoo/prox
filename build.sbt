@@ -73,9 +73,9 @@ lazy val proxFS2 = Project("prox-fs2", file("prox-fs2")).settings(commonSettings
     "co.fs2" %% "fs2-core" % "2.5.4",
     "co.fs2" %% "fs2-io" % "2.5.4",
 
-    "dev.zio" %% "zio" % "1.0.5" % "test",
-    "dev.zio" %% "zio-test" % "1.0.5" % "test",
-    "dev.zio" %% "zio-test-sbt" % "1.0.5" % "test",
+    "dev.zio" %% "zio" % "1.0.6" % "test",
+    "dev.zio" %% "zio-test" % "1.0.6" % "test",
+    "dev.zio" %% "zio-test-sbt" % "1.0.6" % "test",
     "dev.zio" %% "zio-interop-cats" % "2.4.0.0" % "test",
   ),
   testFrameworks += new TestFramework("zio.test.sbt.ZTestFramework"),
@@ -83,12 +83,12 @@ lazy val proxFS2 = Project("prox-fs2", file("prox-fs2")).settings(commonSettings
 
 lazy val proxZStream = Project("prox-zstream", file("prox-zstream")).settings(commonSettings).settings(
   libraryDependencies ++= Seq(
-    "dev.zio" %% "zio" % "1.0.5",
-    "dev.zio" %% "zio-streams" % "1.0.5",
+    "dev.zio" %% "zio" % "1.0.6",
+    "dev.zio" %% "zio-streams" % "1.0.6",
     "dev.zio" %% "zio-prelude" % "1.0.0-RC3",
 
-    "dev.zio" %% "zio-test" % "1.0.5" % "test",
-    "dev.zio" %% "zio-test-sbt" % "1.0.5" % "test",
+    "dev.zio" %% "zio-test" % "1.0.6" % "test",
+    "dev.zio" %% "zio-test-sbt" % "1.0.6" % "test",
   ),
   testFrameworks += new TestFramework("zio.test.sbt.ZTestFramework"),
 ).dependsOn(proxCore)
