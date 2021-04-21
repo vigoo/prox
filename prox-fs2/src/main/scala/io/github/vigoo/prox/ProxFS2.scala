@@ -2,7 +2,7 @@ package io.github.vigoo.prox
 
 import java.io
 
-import cats.effect.{Blocker, Concurrent, ContextShift, ExitCase, Sync}
+import cats.effect.{Concurrent, ExitCase, Sync}
 import cats.{Applicative, ApplicativeError, FlatMap, Traverse}
 
 import scala.concurrent.blocking
@@ -114,7 +114,7 @@ trait ProxFS2[F[_]] extends Prox {
 }
 
 object ProxFS2 {
-  def apply[F[_]](blk: Blocker)(implicit c: Concurrent[F], cs: ContextShift[F]): ProxFS2[F] = new ProxFS2[F] {
+  def apply[F[_]](implicit c: Concurrent[F]): ProxFS2[F] = new ProxFS2[F] {
     override implicit val concurrent: Concurrent[F] = c
     override implicit val blocker: Blocker = blk
     override implicit val contextShift: ContextShift[F] = cs
