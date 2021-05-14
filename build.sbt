@@ -17,11 +17,11 @@ val commonSettings = Seq(
   organization := "io.github.vigoo",
   scalaVersion := scala213,
   crossScalaVersions := List(scala212, scala213),
-  addCompilerPlugin("org.typelevel" %% s"kind-projector" % "0.11.3" cross CrossVersion.full),
+  addCompilerPlugin("org.typelevel" %% s"kind-projector" % "0.12.0" cross CrossVersion.full),
   scalacOptions += "-target:jvm-1.8",
 
   libraryDependencies ++= Seq(
-    "org.scala-lang.modules" %% "scala-collection-compat" % "2.4.3"
+    "org.scala-lang.modules" %% "scala-collection-compat" % "2.4.4"
   ),
 
   coverageEnabled in(Test, compile) := true,
@@ -70,8 +70,8 @@ lazy val proxCore = Project("prox-core", file("prox-core")).settings(commonSetti
 lazy val proxFS2 = Project("prox-fs2", file("prox-fs2")).settings(commonSettings).settings(
   libraryDependencies ++= Seq(
     "org.typelevel" %% "cats-effect" % "2.5.0",
-    "co.fs2" %% "fs2-core" % "3.0.2",
-    "co.fs2" %% "fs2-io" % "3.0.2",
+    "co.fs2" %% "fs2-core" % "2.5.6",
+    "co.fs2" %% "fs2-io" % "2.5.6",
 
     "dev.zio" %% "zio" % "1.0.7" % "test",
     "dev.zio" %% "zio-test" % "1.0.7" % "test",
@@ -85,7 +85,7 @@ lazy val proxZStream = Project("prox-zstream", file("prox-zstream")).settings(co
   libraryDependencies ++= Seq(
     "dev.zio" %% "zio" % "1.0.7",
     "dev.zio" %% "zio-streams" % "1.0.7",
-    "dev.zio" %% "zio-prelude" % "1.0.0-RC3",
+    "dev.zio" %% "zio-prelude" % "1.0.0-RC4",
 
     "dev.zio" %% "zio-test" % "1.0.7" % "test",
     "dev.zio" %% "zio-test-sbt" % "1.0.7" % "test",
@@ -99,7 +99,7 @@ lazy val proxJava9 = Project("prox-java9", file("prox-java9")).settings(commonSe
 lazy val docs = project
   .enablePlugins(GhpagesPlugin, SiteScaladocPlugin, ScalaUnidocPlugin, MicrositesPlugin)
   .settings(
-    addCompilerPlugin("org.typelevel" %% s"kind-projector" % "0.11.3" cross CrossVersion.full),
+    addCompilerPlugin("org.typelevel" %% s"kind-projector" % "0.12.0" cross CrossVersion.full),
     publishArtifact := false,
     skip in publish := true,
     scalaVersion := scala213,
