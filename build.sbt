@@ -17,7 +17,7 @@ val commonSettings = Seq(
   organization := "io.github.vigoo",
   scalaVersion := scala213,
   crossScalaVersions := List(scala212, scala213),
-  addCompilerPlugin("org.typelevel" %% s"kind-projector" % "0.12.0" cross CrossVersion.full),
+  addCompilerPlugin("org.typelevel" %% "kind-projector" % "0.12.0" cross CrossVersion.full),
   scalacOptions += "-target:jvm-1.8",
 
   libraryDependencies ++= Seq(
@@ -83,14 +83,13 @@ lazy val proxFS2 = Project("prox-fs2", file("prox-fs2")).settings(commonSettings
 
 lazy val proxFS23 = Project("prox-fs2-3", file("prox-fs2-3")).settings(commonSettings).settings(
   libraryDependencies ++= Seq(
-    "co.fs2" %% "fs2-core" % "3.0.0-M9",
-    "co.fs2" %% "fs2-io" % "3.0.0-M9",
+    "co.fs2" %% "fs2-core" % "3.0.3",
+    "co.fs2" %% "fs2-io" % "3.0.3",
 
-    // need the zio interops to be published for ce3
-    // "dev.zio" %% "zio" % "1.0.5" % "test",
-    // "dev.zio" %% "zio-test" % "1.0.5" % "test",
-    // "dev.zio" %% "zio-test-sbt" % "1.0.5" % "test",
-    // "dev.zio" %% "zio-interop-cats" % "2.3.1.0" % "test",
+    "dev.zio" %% "zio" % "1.0.7" % "test",
+    "dev.zio" %% "zio-test" % "1.0.7" % "test",
+    "dev.zio" %% "zio-test-sbt" % "1.0.7" % "test",
+    "dev.zio" %% "zio-interop-cats" % "3.0.2.0" % "test",
   ),
   testFrameworks += new TestFramework("zio.test.sbt.ZTestFramework"),
 ).dependsOn(proxCore)
@@ -162,4 +161,4 @@ lazy val docs = project
         }
       }).transform(node).head
     }
-  ).dependsOn(proxCore, proxFS2, proxFS23, proxZStream, proxJava9)
+  ).dependsOn(proxCore, proxFS2/* todo , proxFS23 */, proxZStream, proxJava9)

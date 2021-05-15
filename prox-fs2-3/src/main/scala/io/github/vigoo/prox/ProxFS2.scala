@@ -106,7 +106,7 @@ trait ProxFS2[F[_]] extends Prox {
 }
 
 object ProxFS2 {
-  def apply[F[_]](implicit a: Sync[F] with Concurrent[F]): ProxFS2[F] = new ProxFS2[F] {
+  def apply[F[_]](implicit a: Async[F]): ProxFS2[F] = new ProxFS2[F] {
     override implicit val instances: Sync[F] with Concurrent[F] = a
   }
 }
