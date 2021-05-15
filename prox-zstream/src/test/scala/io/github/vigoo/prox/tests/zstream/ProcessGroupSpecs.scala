@@ -113,11 +113,12 @@ object ProcessGroupSpecs extends DefaultRunnableSpec with ProxSpecHelpers {
             result <- runningProcesses.kill()
           } yield result.exitCodes
 
-          assertM(program.provideSomeLayer[Blocking](Clock.live))(equalTo(Map[Process[Unit, Unit], ProxExitCode](
-            p1 -> ExitCode(137),
-            p2 -> ExitCode(137)
-          )))
-        } @@ TestAspect.flaky(10)
+          // Note: we can't assert on the second process' exit code because there is a race condition
+          // between killing it directly and being stopped because of the upstream process got killed.
+          assertM(program.provideSomeLayer[Blocking](Clock.live))(
+            contains(p1 -> ExitCode(137)
+          ))
+        }
       ),
 
       suite("Input redirection")(
