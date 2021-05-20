@@ -17,7 +17,7 @@ val commonSettings = Seq(
   organization := "io.github.vigoo",
   scalaVersion := scala213,
   crossScalaVersions := List(scala212, scala213),
-  addCompilerPlugin("org.typelevel" %% s"kind-projector" % "0.12.0" cross CrossVersion.full),
+  addCompilerPlugin("org.typelevel" %% s"kind-projector" % "0.13.0" cross CrossVersion.full),
   scalacOptions += "-target:jvm-1.8",
 
   libraryDependencies ++= Seq(
@@ -73,10 +73,10 @@ lazy val proxFS2 = Project("prox-fs2", file("prox-fs2")).settings(commonSettings
     "co.fs2" %% "fs2-core" % "2.5.6",
     "co.fs2" %% "fs2-io" % "2.5.6",
 
-    "dev.zio" %% "zio" % "1.0.8" % "test",
-    "dev.zio" %% "zio-test" % "1.0.8" % "test",
-    "dev.zio" %% "zio-test-sbt" % "1.0.8" % "test",
-    "dev.zio" %% "zio-interop-cats" % "2.4.1.0" % "test",
+    "dev.zio" %% "zio" % "1.0.7" % "test",
+    "dev.zio" %% "zio-test" % "1.0.7" % "test",
+    "dev.zio" %% "zio-test-sbt" % "1.0.7" % "test",
+    "dev.zio" %% "zio-interop-cats" % "2.5.1.0" % "test",
   ),
   testFrameworks += new TestFramework("zio.test.sbt.ZTestFramework"),
 ).dependsOn(proxCore)
@@ -99,7 +99,7 @@ lazy val proxJava9 = Project("prox-java9", file("prox-java9")).settings(commonSe
 lazy val docs = project
   .enablePlugins(GhpagesPlugin, SiteScaladocPlugin, ScalaUnidocPlugin, MicrositesPlugin)
   .settings(
-    addCompilerPlugin("org.typelevel" %% s"kind-projector" % "0.12.0" cross CrossVersion.full),
+    addCompilerPlugin("org.typelevel" %% s"kind-projector" % "0.13.0" cross CrossVersion.full),
     publishArtifact := false,
     skip in publish := true,
     scalaVersion := scala213,
