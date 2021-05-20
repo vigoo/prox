@@ -24,11 +24,11 @@ val commonSettings = Seq(
       Seq.empty
     else
       Seq(
-        compilerPlugin("org.typelevel" % "kind-projector" % "0.11.3" cross CrossVersion.full),
+        compilerPlugin("org.typelevel" % "kind-projector" % "0.13.0" cross CrossVersion.full),
       )
   },
   libraryDependencies ++= Seq(
-    "org.scala-lang.modules" %% "scala-collection-compat" % "2.4.3"
+    "org.scala-lang.modules" %% "scala-collection-compat" % "2.4.4"
   ),
 
   coverageEnabled in(Test, compile) := true,
@@ -77,26 +77,26 @@ lazy val proxCore = Project("prox-core", file("prox-core")).settings(commonSetti
 
 lazy val proxFS2 = Project("prox-fs2", file("prox-fs2")).settings(commonSettings).settings(
   libraryDependencies ++= Seq(
-    "org.typelevel" %% "cats-effect" % "2.4.1",
-    "co.fs2" %% "fs2-core" % "2.5.4",
-    "co.fs2" %% "fs2-io" % "2.5.4",
+    "org.typelevel" %% "cats-effect" % "2.5.0",
+    "co.fs2" %% "fs2-core" % "2.5.6",
+    "co.fs2" %% "fs2-io" % "2.5.6",
 
-    "dev.zio" %% "zio" % "1.0.5" % "test",
-    "dev.zio" %% "zio-test" % "1.0.5" % "test",
-    "dev.zio" %% "zio-test-sbt" % "1.0.5" % "test",
-    "dev.zio" %% "zio-interop-cats" % "2.4.0.0" % "test",
+    "dev.zio" %% "zio" % "1.0.8" % "test",
+    "dev.zio" %% "zio-test" % "1.0.8" % "test",
+    "dev.zio" %% "zio-test-sbt" % "1.0.8" % "test",
+    "dev.zio" %% "zio-interop-cats" % "2.5.1.0" % "test",
   ),
   testFrameworks += new TestFramework("zio.test.sbt.ZTestFramework"),
 ).dependsOn(proxCore)
 
 lazy val proxZStream = Project("prox-zstream", file("prox-zstream")).settings(commonSettings).settings(
   libraryDependencies ++= Seq(
-    "dev.zio" %% "zio" % "1.0.5",
-    "dev.zio" %% "zio-streams" % "1.0.5",
-    "dev.zio" %% "zio-prelude" % "1.0.0-RC3",
+    "dev.zio" %% "zio" % "1.0.8",
+    "dev.zio" %% "zio-streams" % "1.0.8",
+    "dev.zio" %% "zio-prelude" % "1.0.0-RC4",
 
-    "dev.zio" %% "zio-test" % "1.0.5" % "test",
-    "dev.zio" %% "zio-test-sbt" % "1.0.5" % "test",
+    "dev.zio" %% "zio-test" % "1.0.8" % "test",
+    "dev.zio" %% "zio-test-sbt" % "1.0.8" % "test",
   ),
   testFrameworks += new TestFramework("zio.test.sbt.ZTestFramework"),
 ).dependsOn(proxCore)
@@ -107,7 +107,7 @@ lazy val proxJava9 = Project("prox-java9", file("prox-java9")).settings(commonSe
 lazy val docs = project
   .enablePlugins(GhpagesPlugin, SiteScaladocPlugin, ScalaUnidocPlugin, MicrositesPlugin)
   .settings(
-    addCompilerPlugin("org.typelevel" %% s"kind-projector" % "0.11.3" cross CrossVersion.full),
+    addCompilerPlugin("org.typelevel" %% s"kind-projector" % "0.13.0" cross CrossVersion.full),
     publishArtifact := false,
     skip in publish := true,
     scalaVersion := scala213,
