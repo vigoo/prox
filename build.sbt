@@ -1,6 +1,6 @@
 val scala212 = "2.12.12"
-val scala213 = "2.13.5"
-val scala3 = "3.0.0-RC1"
+val scala213 = "2.13.6"
+val scala3 = "3.0.0"
 
 val scalacOptions212 = Seq("-Ypartial-unification", "-deprecation", "-target:jvm-1.8")
 val scalacOptions213 = Seq("-deprecation", "-target:jvm-1.8")
@@ -19,14 +19,13 @@ val commonSettings = Seq(
   organization := "io.github.vigoo",
   scalaVersion := scala213,
   crossScalaVersions := List(scala212, scala213, scala3),
-  libraryDependencies ++= {
-    if (isDotty.value)
-      Seq.empty
-    else
-      Seq(
+  libraryDependencies ++= 
+     (CrossVersion.partialVersion(scalaVersion.value) match {
+    case Some((3, _)) => Seq.empty
+    case _ => Seq(
         compilerPlugin("org.typelevel" % "kind-projector" % "0.13.0" cross CrossVersion.full),
       )
-  },
+  }),
   libraryDependencies ++= Seq(
     "org.scala-lang.modules" %% "scala-collection-compat" % "2.4.4"
   ),
@@ -77,7 +76,7 @@ lazy val proxCore = Project("prox-core", file("prox-core")).settings(commonSetti
 
 lazy val proxFS2 = Project("prox-fs2", file("prox-fs2")).settings(commonSettings).settings(
   libraryDependencies ++= Seq(
-    "org.typelevel" %% "cats-effect" % "2.5.0",
+    "org.typelevel" %% "cats-effect" % "2.5.1",
     "co.fs2" %% "fs2-core" % "2.5.6",
     "co.fs2" %% "fs2-io" % "2.5.6",
 
