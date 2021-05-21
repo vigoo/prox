@@ -30,7 +30,8 @@ stages:
   - name: microsite
     if: ((branch = master AND type = push) AND NOT fork)
 
-script: sbt ++$TRAVIS_SCALA_VERSION clean coverage test coverageReport && bash <(curl -s https://codecov.io/bash)
+script: |
+  if [ "$TRAVIS_SCALA_VERSION" = "3.0.0" ]; then sbt ++$TRAVIS_SCALA_VERSION clean test; else sbt ++$TRAVIS_SCALA_VERSION clean coverage test coverageReport && bash <(curl -s https://codecov.io/bash); fi
 
 jobs:
   include:
