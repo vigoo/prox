@@ -92,7 +92,7 @@ lazy val proxZStream = Project("prox-zstream", file("prox-zstream")).settings(co
   libraryDependencies ++= Seq(
     "dev.zio" %% "zio" % "1.0.8",
     "dev.zio" %% "zio-streams" % "1.0.8",
-    "dev.zio" %% "zio-prelude" % "1.0.0-RC4",
+    "dev.zio" %% "zio-prelude" % "1.0.0-RC5",
 
     "dev.zio" %% "zio-test" % "1.0.8" % "test",
     "dev.zio" %% "zio-test-sbt" % "1.0.8" % "test",

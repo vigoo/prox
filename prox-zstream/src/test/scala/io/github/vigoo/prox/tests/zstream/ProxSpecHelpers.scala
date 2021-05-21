@@ -10,7 +10,7 @@ trait ProxSpecHelpers {
 
   def withTempFile[A](inner: File => ZIO[Blocking, ProxError, A]): ZIO[Blocking, ProxError, A] =
     ZIO.effect(File.createTempFile("test", "txt"))
-      .mapError(UnknownProxError)
+      .mapError(UnknownProxError.apply)
       .bracket(
         file => ZIO.effect(file.delete()).orDie,
         inner)
