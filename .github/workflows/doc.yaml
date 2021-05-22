@@ -4,6 +4,7 @@ on:
   release:
     types:
       - published
+  workflow_dispatch:
 
 jobs:
   publish:
@@ -17,6 +18,19 @@ jobs:
         with:
           java-version: "adopt@1.11"
       - uses: olafurpg/setup-gpg@v3
+      - name: Setup GIT user
+        uses: fregante/setup-git-user@v1      
+      - name: Setup Ruby
+        uses: ruby/setup-ruby@v1
+        with:
+          ruby-version: 2.6.6
+          bundler-cache: true        
+      - name: Install Jekyll
+        run: |
+          gem install sass
+          gem install jekyll -v 4.0.0
+          gem install jemoji -v 0.11.1
+          gem install jekyll-sitemap -v 1.4.0          
       - run: sbt docs/publishMicrosite
         env:
-          GIT_DEPLOY_KEY: ${{ secrets.GIT_DEPLOY_KEY }}
+          GITHUB_TOKEN: ${{ secrets.ADMIN_GITHUB_TOKEN }}
