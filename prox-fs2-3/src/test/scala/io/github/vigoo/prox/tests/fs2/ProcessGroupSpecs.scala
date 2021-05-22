@@ -1,14 +1,14 @@
 package io.github.vigoo.prox.tests.fs2
 
-import java.nio.file.Files
-
+import fs2.io.file.Files
 import cats.effect.ExitCode
 import zio.clock.Clock
 import zio.duration._
 import zio.test.Assertion._
 import zio.test.TestAspect._
 import zio.test._
-import zio.{IO, Task, ZIO}
+import zio.{IO, Task, ZIO, RIO, ZEnv}
+import zio.interop.catz._
 
 object ProcessGroupSpecs extends DefaultRunnableSpec with ProxSpecHelpers {
 
@@ -100,7 +100,7 @@ object ProcessGroupSpecs extends DefaultRunnableSpec with ProxSpecHelpers {
           assertM(program)(equalTo(()))
         } @@ TestAspect.timeout(5.seconds),
 
-        proxTest[Clock, Throwable]("can be terminated") { prox =>
+        proxTest("can be terminated") { prox =>
           import prox._
 
           implicit val processRunner: ProcessRunner[JVMProcessInfo] = new JVMProcessRunner
@@ -159,7 +159,7 @@ object ProcessGroupSpecs extends DefaultRunnableSpec with ProxSpecHelpers {
 
           withTempFile { tempFile =>
             val program = for {
-              _ <- ZIO(Files.write(tempFile.toPath, "This is a test string".getBytes("UTF-8")))
+              _ <- ZIO(java.nio.file.Files.write(tempFile.toPath, "This is a test string".getBytes("UTF-8")))
               processGroup = (Process("cat") | Process("wc", List("-w"))) < tempFile.toPath ># fs2.text.utf8Decode
               result <- processGroup.run()
             } yield result.output.trim
@@ -178,7 +178,7 @@ object ProcessGroupSpecs extends DefaultRunnableSpec with ProxSpecHelpers {
             val processGroup = (Process("echo", List("This is a test string")) | Process("wc", List("-w"))) > tempFile.toPath
             val program = for {
               _ <- processGroup.run()
-              contents <- fs2.io.file.readAll[Task](tempFile.toPath, blocker, 1024).through(fs2.text.utf8Decode).compile.foldMonoid
+              contents <- Files[RIO[ZEnv, *]].readAll(tempFile.toPath, 1024).through(fs2.text.utf8Decode).compile.foldMonoid
             } yield contents.trim
 
             assertM(program)(equalTo("5"))
@@ -444,8 +444,8 @@ object ProcessGroupSpecs extends DefaultRunnableSpec with ProxSpecHelpers {
               }
               val program = for {
                 _ <- processGroup.run()
-                contents1 <- fs2.io.file.readAll[Task](tempFile1.toPath, blocker, 1024).through(fs2.text.utf8Decode).compile.foldMonoid
-                contents2 <- fs2.io.file.readAll[Task](tempFile2.toPath, blocker, 1024).through(fs2.text.utf8Decode).compile.foldMonoid
+                contents1 <- Files[RIO[ZEnv, *]].readAll(tempFile1.toPath,  1024).through(fs2.text.utf8Decode).compile.foldMonoid
+                contents2 <- Files[RIO[ZEnv, *]].readAll(tempFile2.toPath, 1024).through(fs2.text.utf8Decode).compile.foldMonoid
               } yield (contents1, contents2)
 
               assertM(program)(equalTo(("Hello", "world")))

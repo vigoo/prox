@@ -1,7 +1,7 @@
 package io.github.vigoo.prox
 
 trait SyntaxModule {
-  this: ProxRuntime with ProcessModule with ProcessGroupModule with RedirectionModule =>
+  this: Prox =>
 
   /** Extension methods for unbound processes enabling the creation of process groups */
   implicit class ProcessPiping(process: Process.UnboundProcess) {

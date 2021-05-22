@@ -1,7 +1,8 @@
 language: scala
 scala:
   - 2.12.12
-  - 2.13.3
+  - 2.13.6
+  - 3.0.0
 jdk:
   - oraclejdk9
 
@@ -12,6 +13,16 @@ before_install:
   - rm "${JAVA_HOME}/lib/security/cacerts"
   - ln -s /etc/ssl/certs/java/cacerts "${JAVA_HOME}/lib/security/cacerts"
 
+install:
+  - |
+    # update this only when sbt-the-bash-script needs to be updated
+    export SBT_LAUNCHER=1.4.9
+    export SBT_OPTS="-Dfile.encoding=UTF-8"
+    curl -L --silent "https://github.com/sbt/sbt/releases/download/v$SBT_LAUNCHER/sbt-$SBT_LAUNCHER.tgz" > $HOME/sbt.tgz
+    tar zxf $HOME/sbt.tgz -C $HOME
+    sudo rm /usr/local/bin/sbt
+    sudo ln -s $HOME/sbt/bin/sbt /usr/local/bin/sbt
+
 stages:
   - name: test
   - name: release
@@ -19,20 +30,30 @@ stages:
   - name: microsite
     if: ((branch = master AND type = push) AND NOT fork)
 
-script: sbt ++$TRAVIS_SCALA_VERSION clean coverage test coverageReport && bash <(curl -s https://codecov.io/bash)
+script: |
+  if [ "$TRAVIS_SCALA_VERSION" = "3.0.0" ]; then sbt ++$TRAVIS_SCALA_VERSION clean test; else sbt ++$TRAVIS_SCALA_VERSION clean coverage test coverageReport && bash <(curl -s https://codecov.io/bash); fi
 
 jobs:
   include:
     - scala: 2.12.13
-    - scala: 2.13.5
+    - scala: 2.13.6
+    - scala: 3.0.0
     - stage: release
-      scala: 2.13.5
+      scala: 2.13.6
       name: "Release"              
       script: sbt ci-release
     - stage: microsite
-      scala: 2.13.5
+      scala: 2.13.6
       name: "Publish microsite"
       install:
+        - |
+          # update this only when sbt-the-bash-script needs to be updated
+          export SBT_LAUNCHER=1.4.9
+          export SBT_OPTS="-Dfile.encoding=UTF-8"
+          curl -L --silent "https://github.com/sbt/sbt/releases/download/v$SBT_LAUNCHER/sbt-$SBT_LAUNCHER.tgz" > $HOME/sbt.tgz
+          tar zxf $HOME/sbt.tgz -C $HOME
+          sudo rm /usr/local/bin/sbt
+          sudo ln -s $HOME/sbt/bin/sbt /usr/local/bin/sbt      
         - rvm use 2.6.0 --install --fuzzy
         - gem update --system
         - gem install sass

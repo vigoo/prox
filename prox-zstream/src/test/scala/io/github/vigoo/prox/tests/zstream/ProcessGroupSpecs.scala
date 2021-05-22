@@ -113,11 +113,12 @@ object ProcessGroupSpecs extends DefaultRunnableSpec with ProxSpecHelpers {
             result <- runningProcesses.kill()
           } yield result.exitCodes
 
-          assertM(program.provideSomeLayer[Blocking](Clock.live))(equalTo(Map[Process[Unit, Unit], ProxExitCode](
-            p1 -> ExitCode(137),
-            p2 -> ExitCode(137)
-          )))
-        } @@ TestAspect.flaky(10)
+          // Note: we can't assert on the second process' exit code because there is a race condition
+          // between killing it directly and being stopped because of the upstream process got killed.
+          assertM(program.provideSomeLayer[Blocking](Clock.live))(
+            contains(p1 -> ExitCode(137)
+          ))
+        }
       ),
 
       suite("Input redirection")(
@@ -134,7 +135,7 @@ object ProcessGroupSpecs extends DefaultRunnableSpec with ProxSpecHelpers {
 
           withTempFile { tempFile =>
             val program = for {
-              _ <- ZIO.effect(Files.write(tempFile.toPath, "This is a test string".getBytes("UTF-8"))).mapError(UnknownProxError)
+              _ <- ZIO.effect(Files.write(tempFile.toPath, "This is a test string".getBytes("UTF-8"))).mapError(UnknownProxError.apply)
               processGroup = (Process("cat") | Process("wc", List("-w"))) < tempFile.toPath ># ZTransducer.utf8Decode
               result <- processGroup.run()
             } yield result.output.trim
@@ -150,7 +151,7 @@ object ProcessGroupSpecs extends DefaultRunnableSpec with ProxSpecHelpers {
             val processGroup = (Process("echo", List("This is a test string")) | Process("wc", List("-w"))) > tempFile.toPath
             val program = for {
               _ <- processGroup.run()
-              contents <- ZStream.fromFile(tempFile.toPath, 1024).transduce(ZTransducer.utf8Decode).fold("")(_ + _).mapError(UnknownProxError)
+              contents <- ZStream.fromFile(tempFile.toPath, 1024).transduce(ZTransducer.utf8Decode).fold("")(_ + _).mapError(UnknownProxError.apply)
             } yield contents.trim
 
             assertM(program)(equalTo("5"))
@@ -179,7 +180,7 @@ object ProcessGroupSpecs extends DefaultRunnableSpec with ProxSpecHelpers {
 
 
           val builder = new StringBuilder
-          val target: zstream.ProxSink[Byte] = ZSink.foreach[Blocking, ProxError, Byte]((byte: Byte) => ZIO.effect(builder.append(byte.toChar)).mapError(UnknownProxError))
+          val target: zstream.ProxSink[Byte] = ZSink.foreach[Blocking, ProxError, Byte]((byte: Byte) => ZIO.effect(builder.append(byte.toChar)).mapError(UnknownProxError.apply))
 
           val p1 = Process("perl", List("-e", """print STDERR "Hello""""))
           val p2 = Process("perl", List("-e", """print STDERR "world""""))
@@ -280,8 +281,8 @@ object ProcessGroupSpecs extends DefaultRunnableSpec with ProxSpecHelpers {
           val p1 = Process("perl", List("-e", """print STDERR "Hello""""))
           val p2 = Process("perl", List("-e", """print STDERR "world""""))
           val processGroup = (p1 | p2).customizedPerProcess.errorsToSink {
-            case p if p == p1 => ZSink.foreach((byte: Byte) => ZIO.effect(builder1.append(byte.toChar)).mapError(UnknownProxError))
-            case p if p == p2 => ZSink.foreach((byte: Byte) => ZIO.effect(builder2.append(byte.toChar)).mapError(UnknownProxError))
+            case p if p == p1 => ZSink.foreach((byte: Byte) => ZIO.effect(builder1.append(byte.toChar)).mapError(UnknownProxError.apply))
+            case p if p == p2 => ZSink.foreach((byte: Byte) => ZIO.effect(builder2.append(byte.toChar)).mapError(UnknownProxError.apply))
           }
           val program = processGroup.run()
 
@@ -369,8 +370,8 @@ object ProcessGroupSpecs extends DefaultRunnableSpec with ProxSpecHelpers {
               }
               val program = for {
                 _ <- processGroup.run()
-                contents1 <- ZStream.fromFile(tempFile1.toPath, 1024).transduce(ZTransducer.utf8Decode).fold("")(_ + _).mapError(UnknownProxError)
-                contents2 <- ZStream.fromFile(tempFile2.toPath, 1024).transduce(ZTransducer.utf8Decode).fold("")(_ + _).mapError(UnknownProxError)
+                contents1 <- ZStream.fromFile(tempFile1.toPath, 1024).transduce(ZTransducer.utf8Decode).fold("")(_ + _).mapError(UnknownProxError.apply)
+                contents2 <- ZStream.fromFile(tempFile2.toPath, 1024).transduce(ZTransducer.utf8Decode).fold("")(_ + _).mapError(UnknownProxError.apply)
               } yield (contents1, contents2)
 
               assertM(program)(equalTo(("Hello", "world")))
