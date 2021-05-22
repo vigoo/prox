@@ -7,6 +7,7 @@ title: Customizing environment
 
 ```scala mdoc:invisible
 import io.github.vigoo.prox.zstream._
+import io.github.vigoo.prox._
 ``` 
 
 The type returned by the `Process` constructor also implements the `ProcessConfiguration` trait,
