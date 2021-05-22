@@ -24,4 +24,8 @@ package object prox {
     with RedirectionModule
     with ProcessRunnerModule
     with SyntaxModule
+
+
+  /** Common base trait for processes and process groups, used in constraints in the redirection traits */
+  trait ProcessLike
 }

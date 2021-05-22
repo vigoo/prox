@@ -13,6 +13,6 @@ trait Java9Module {
     extends JVMProcessRunnerBase[JVM9ProcessInfo] {
 
     override protected def getProcessInfo(process: JvmProcess): ProxIO[JVM9ProcessInfo] =
-      effect(process.pid(), FailedToQueryState).map(pid => JVM9ProcessInfo(pid))
+      effect(process.pid(), FailedToQueryState.apply).map(pid => JVM9ProcessInfo(pid))
   }
 }

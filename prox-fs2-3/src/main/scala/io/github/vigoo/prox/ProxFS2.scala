@@ -85,7 +85,7 @@ trait ProxFS2[F[_]] extends Prox {
       .observe(
         if (flushChunks) writeAndFlushOutputStream(output)(_).drain
         else fs2.io.writeOutputStream(
-          effect(output, UnknownProxError),
+          effect(output, UnknownProxError.apply),
           closeAfterUse = true))
       .compile
       .drain

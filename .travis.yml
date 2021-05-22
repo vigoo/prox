@@ -1,7 +1,8 @@
 language: scala
 scala:
   - 2.12.12
-  - 2.13.3
+  - 2.13.6
+  - 3.0.0
 jdk:
   - oraclejdk9
 
@@ -29,18 +30,20 @@ stages:
   - name: microsite
     if: ((branch = master AND type = push) AND NOT fork)
 
-script: sbt ++$TRAVIS_SCALA_VERSION clean coverage test coverageReport && bash <(curl -s https://codecov.io/bash)
+script: |
+  if [ "$TRAVIS_SCALA_VERSION" = "3.0.0" ]; then sbt ++$TRAVIS_SCALA_VERSION clean test; else sbt ++$TRAVIS_SCALA_VERSION clean coverage test coverageReport && bash <(curl -s https://codecov.io/bash); fi
 
 jobs:
   include:
     - scala: 2.12.12
-    - scala: 2.13.5
+    - scala: 2.13.6
+    - scala: 3.0.0
     - stage: release
-      scala: 2.13.5
+      scala: 2.13.6
       name: "Release"              
       script: sbt ci-release
     - stage: microsite
-      scala: 2.13.5
+      scala: 2.13.6
       name: "Publish microsite"
       install:
         - |
