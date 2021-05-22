@@ -8,7 +8,7 @@ title: Getting started
 First add one of the `prox` interfaces as a dependency:
 
 ```sbt
-libraryDependencies += "io.github.vigoo" %% "prox-zstream" % "0.6.0"
+libraryDependencies += "io.github.vigoo" %% "prox-zstream" % "0.7.0"
 ```
 
 and import the ZIO specific API from: 
