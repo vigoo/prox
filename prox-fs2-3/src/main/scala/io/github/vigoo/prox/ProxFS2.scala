@@ -2,19 +2,17 @@ package io.github.vigoo.prox
 
 import java.io
 
-import cats.effect.{Blocker, Concurrent, ContextShift, ExitCase, Sync}
+import cats.effect.{Concurrent, Outcome, Async, Sync}
 import cats.{Applicative, ApplicativeError, FlatMap, Traverse}
 
 import scala.concurrent.blocking
 
 trait ProxFS2[F[_]] extends Prox {
 
-  implicit val concurrent: Concurrent[F]
-  implicit val blocker: Blocker
-  implicit val contextShift: ContextShift[F]
+  implicit val instances: Sync[F] with Concurrent[F]
 
   override type ProxExitCode = cats.effect.ExitCode
-  override type ProxFiber[A] = cats.effect.Fiber[F, A]
+  override type ProxFiber[A] = cats.effect.Fiber[F, Throwable, A]
   override type ProxIO[A] = F[A]
   override type ProxResource[A] = cats.effect.Resource[F, A]
 
@@ -48,16 +46,16 @@ trait ProxFS2[F[_]] extends Prox {
 
   protected override final def bracket[A, B](acquire: ProxIO[A])(use: A => ProxIO[B])(fin: (A, IOResult) => ProxIO[Unit]): ProxIO[B] =
     Sync[F].bracketCase(acquire)(use) {
-      case (value, ExitCase.Completed) => fin(value, Completed)
-      case (value, ExitCase.Error(error)) => fin(value, Failed(List(UnknownProxError(error))))
-      case (value, ExitCase.Canceled) => fin(value, Canceled)
+      case (value, Outcome.Succeeded(_)) => fin(value, Completed)
+      case (value, Outcome.Errored(error)) => fin(value, Failed(List(UnknownProxError(error))))
+      case (value, Outcome.Canceled()) => fin(value, Canceled)
     }
 
   protected override final def makeResource[A](acquire: ProxIO[A], release: A => ProxIO[Unit]): ProxResource[A] = cats.effect.Resource.make(acquire)(release)
 
   protected override final def useResource[A, B](r: ProxResource[A], f: A => ProxIO[B]): ProxIO[B] = r.use(f)
 
-  protected override final def joinFiber[A](f: ProxFiber[A]): ProxIO[A] = f.join
+  protected override final def joinFiber[A](f: ProxFiber[A]): ProxIO[A] = f.joinWithNever
 
   protected override final def cancelFiber[A](f: ProxFiber[A]): ProxIO[Unit] = f.cancel
 
@@ -80,17 +78,15 @@ trait ProxFS2[F[_]] extends Prox {
     fs2.io.readInputStream(
       pure(input),
       chunkSize,
-      closeAfterUse = true,
-      blocker = blocker)
+      closeAfterUse = true)
 
   protected override final def drainToJavaOutputStream(stream: ProxStream[Byte], output: io.OutputStream, flushChunks: Boolean): ProxIO[Unit] =
     stream
       .observe(
-        if (flushChunks) writeAndFlushOutputStream(output)
+        if (flushChunks) writeAndFlushOutputStream(output)(_).drain
         else fs2.io.writeOutputStream(
           effect(output, UnknownProxError),
-          closeAfterUse = true,
-          blocker = blocker))
+          closeAfterUse = true))
       .compile
       .drain
 
@@ -100,7 +96,7 @@ trait ProxFS2[F[_]] extends Prox {
         .bracket(Applicative[F].pure(stream))(os => Sync[F].delay(os.close()))
         .flatMap { os =>
           s.chunks.evalMap { chunk =>
-            blocker.delay {
+            Sync[F].blocking {
               os.write(chunk.toArray)
               os.flush()
             }
@@ -110,9 +106,7 @@ trait ProxFS2[F[_]] extends Prox {
 }
 
 object ProxFS2 {
-  def apply[F[_]](blk: Blocker)(implicit c: Concurrent[F], cs: ContextShift[F]): ProxFS2[F] = new ProxFS2[F] {
-    override implicit val concurrent: Concurrent[F] = c
-    override implicit val blocker: Blocker = blk
-    override implicit val contextShift: ContextShift[F] = cs
+  def apply[F[_]](implicit a: Async[F]): ProxFS2[F] = new ProxFS2[F] {
+    override implicit val instances: Sync[F] with Concurrent[F] = a
   }
 }
