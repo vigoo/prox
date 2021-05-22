@@ -2,6 +2,8 @@ val scala212 = "2.12.12"
 val scala213 = "2.13.6"
 val scala3 = "3.0.0"
 
+val zioVersion = "1.0.8"
+
 val scalacOptions212 = Seq("-Ypartial-unification", "-deprecation", "-target:jvm-1.8")
 val scalacOptions213 = Seq("-deprecation", "-target:jvm-1.8")
 def scalacOptions3(jdk: Int) = Seq("-deprecation", "-Ykind-projector", "-release", jdk.toString)
@@ -80,9 +82,9 @@ lazy val proxFS2 = Project("prox-fs2", file("prox-fs2")).settings(commonSettings
     "co.fs2" %% "fs2-core" % "2.5.6",
     "co.fs2" %% "fs2-io" % "2.5.6",
 
-    "dev.zio" %% "zio" % "1.0.8" % "test",
-    "dev.zio" %% "zio-test" % "1.0.8" % "test",
-    "dev.zio" %% "zio-test-sbt" % "1.0.8" % "test",
+    "dev.zio" %% "zio" % zioVersion % "test",
+    "dev.zio" %% "zio-test" % zioVersion % "test",
+    "dev.zio" %% "zio-test-sbt" % zioVersion % "test",
     "dev.zio" %% "zio-interop-cats" % "2.5.1.0" % "test",
   ),
   testFrameworks += new TestFramework("zio.test.sbt.ZTestFramework"),
@@ -93,22 +95,22 @@ lazy val proxFS23 = Project("prox-fs2-3", file("prox-fs2-3")).settings(commonSet
     "co.fs2" %% "fs2-core" % "3.0.3",
     "co.fs2" %% "fs2-io" % "3.0.3",
 
-    "dev.zio" %% "zio" % "1.0.7" % "test",
-    "dev.zio" %% "zio-test" % "1.0.7" % "test",
-    "dev.zio" %% "zio-test-sbt" % "1.0.7" % "test",
-    "dev.zio" %% "zio-interop-cats" % "3.0.2.0" % "test",
+    "dev.zio" %% "zio" % zioVersion % "test",
+    "dev.zio" %% "zio-test" % zioVersion % "test",
+    "dev.zio" %% "zio-test-sbt" % zioVersion % "test",
+    "dev.zio" %% "zio-interop-cats" % "3.1.1.0" % "test",
   ),
   testFrameworks += new TestFramework("zio.test.sbt.ZTestFramework"),
 ).dependsOn(proxCore)
 
 lazy val proxZStream = Project("prox-zstream", file("prox-zstream")).settings(commonSettings(8)).settings(
   libraryDependencies ++= Seq(
-    "dev.zio" %% "zio" % "1.0.8",
-    "dev.zio" %% "zio-streams" % "1.0.8",
+    "dev.zio" %% "zio" % zioVersion,
+    "dev.zio" %% "zio-streams" % zioVersion,
     "dev.zio" %% "zio-prelude" % "1.0.0-RC5",
 
-    "dev.zio" %% "zio-test" % "1.0.8" % "test",
-    "dev.zio" %% "zio-test-sbt" % "1.0.8" % "test",
+    "dev.zio" %% "zio-test" % zioVersion % "test",
+    "dev.zio" %% "zio-test-sbt" % zioVersion % "test",
   ),
   testFrameworks += new TestFramework("zio.test.sbt.ZTestFramework"),
 ).dependsOn(proxCore)
