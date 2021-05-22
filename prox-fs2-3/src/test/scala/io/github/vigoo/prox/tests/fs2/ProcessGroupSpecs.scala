@@ -1,41 +1,42 @@
-package io.github.vigoo.prox.tests.zstream
+package io.github.vigoo.prox.tests.fs2
 
-import java.nio.charset.StandardCharsets
-import java.nio.file.Files
-
-import io.github.vigoo.prox.{ProxError, UnknownProxError, zstream}
-import io.github.vigoo.prox.zstream._
-import zio.blocking.Blocking
+import fs2.io.file.Files
+import cats.effect.ExitCode
 import zio.clock.Clock
 import zio.duration._
-import zio.stream.{ZSink, ZStream, ZTransducer}
 import zio.test.Assertion._
 import zio.test.TestAspect._
 import zio.test._
-import zio.{ExitCode, ZIO}
+import zio.{IO, Task, ZIO, RIO, ZEnv}
+import zio.interop.catz._
 
 object ProcessGroupSpecs extends DefaultRunnableSpec with ProxSpecHelpers {
-  implicit val processRunner: ProcessRunner[JVMProcessInfo] = new JVMProcessRunner
 
   override val spec =
     suite("Piping processes together")(
       suite("Piping")(
-        testM("is possible with two") {
+        proxTest("is possible with two") { prox =>
+          import prox._
 
-          val processGroup = (Process("echo", List("This is a test string")) | Process("wc", List("-w"))) ># ZTransducer.utf8Decode
+          implicit val processRunner: ProcessRunner[JVMProcessInfo] = new JVMProcessRunner
+
+          val processGroup = (Process("echo", List("This is a test string")) | Process("wc", List("-w"))) ># fs2.text.utf8Decode
           val program = processGroup.run().map(_.output.trim)
 
           assertM(program)(equalTo("5"))
         },
 
-        testM("is possible with multiple") {
+        proxTest("is possible with multiple") { prox =>
+          import prox._
+
+          implicit val processRunner: ProcessRunner[JVMProcessInfo] = new JVMProcessRunner
 
           val processGroup = (
             Process("echo", List("cat\ncat\ndog\napple")) |
               Process("sort") |
               Process("uniq", List("-c")) |
               Process("head", List("-n 1"))
-            ) >? (ZTransducer.utf8Decode >>> ZTransducer.splitLines)
+            ) >? fs2.text.utf8Decode.andThen(_.through(fs2.text.lines))
 
           val program = processGroup.run().map(
             r => r.output.map(_.stripLineEnd.trim).filter(_.nonEmpty)
@@ -44,29 +45,39 @@ object ProcessGroupSpecs extends DefaultRunnableSpec with ProxSpecHelpers {
           assertM(program)(hasSameElements(List("1 apple")))
         },
 
-        testM("is customizable with pipes") {
-          val customPipe = (s: zstream.ProxStream[Byte]) => s
-            .transduce(ZTransducer.utf8Decode >>> ZTransducer.splitLines)
-            .map(_.split(' ').toVector)
-            .map(v => v.map(_ + " !!!").mkString(" "))
-            .intersperse("\n")
-            .flatMap(s => ZStream.fromIterable(s.getBytes(StandardCharsets.UTF_8)))
-          val processGroup = (Process("echo", List("This is a test string")).via(customPipe).to(Process("wc", List("-w")))) ># ZTransducer.utf8Decode
+        proxTest("is customizable with pipes") { prox =>
+          import prox._
+
+          implicit val processRunner: ProcessRunner[JVMProcessInfo] = new JVMProcessRunner
+
+
+          val customPipe: fs2.Pipe[Task, Byte, Byte] =
+            (s: fs2.Stream[Task, Byte]) => s
+              .through(fs2.text.utf8Decode)
+              .through(fs2.text.lines)
+              .map(_.split(' ').toVector)
+              .map(v => v.map(_ + " !!!").mkString(" "))
+              .intersperse("\n")
+              .through(fs2.text.utf8Encode)
+
+          val processGroup = (Process("echo", List("This is a test string")).via(customPipe).to(Process("wc", List("-w")))) ># fs2.text.utf8Decode
           val program = processGroup.run().map(_.output.trim)
 
-          assertM(program)(equalTo("10"))
+          assertM(program)(equalTo("11"))
         },
 
-        testM("can be mapped") {
-          import zstream.Process._
+        proxTest("can be mapped") { prox =>
+          import prox._
 
-          val processGroup1 = (Process("!echo", List("This is a test string")) | Process("!wc", List("-w"))) ># ZTransducer.utf8Decode
+          implicit val processRunner: ProcessRunner[JVMProcessInfo] = new JVMProcessRunner
+
+          val processGroup1 = (Process("!echo", List("This is a test string")) | Process("!wc", List("-w"))) ># fs2.text.utf8Decode
           val processGroup2 = processGroup1.map(new ProcessGroup.Mapper[String, Unit] {
-            override def mapFirst[P <: Process[zstream.ProxStream[Byte], Unit]](process: P): P = process.withCommand(process.command.tail).asInstanceOf[P]
+            override def mapFirst[P <: Process[fs2.Stream[Task, Byte], Unit]](process: P): P = process.withCommand(process.command.tail).asInstanceOf[P]
 
-            override def mapInnerWithIdx[P <: UnboundIProcess[zstream.ProxStream[Byte], Unit]](process: P, idx: Int): P = process.withCommand(process.command.tail).asInstanceOf[P]
+            override def mapInnerWithIdx[P <: Process.UnboundIProcess[fs2.Stream[Task, Byte], Unit]](process: P, idx: Int): P = process.withCommand(process.command.tail).asInstanceOf[P]
 
-            override def mapLast[P <: UnboundIProcess[String, Unit]](process: P): P = process.withCommand(process.command.tail).asInstanceOf[P]
+            override def mapLast[P <: Process.UnboundIProcess[String, Unit]](process: P): P = process.withCommand(process.command.tail).asInstanceOf[P]
           })
 
           val program = processGroup2.run().map(_.output.trim)
@@ -76,17 +87,23 @@ object ProcessGroupSpecs extends DefaultRunnableSpec with ProxSpecHelpers {
       ),
 
       suite("Termination")(
-        testM("can be terminated with cancellation") {
+        proxTest("can be terminated with cancellation") { prox =>
+          import prox._
+
+          implicit val processRunner: ProcessRunner[JVMProcessInfo] = new JVMProcessRunner
 
           val processGroup =
             Process("perl", List("-e", """$SIG{TERM} = sub { exit 1 }; sleep 30; exit 0""")) |
               Process("sort")
-          val program = processGroup.start().use { fiber => fiber.interrupt.unit }
+          val program = processGroup.start().use { fiber => fiber.cancel }
 
           assertM(program)(equalTo(()))
         } @@ TestAspect.timeout(5.seconds),
 
-        testM[Blocking with Clock, ProxError]("can be terminated") {
+        proxTest("can be terminated") { prox =>
+          import prox._
+
+          implicit val processRunner: ProcessRunner[JVMProcessInfo] = new JVMProcessRunner
 
           val p1 = Process("perl", List("-e", """$SIG{TERM} = sub { exit 1 }; sleep 30; exit 0"""))
           val p2 = Process("sort")
@@ -94,14 +111,17 @@ object ProcessGroupSpecs extends DefaultRunnableSpec with ProxSpecHelpers {
 
           val program = for {
             runningProcesses <- processGroup.startProcessGroup()
-            _ <- ZIO.sleep(250.millis)
+            _ <- ZIO(Thread.sleep(250))
             result <- runningProcesses.terminate()
           } yield result.exitCodes.toList
 
-          assertM(program.provideSomeLayer[Blocking](Clock.live))(contains[(Process[Unit, Unit], ProxExitCode)](p1 -> ExitCode(1)))
+          assertM(program)(contains[(Process[Unit, Unit], ProxExitCode)](p1 -> ExitCode(1)))
         },
 
-        testM("can be killed") {
+        proxTest("can be killed") { prox =>
+          import prox._
+
+          implicit val processRunner: ProcessRunner[JVMProcessInfo] = new JVMProcessRunner
 
           val p1 = Process("perl", List("-e", """$SIG{TERM} = 'IGNORE'; sleep 30; exit 2"""))
           val p2 = Process("sort")
@@ -109,34 +129,38 @@ object ProcessGroupSpecs extends DefaultRunnableSpec with ProxSpecHelpers {
 
           val program = for {
             runningProcesses <- processGroup.startProcessGroup()
-            _ <- ZIO.sleep(250.millis)
+            _ <- ZIO(Thread.sleep(250))
             result <- runningProcesses.kill()
           } yield result.exitCodes
 
           // Note: we can't assert on the second process' exit code because there is a race condition
           // between killing it directly and being stopped because of the upstream process got killed.
-          assertM(program.provideSomeLayer[Blocking](Clock.live))(
-            contains(p1 -> ExitCode(137)
-          ))
+          assertM(program)(contains(p1 -> ExitCode(137)))
         }
       ),
 
       suite("Input redirection")(
-        testM("can be fed with an input stream") {
+        proxTest("can be fed with an input stream") { prox =>
+          import prox._
 
-          val stream = ZStream("This is a test string").flatMap(s => ZStream.fromIterable(s.getBytes(StandardCharsets.UTF_8)))
-          val processGroup = (Process("cat") | Process("wc", List("-w"))) < stream ># ZTransducer.utf8Decode
+          implicit val processRunner: ProcessRunner[JVMProcessInfo] = new JVMProcessRunner
+
+          val stream = fs2.Stream("This is a test string").through(fs2.text.utf8Encode)
+          val processGroup = (Process("cat") | Process("wc", List("-w"))) < stream ># fs2.text.utf8Decode
           val program = processGroup.run().map(_.output.trim)
 
           assertM(program)(equalTo("5"))
         },
 
-        testM("can be fed with an input file") {
+        proxTest("can be fed with an input file") { prox =>
+          import prox._
+
+          implicit val processRunner: ProcessRunner[JVMProcessInfo] = new JVMProcessRunner
 
           withTempFile { tempFile =>
             val program = for {
-              _ <- ZIO.effect(Files.write(tempFile.toPath, "This is a test string".getBytes("UTF-8"))).mapError(UnknownProxError.apply)
-              processGroup = (Process("cat") | Process("wc", List("-w"))) < tempFile.toPath ># ZTransducer.utf8Decode
+              _ <- ZIO(java.nio.file.Files.write(tempFile.toPath, "This is a test string".getBytes("UTF-8")))
+              processGroup = (Process("cat") | Process("wc", List("-w"))) < tempFile.toPath ># fs2.text.utf8Decode
               result <- processGroup.run()
             } yield result.output.trim
 
@@ -145,13 +169,16 @@ object ProcessGroupSpecs extends DefaultRunnableSpec with ProxSpecHelpers {
         }
       ),
       suite("Output redirection")(
-        testM("output can be redirected to file") {
+        proxTest("output can be redirected to file") { prox =>
+          import prox._
+
+          implicit val processRunner: ProcessRunner[JVMProcessInfo] = new JVMProcessRunner
 
           withTempFile { tempFile =>
             val processGroup = (Process("echo", List("This is a test string")) | Process("wc", List("-w"))) > tempFile.toPath
             val program = for {
               _ <- processGroup.run()
-              contents <- ZStream.fromFile(tempFile.toPath, 1024).transduce(ZTransducer.utf8Decode).fold("")(_ + _).mapError(UnknownProxError.apply)
+              contents <- Files[RIO[ZEnv, *]].readAll(tempFile.toPath, 1024).through(fs2.text.utf8Decode).compile.foldMonoid
             } yield contents.trim
 
             assertM(program)(equalTo("5"))
@@ -160,11 +187,14 @@ object ProcessGroupSpecs extends DefaultRunnableSpec with ProxSpecHelpers {
       ),
 
       suite("Error redirection")(
-        testM("can redirect each error output to a stream") {
+        proxTest("can redirect each error output to a stream") { prox =>
+          import prox._
+
+          implicit val processRunner: ProcessRunner[JVMProcessInfo] = new JVMProcessRunner
 
           val p1 = Process("perl", List("-e", """print STDERR "Hello""""))
           val p2 = Process("perl", List("-e", """print STDERR "world""""))
-          val processGroup = (p1 | p2) !># ZTransducer.utf8Decode
+          val processGroup = (p1 | p2) !># fs2.text.utf8Decode
           val program = processGroup.run()
 
           program.map { result =>
@@ -176,11 +206,16 @@ object ProcessGroupSpecs extends DefaultRunnableSpec with ProxSpecHelpers {
           }
         },
 
-        testM("can redirect each error output to a sink") {
+        proxTest("can redirect each error output to a sink") { prox =>
+          import prox._
+
+          implicit val processRunner: ProcessRunner[JVMProcessInfo] = new JVMProcessRunner
 
 
           val builder = new StringBuilder
-          val target: zstream.ProxSink[Byte] = ZSink.foreach[Blocking, ProxError, Byte]((byte: Byte) => ZIO.effect(builder.append(byte.toChar)).mapError(UnknownProxError.apply))
+          val target: fs2.Pipe[Task, Byte, Unit] = _.evalMap(byte => IO {
+            builder.append(byte.toChar)
+          }.unit)
 
           val p1 = Process("perl", List("-e", """print STDERR "Hello""""))
           val p2 = Process("perl", List("-e", """print STDERR "world""""))
@@ -197,12 +232,17 @@ object ProcessGroupSpecs extends DefaultRunnableSpec with ProxSpecHelpers {
           }
         },
 
-        testM("can redirect each error output to a vector") {
+        proxTest("can redirect each error output to a vector") { prox =>
+          import prox._
+
+          implicit val processRunner: ProcessRunner[JVMProcessInfo] = new JVMProcessRunner
 
           val p1 = Process("perl", List("-e", """print STDERR "Hello""""))
           val p2 = Process("perl", List("-e", """print STDERR "world!""""))
 
-          val stream = (ZTransducer.utf8Decode >>> ZTransducer.splitLines).map(_.length)
+          val stream = fs2.text.utf8Decode[Task]
+            .andThen(fs2.text.lines)
+            .andThen(_.map(s => s.length))
 
           val processGroup = (p1 | p2) !>? stream
           val program = processGroup.run()
@@ -216,11 +256,14 @@ object ProcessGroupSpecs extends DefaultRunnableSpec with ProxSpecHelpers {
           }
         },
 
-        testM("can drain each error output") {
+        proxTest("can drain each error output") { prox =>
+          import prox._
+
+          implicit val processRunner: ProcessRunner[JVMProcessInfo] = new JVMProcessRunner
 
           val p1 = Process("perl", List("-e", """print STDERR "Hello""""))
           val p2 = Process("perl", List("-e", """print STDERR "world""""))
-          val processGroup = (p1 | p2) drainErrors ZTransducer.utf8Decode
+          val processGroup = (p1 | p2) drainErrors fs2.text.utf8Decode
           val program = processGroup.run()
 
           program.map { result =>
@@ -232,12 +275,15 @@ object ProcessGroupSpecs extends DefaultRunnableSpec with ProxSpecHelpers {
           }
         },
 
-        testM("can fold each error output") {
+        proxTest("can fold each error output") { prox =>
+          import prox._
+
+          implicit val processRunner: ProcessRunner[JVMProcessInfo] = new JVMProcessRunner
 
           val p1 = Process("perl", List("-e", "print STDERR 'Hello\nworld'"))
           val p2 = Process("perl", List("-e", "print STDERR 'Does\nit\nwork?'"))
           val processGroup = (p1 | p2).foldErrors(
-            ZTransducer.utf8Decode >>> ZTransducer.splitLines,
+            fs2.text.utf8Decode.andThen(fs2.text.lines),
             Vector.empty,
             (l: Vector[Option[Char]], s: String) => l :+ s.headOption
           )
@@ -253,13 +299,16 @@ object ProcessGroupSpecs extends DefaultRunnableSpec with ProxSpecHelpers {
         },
       ),
       suite("Error redirection customized per process")(
-        testM("can redirect each error output to a stream customized per process") {
+        proxTest("can redirect each error output to a stream customized per process") { prox =>
+          import prox._
+
+          implicit val processRunner: ProcessRunner[JVMProcessInfo] = new JVMProcessRunner
 
           val p1 = Process("perl", List("-e", """print STDERR "Hello""""))
           val p2 = Process("perl", List("-e", """print STDERR "world""""))
           val processGroup = (p1 | p2).customizedPerProcess.errorsToFoldMonoid {
-            case p if p == p1 => ZTransducer.utf8Decode.map(s => "P1: " + s)
-            case p if p == p2 => ZTransducer.utf8Decode.map(s => "P2: " + s)
+            case p if p == p1 => fs2.text.utf8Decode.andThen(_.map(s => "P1: " + s))
+            case p if p == p2 => fs2.text.utf8Decode.andThen(_.map(s => "P2: " + s))
           }
           val program = processGroup.run()
 
@@ -272,7 +321,10 @@ object ProcessGroupSpecs extends DefaultRunnableSpec with ProxSpecHelpers {
           }
         },
 
-        testM("can redirect each error output to a sink customized per process") {
+        proxTest("can redirect each error output to a sink customized per process") { prox =>
+          import prox._
+
+          implicit val processRunner: ProcessRunner[JVMProcessInfo] = new JVMProcessRunner
 
 
           val builder1 = new StringBuilder
@@ -281,8 +333,13 @@ object ProcessGroupSpecs extends DefaultRunnableSpec with ProxSpecHelpers {
           val p1 = Process("perl", List("-e", """print STDERR "Hello""""))
           val p2 = Process("perl", List("-e", """print STDERR "world""""))
           val processGroup = (p1 | p2).customizedPerProcess.errorsToSink {
-            case p if p == p1 => ZSink.foreach((byte: Byte) => ZIO.effect(builder1.append(byte.toChar)).mapError(UnknownProxError.apply))
-            case p if p == p2 => ZSink.foreach((byte: Byte) => ZIO.effect(builder2.append(byte.toChar)).mapError(UnknownProxError.apply))
+            case p if p == p1 => _.evalMap(byte => IO {
+              builder1.append(byte.toChar)
+            }.unit)
+            case p if p == p2 =>
+              _.evalMap(byte => IO {
+                builder2.append(byte.toChar)
+              }.unit)
           }
           val program = processGroup.run()
 
@@ -297,16 +354,21 @@ object ProcessGroupSpecs extends DefaultRunnableSpec with ProxSpecHelpers {
           }
         },
 
-        testM("can redirect each error output to a vector customized per process") {
+        proxTest("can redirect each error output to a vector customized per process") { prox =>
+          import prox._
+
+          implicit val processRunner: ProcessRunner[JVMProcessInfo] = new JVMProcessRunner
 
           val p1 = Process("perl", List("-e", """print STDERR "Hello""""))
           val p2 = Process("perl", List("-e", """print STDERR "world!""""))
 
-          val stream = (ZTransducer.utf8Decode >>> ZTransducer.splitLines).map(_.length)
+          val stream = fs2.text.utf8Decode[Task]
+            .andThen(fs2.text.lines)
+            .andThen(_.map(s => s.length))
 
           val processGroup = (p1 | p2).customizedPerProcess.errorsToVector {
-            case p if p == p1 => stream.map(l => (1, l))
-            case p if p == p2 => stream.map(l => (2, l))
+            case p if p == p1 => stream.andThen(_.map(l => (1, l)))
+            case p if p == p2 => stream.andThen(_.map(l => (2, l)))
           }
           val program = processGroup.run()
 
@@ -319,11 +381,14 @@ object ProcessGroupSpecs extends DefaultRunnableSpec with ProxSpecHelpers {
           }
         },
 
-        testM("can drain each error output customized per process") {
+        proxTest("can drain each error output customized per process") { prox =>
+          import prox._
+
+          implicit val processRunner: ProcessRunner[JVMProcessInfo] = new JVMProcessRunner
 
           val p1 = Process("perl", List("-e", """print STDERR "Hello""""))
           val p2 = Process("perl", List("-e", """print STDERR "world""""))
-          val processGroup = (p1 | p2).customizedPerProcess.drainErrors(_ => ZTransducer.utf8Decode)
+          val processGroup = (p1 | p2).customizedPerProcess.drainErrors(_ => fs2.text.utf8Decode)
           val program = processGroup.run()
 
           program.map { result =>
@@ -335,14 +400,20 @@ object ProcessGroupSpecs extends DefaultRunnableSpec with ProxSpecHelpers {
           }
         },
 
-        testM("can fold each error output customized per process") {
+        proxTest("can fold each error output customized per process") { prox =>
+          import prox._
+
+          implicit val processRunner: ProcessRunner[JVMProcessInfo] = new JVMProcessRunner
 
           val p1 = Process("perl", List("-e", "print STDERR 'Hello\nworld'"))
           val p2 = Process("perl", List("-e", "print STDERR 'Does\nit\nwork?'"))
           val processGroup = (p1 | p2).customizedPerProcess.foldErrors(
             {
-              case p if p == p1 => ZTransducer.utf8Decode >>> ZTransducer.splitLines
-              case p if p == p2 => (ZTransducer.utf8Decode >>> ZTransducer.splitLines).map(_.reverse)
+              case p if p == p1 => fs2.text.utf8Decode[Task]
+                .andThen(fs2.text.lines)
+              case p if p == p2 => fs2.text.utf8Decode[Task]
+                .andThen(fs2.text.lines)
+                .andThen(_.map(_.reverse))
             },
             Vector.empty,
             (l: Vector[Option[Char]], s: String) => l :+ s.headOption
@@ -358,7 +429,10 @@ object ProcessGroupSpecs extends DefaultRunnableSpec with ProxSpecHelpers {
           }
         },
 
-        testM("can redirect each error output to file") {
+        proxTest("can redirect each error output to file") { prox =>
+          import prox._
+
+          implicit val processRunner: ProcessRunner[JVMProcessInfo] = new JVMProcessRunner
 
           withTempFile { tempFile1 =>
             withTempFile { tempFile2 =>
@@ -370,8 +444,8 @@ object ProcessGroupSpecs extends DefaultRunnableSpec with ProxSpecHelpers {
               }
               val program = for {
                 _ <- processGroup.run()
-                contents1 <- ZStream.fromFile(tempFile1.toPath, 1024).transduce(ZTransducer.utf8Decode).fold("")(_ + _).mapError(UnknownProxError.apply)
-                contents2 <- ZStream.fromFile(tempFile2.toPath, 1024).transduce(ZTransducer.utf8Decode).fold("")(_ + _).mapError(UnknownProxError.apply)
+                contents1 <- Files[RIO[ZEnv, *]].readAll(tempFile1.toPath,  1024).through(fs2.text.utf8Decode).compile.foldMonoid
+                contents2 <- Files[RIO[ZEnv, *]].readAll(tempFile2.toPath, 1024).through(fs2.text.utf8Decode).compile.foldMonoid
               } yield (contents1, contents2)
 
               assertM(program)(equalTo(("Hello", "world")))
@@ -381,13 +455,16 @@ object ProcessGroupSpecs extends DefaultRunnableSpec with ProxSpecHelpers {
       ),
 
       suite("Redirection ordering")(
-        testM("can redirect each error output to a stream if fed with an input stream and redirected to an output stream") {
+        proxTest("can redirect each error output to a stream if fed with an input stream and redirected to an output stream") { prox =>
+          import prox._
 
-          val stream = ZStream("This is a test string").flatMap(s => ZStream.fromIterable(s.getBytes(StandardCharsets.UTF_8)))
+          implicit val processRunner: ProcessRunner[JVMProcessInfo] = new JVMProcessRunner
+
+          val stream = fs2.Stream("This is a test string").through(fs2.text.utf8Encode)
           val p1 = Process("perl", List("-e", """my $str=<>; print STDERR Hello; print STDOUT "$str""""))
           val p2 = Process("sort")
           val p3 = Process("wc", List("-w"))
-          val processGroup = (p1 | p2 | p3) < stream ># ZTransducer.utf8Decode !># ZTransducer.utf8Decode
+          val processGroup = (p1 | p2 | p3) < stream ># fs2.text.utf8Decode !># fs2.text.utf8Decode
 
           processGroup.run()
             .map { result =>
@@ -398,13 +475,16 @@ object ProcessGroupSpecs extends DefaultRunnableSpec with ProxSpecHelpers {
             }
         },
 
-        testM("can redirect output if each error output and input are already redirected") {
+        proxTest("can redirect output if each error output and input are already redirected") { prox =>
+          import prox._
 
-          val stream = ZStream("This is a test string").flatMap(s => ZStream.fromIterable(s.getBytes(StandardCharsets.UTF_8)))
+          implicit val processRunner: ProcessRunner[JVMProcessInfo] = new JVMProcessRunner
+
+          val stream = fs2.Stream("This is a test string").through(fs2.text.utf8Encode)
           val p1 = Process("perl", List("-e", """my $str=<>; print STDERR Hello; print STDOUT "$str""""))
           val p2 = Process("sort")
           val p3 = Process("wc", List("-w"))
-          val processGroup = ((p1 | p2 | p3) < stream !># ZTransducer.utf8Decode) ># ZTransducer.utf8Decode
+          val processGroup = ((p1 | p2 | p3) < stream !># fs2.text.utf8Decode) ># fs2.text.utf8Decode
 
           processGroup.run()
             .map { result =>
@@ -415,13 +495,16 @@ object ProcessGroupSpecs extends DefaultRunnableSpec with ProxSpecHelpers {
             }
         },
 
-        testM("can attach output and then input stream if each error output and standard output are already redirected") {
+        proxTest("can attach output and then input stream if each error output and standard output are already redirected") { prox =>
+          import prox._
 
-          val stream = ZStream("This is a test string").flatMap(s => ZStream.fromIterable(s.getBytes(StandardCharsets.UTF_8)))
+          implicit val processRunner: ProcessRunner[JVMProcessInfo] = new JVMProcessRunner
+
+          val stream = fs2.Stream("This is a test string").through(fs2.text.utf8Encode)
           val p1 = Process("perl", List("-e", """my $str=<>; print STDERR Hello; print STDOUT "$str""""))
           val p2 = Process("sort")
           val p3 = Process("wc", List("-w"))
-          val processGroup = ((p1 | p2 | p3) !># ZTransducer.utf8Decode) ># ZTransducer.utf8Decode < stream
+          val processGroup = ((p1 | p2 | p3) !># fs2.text.utf8Decode) ># fs2.text.utf8Decode < stream
 
           processGroup.run()
             .map { result =>
@@ -432,13 +515,16 @@ object ProcessGroupSpecs extends DefaultRunnableSpec with ProxSpecHelpers {
             }
         },
 
-        testM("can attach input and then output stream if each error output and standard output are already redirected") {
+        proxTest("can attach input and then output stream if each error output and standard output are already redirected") { prox =>
+          import prox._
 
-          val stream = ZStream("This is a test string").flatMap(s => ZStream.fromIterable(s.getBytes(StandardCharsets.UTF_8)))
+          implicit val processRunner: ProcessRunner[JVMProcessInfo] = new JVMProcessRunner
+
+          val stream = fs2.Stream("This is a test string").through(fs2.text.utf8Encode)
           val p1 = Process("perl", List("-e", """my $str=<>; print STDERR Hello; print STDOUT "$str""""))
           val p2 = Process("sort")
           val p3 = Process("wc", List("-w"))
-          val processGroup = ((p1 | p2 | p3) !># ZTransducer.utf8Decode) < stream ># ZTransducer.utf8Decode
+          val processGroup = ((p1 | p2 | p3) !># fs2.text.utf8Decode) < stream ># fs2.text.utf8Decode
 
           processGroup.run()
             .map { result =>
@@ -449,13 +535,16 @@ object ProcessGroupSpecs extends DefaultRunnableSpec with ProxSpecHelpers {
             }
         },
 
-        testM("can attach input stream and errors if standard output is already redirected") {
+        proxTest("can attach input stream and errors if standard output is already redirected") { prox =>
+          import prox._
 
-          val stream = ZStream("This is a test string").flatMap(s => ZStream.fromIterable(s.getBytes(StandardCharsets.UTF_8)))
+          implicit val processRunner: ProcessRunner[JVMProcessInfo] = new JVMProcessRunner
+
+          val stream = fs2.Stream("This is a test string").through(fs2.text.utf8Encode)
           val p1 = Process("perl", List("-e", """my $str=<>; print STDERR Hello; print STDOUT "$str""""))
           val p2 = Process("sort")
           val p3 = Process("wc", List("-w"))
-          val processGroup = ((p1 | p2 | p3) ># ZTransducer.utf8Decode) < stream !># ZTransducer.utf8Decode
+          val processGroup = ((p1 | p2 | p3) ># fs2.text.utf8Decode) < stream !># fs2.text.utf8Decode
 
           processGroup.run()
             .map { result =>
@@ -466,13 +555,16 @@ object ProcessGroupSpecs extends DefaultRunnableSpec with ProxSpecHelpers {
             }
         },
 
-        testM("can attach errors and finally input stream if standard output is already redirected") {
+        proxTest("can attach errors and finally input stream if standard output is already redirected") { prox =>
+          import prox._
 
-          val stream = ZStream("This is a test string").flatMap(s => ZStream.fromIterable(s.getBytes(StandardCharsets.UTF_8)))
+          implicit val processRunner: ProcessRunner[JVMProcessInfo] = new JVMProcessRunner
+
+          val stream = fs2.Stream("This is a test string").through(fs2.text.utf8Encode)
           val p1 = Process("perl", List("-e", """my $str=<>; print STDERR Hello; print STDOUT "$str""""))
           val p2 = Process("sort")
           val p3 = Process("wc", List("-w"))
-          val processGroup = (((p1 | p2 | p3) ># ZTransducer.utf8Decode) !># ZTransducer.utf8Decode) < stream
+          val processGroup = (((p1 | p2 | p3) ># fs2.text.utf8Decode) !># fs2.text.utf8Decode) < stream
 
           processGroup.run()
             .map { result =>
@@ -486,9 +578,9 @@ object ProcessGroupSpecs extends DefaultRunnableSpec with ProxSpecHelpers {
 
       testM("bound process is not pipeable") {
         assertM(
-          typeCheck("""val bad = (Process("echo", List("Hello world")) ># ZTransducer.utf8Decode) | Process("wc", List("-w"))"""))(
+          typeCheck("""val bad = (Process("echo", List("Hello world")) ># fs2.text.utf8Decode) | Process("wc", List("-w"))"""))(
           isLeft(anything)
         )
       }
-    ) @@ timeoutWarning(60.seconds) @@ sequential
+    ) @@ timeout(60.seconds) @@ sequential
 }

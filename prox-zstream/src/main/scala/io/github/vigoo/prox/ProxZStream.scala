@@ -66,7 +66,7 @@ trait ProxZStream extends Prox {
           if (cause.interrupted) {
             fin(value, Canceled).mapError(_.toThrowable).orDie
           } else {
-            fin(value, Failed(cause.failures ++ cause.defects.map(UnknownProxError))).mapError(_.toThrowable).orDie
+            fin(value, Failed(cause.failures ++ cause.defects.map(UnknownProxError.apply))).mapError(_.toThrowable).orDie
           }
       }
     }(a => ZIO.allowInterrupt *> use(a))
@@ -103,17 +103,17 @@ trait ProxZStream extends Prox {
     sink.run(s)
 
   protected override final def fromJavaInputStream(input: io.InputStream, chunkSize: Int): ProxStream[Byte] =
-    ZStream.fromInputStream(input, chunkSize).mapError(FailedToReadProcessOutput)
+    ZStream.fromInputStream(input, chunkSize).mapError(FailedToReadProcessOutput.apply)
 
   protected override final def drainToJavaOutputStream(stream: ProxStream[Byte], output: io.OutputStream, flushChunks: Boolean): ProxIO[Unit] = {
     val managedOutput = ZManaged.make(ZIO.succeed(output))(s => ZIO.effect(s.close()).orDie)
     if (flushChunks) {
-      stream.run(flushingOutputStreamSink(managedOutput).mapError(FailedToWriteProcessInput)).unit
+      stream.run(flushingOutputStreamSink(managedOutput).mapError(FailedToWriteProcessInput.apply)).unit
     } else {
       stream
         .run(ZSink
           .fromOutputStreamManaged(managedOutput)
-          .mapError(FailedToWriteProcessInput)).unit
+          .mapError(FailedToWriteProcessInput.apply)).unit
     }
   }
 

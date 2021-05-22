@@ -35,7 +35,7 @@ object ProcessSpecs extends DefaultRunnableSpec with ProxSpecHelpers {
             val process = Process("echo", List("Hello world!")) > tempFile.toPath
             val program = for {
               _ <- process.run()
-              contents <- ZStream.fromFile(tempFile.toPath, 1024).transduce(ZTransducer.utf8Decode).fold("")(_ + _).mapError(UnknownProxError)
+              contents <- ZStream.fromFile(tempFile.toPath, 1024).transduce(ZTransducer.utf8Decode).fold("")(_ + _).mapError(UnknownProxError.apply)
             } yield contents
 
             assertM(program)(equalTo("Hello world!\n"))
@@ -49,7 +49,7 @@ object ProcessSpecs extends DefaultRunnableSpec with ProxSpecHelpers {
             val program = for {
               _ <- process1.run()
               _ <- process2.run()
-              contents <- ZStream.fromFile(tempFile.toPath, 1024).transduce(ZTransducer.utf8Decode).fold("")(_ + _).mapError(UnknownProxError)
+              contents <- ZStream.fromFile(tempFile.toPath, 1024).transduce(ZTransducer.utf8Decode).fold("")(_ + _).mapError(UnknownProxError.apply)
             } yield contents
 
             assertM(program)(equalTo("Hello\nworld\n"))
@@ -103,7 +103,7 @@ object ProcessSpecs extends DefaultRunnableSpec with ProxSpecHelpers {
 
         testM("can redirect output to a sink") {
           val builder = new StringBuilder
-          val target: zstream.ProxSink[Byte] = ZSink.foreach((byte: Byte) => ZIO.effect(builder.append(byte.toChar)).mapError(UnknownProxError))
+          val target: zstream.ProxSink[Byte] = ZSink.foreach((byte: Byte) => ZIO.effect(builder.append(byte.toChar)).mapError(UnknownProxError.apply))
 
           val process = Process("echo", List("Hello world!")) > target
           val program = process.run().as(builder.toString)
@@ -117,7 +117,7 @@ object ProcessSpecs extends DefaultRunnableSpec with ProxSpecHelpers {
             val process = Process("perl", List("-e", "print STDERR 'Hello world!'")) !> tempFile.toPath
             val program = for {
               _ <- process.run()
-              contents <- ZStream.fromFile(tempFile.toPath, 1024).transduce(ZTransducer.utf8Decode).fold("")(_ + _).mapError(UnknownProxError)
+              contents <- ZStream.fromFile(tempFile.toPath, 1024).transduce(ZTransducer.utf8Decode).fold("")(_ + _).mapError(UnknownProxError.apply)
             } yield contents
 
             assertM(program)(equalTo("Hello world!"))
@@ -131,7 +131,7 @@ object ProcessSpecs extends DefaultRunnableSpec with ProxSpecHelpers {
             val program = for {
               _ <- process1.run()
               _ <- process2.run()
-              contents <- ZStream.fromFile(tempFile.toPath, 1024).transduce(ZTransducer.utf8Decode).fold("")(_ + _).mapError(UnknownProxError)
+              contents <- ZStream.fromFile(tempFile.toPath, 1024).transduce(ZTransducer.utf8Decode).fold("")(_ + _).mapError(UnknownProxError.apply)
             } yield contents
 
             assertM(program)(equalTo("Helloworld"))
@@ -185,7 +185,7 @@ object ProcessSpecs extends DefaultRunnableSpec with ProxSpecHelpers {
 
         testM("can redirect error to a sink") {
           val builder = new StringBuilder
-          val target: zstream.ProxSink[Byte] = ZSink.foreach((byte: Byte) => ZIO.effect(builder.append(byte.toChar)).mapError(UnknownProxError))
+          val target: zstream.ProxSink[Byte] = ZSink.foreach((byte: Byte) => ZIO.effect(builder.append(byte.toChar)).mapError(UnknownProxError.apply))
 
           val process = Process("perl", List("-e", """print STDERR "Hello"""")) !> target
           val program = process.run().as(builder.toString)

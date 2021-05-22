@@ -6,7 +6,7 @@ import scala.concurrent.blocking
 import scala.jdk.CollectionConverters._
 
 trait ProcessRunnerModule {
-  this: ProxRuntime with ProcessModule with ProcessGroupModule with RedirectionModule =>
+  this: Prox =>
 
   /**
     * Interface for running processes and process groups
@@ -104,17 +104,17 @@ trait ProcessRunnerModule {
     extends RunningProcess[O, E, Info] {
 
     def isAlive: ProxIO[Boolean] =
-      effect(nativeProcess.isAlive, FailedToQueryState)
+      effect(nativeProcess.isAlive, FailedToQueryState.apply)
 
     def kill(): ProxIO[ProcessResult[O, E]] =
-      effect(nativeProcess.destroyForcibly(), FailedToDestroy).flatMap(_ => waitForExit())
+      effect(nativeProcess.destroyForcibly(), FailedToDestroy.apply).flatMap(_ => waitForExit())
 
     def terminate(): ProxIO[ProcessResult[O, E]] =
-      effect(nativeProcess.destroy(), FailedToDestroy).flatMap(_ => waitForExit())
+      effect(nativeProcess.destroy(), FailedToDestroy.apply).flatMap(_ => waitForExit())
 
     def waitForExit(): ProxIO[ProcessResult[O, E]] = {
       for {
-        exitCode <- effect(nativeProcess.waitFor(), FailedToWaitForExit)
+        exitCode <- effect(nativeProcess.waitFor(), FailedToWaitForExit.apply)
         _ <- runningInput.join
         output <- runningOutput.join
         error <- runningError.join
@@ -163,10 +163,10 @@ trait ProcessRunnerModule {
       builder.redirectInput(inputRedirectionToNative(process.inputRedirection))
 
       for {
-        nativeProcess <- effect(builder.start(), FailedToStartProcess)
+        nativeProcess <- effect(builder.start(), FailedToStartProcess.apply)
         processInfo <- getProcessInfo(nativeProcess)
-        nativeOutputStream <- effect(nativeProcess.getInputStream, UnknownProxError)
-        nativeErrorStream <- effect(nativeProcess.getErrorStream, UnknownProxError)
+        nativeOutputStream <- effect(nativeProcess.getInputStream, UnknownProxError.apply)
+        nativeErrorStream <- effect(nativeProcess.getErrorStream, UnknownProxError.apply)
 
         inputStream = runInputStream(process, nativeProcess)
         runningInput <- startFiber(inputStream)
@@ -261,7 +261,7 @@ trait ProcessRunnerModule {
     extends JVMProcessRunnerBase[JVMProcessInfo] {
 
     override protected def getProcessInfo(process: JvmProcess): ProxIO[JVMProcessInfo] =
-      effect(new JVMProcessInfo(), UnknownProxError)
+      effect(new JVMProcessInfo(), UnknownProxError.apply)
   }
 
 }

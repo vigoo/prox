@@ -9,3 +9,4 @@ project/plugins/project/
 .lib/
 .idea
 examples/externalpyproc/virtualenv
+.bloop/

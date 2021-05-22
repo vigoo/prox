@@ -3,10 +3,7 @@ package io.github.vigoo.prox
 import java.nio.file.Path
 
 trait CommonModule {
-  this: ProxRuntime =>
-
-  /** Common base trait for processes and process groups, used in constraints in the redirection traits */
-  trait ProcessLike
+  this: Prox =>
 
   trait ProcessLikeConfiguration {
     val workingDirectory: Option[Path]

@@ -3,7 +3,7 @@ package io.github.vigoo.prox
 import java.nio.file.Path
 
 trait ProcessGroupModule {
-  this: ProxRuntime with CommonModule with ProcessModule with RedirectionModule with ProcessRunnerModule with SyntaxModule =>
+  this: Prox =>
 
   /**
     * Result of an executed process group
