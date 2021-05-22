@@ -130,6 +130,12 @@ lazy val docs = project
     git.remoteRepo := "git@github.com:vigoo/prox.git",
     siteSubdirName in ScalaUnidoc := "api",
     addMappingsToSiteDir(mappings in (ScalaUnidoc, packageDoc), siteSubdirName in ScalaUnidoc),
+    ScalaUnidoc / unidoc / unidocProjectFilter := inProjects(
+      proxCore,
+      proxFS2,
+      proxZStream,
+      proxJava9
+    ),
     micrositeUrl := "https://vigoo.github.io",
     micrositeBaseUrl := "/prox",
     micrositeHomepage := "https://vigoo.github.io/prox/",
