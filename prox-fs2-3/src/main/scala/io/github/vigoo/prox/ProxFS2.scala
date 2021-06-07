@@ -82,7 +82,7 @@ trait ProxFS2[F[_]] extends Prox {
 
   protected override final def drainToJavaOutputStream(stream: ProxStream[Byte], output: io.OutputStream, flushChunks: Boolean): ProxIO[Unit] =
     stream
-      .observe(
+      .through(
         if (flushChunks) writeAndFlushOutputStream(output)(_).drain
         else fs2.io.writeOutputStream(
           effect(output, UnknownProxError.apply),
