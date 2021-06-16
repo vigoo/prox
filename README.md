@@ -1,5 +1,5 @@
 # [prox](https://vigoo.github.io/prox)
-[![Build Status](https://travis-ci.org/vigoo/prox.svg?branch=master)](https://travis-ci.org/vigoo/prox)
+![CI](https://github.com/vigoo/prox/workflows/CI/badge.svg)
 [![codecov](https://codecov.io/gh/vigoo/prox/branch/master/graph/badge.svg)](https://codecov.io/gh/vigoo/prox)
 [![Apache 2 License License](http://img.shields.io/badge/license-APACHE2-blue.svg)](http://www.apache.org/licenses/LICENSE-2.0)
 [![Latest version](https://index.scala-lang.org/vigoo/prox/prox-core/latest.svg)](https://index.scala-lang.org/vigoo/prox/prox-core)
