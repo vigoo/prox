@@ -29,7 +29,7 @@ def commonSettings(jdk: Int) = Seq(
       )
   }),
   libraryDependencies ++= Seq(
-    "org.scala-lang.modules" %% "scala-collection-compat" % "2.4.4"
+    "org.scala-lang.modules" %% "scala-collection-compat" % "2.5.0"
   ),
 
   coverageEnabled in(Test, compile) := true,
