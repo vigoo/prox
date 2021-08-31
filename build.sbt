@@ -25,7 +25,7 @@ def commonSettings(jdk: Int) = Seq(
      (CrossVersion.partialVersion(scalaVersion.value) match {
     case Some((3, _)) => Seq.empty
     case _ => Seq(
-        compilerPlugin("org.typelevel" % "kind-projector" % "0.13.0" cross CrossVersion.full),
+        compilerPlugin("org.typelevel" % "kind-projector" % "0.13.1" cross CrossVersion.full),
       )
   }),
   libraryDependencies ++= Seq(
