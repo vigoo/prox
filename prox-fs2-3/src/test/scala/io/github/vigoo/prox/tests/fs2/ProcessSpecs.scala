@@ -1,14 +1,15 @@
 package io.github.vigoo.prox.tests.fs2
 
-import fs2.io.file.Files
+import fs2.io.file.{Files, Flags}
 import cats.effect.ExitCode
 import zio.clock.Clock
 import zio.duration._
 import zio.test.Assertion.{anything, equalTo, hasSameElements, isLeft}
 import zio.test.TestAspect._
 import zio.test._
-import zio.{IO, Task, ZIO, RIO, ZEnv}
+import zio.{IO, RIO, Task, ZEnv, ZIO}
 import zio.interop.catz._
+
 import java.nio.file.Paths
 
 object ProcessSpecs extends DefaultRunnableSpec with ProxSpecHelpers {
@@ -37,7 +38,7 @@ object ProcessSpecs extends DefaultRunnableSpec with ProxSpecHelpers {
             val process = Process("echo", List("Hello world!")) > tempFile.toPath
             val program = for {
               _ <- process.run()
-              contents <- Files[RIO[ZEnv, *]].readAll(tempFile.toPath, 1024).through(fs2.text.utf8Decode).compile.foldMonoid
+              contents <- Files[RIO[ZEnv, *]].readAll(fs2.io.file.Path.fromNioPath(tempFile.toPath), 1024, Flags.Read).through(fs2.text.utf8.decode).compile.foldMonoid
             } yield contents
 
             assertM(program)(equalTo("Hello world!\n"))
@@ -55,7 +56,7 @@ object ProcessSpecs extends DefaultRunnableSpec with ProxSpecHelpers {
             val program = for {
               _ <- process1.run()
               _ <- process2.run()
-              contents <- Files[RIO[ZEnv, *]].readAll(tempFile.toPath, 1024).through(fs2.text.utf8Decode).compile.foldMonoid
+              contents <- Files[RIO[ZEnv, *]].readAll(fs2.io.file.Path.fromNioPath(tempFile.toPath), 1024, Flags.Read).through(fs2.text.utf8.decode).compile.foldMonoid
             } yield contents
 
             assertM(program)(equalTo("Hello\nworld\n"))
@@ -67,7 +68,7 @@ object ProcessSpecs extends DefaultRunnableSpec with ProxSpecHelpers {
 
           implicit val processRunner: ProcessRunner[JVMProcessInfo] = new JVMProcessRunner
 
-          val process = Process("echo", List("Hello world!")) ># fs2.text.utf8Decode
+          val process = Process("echo", List("Hello world!")) ># fs2.text.utf8.decode
           val program = process.run().map(_.output)
 
           assertM(program)(equalTo("Hello world!\n"))
@@ -78,7 +79,7 @@ object ProcessSpecs extends DefaultRunnableSpec with ProxSpecHelpers {
 
           implicit val processRunner: ProcessRunner[JVMProcessInfo] = new JVMProcessRunner
 
-          val process = Process("echo", List("Hello\nworld!")) ># fs2.text.utf8Decode.andThen(fs2.text.lines)
+          val process = Process("echo", List("Hello\nworld!")) ># fs2.text.utf8.decode.andThen(fs2.text.lines)
           val program = process.run().map(_.output)
 
           assertM(program)(equalTo("Helloworld!"))
@@ -91,7 +92,7 @@ object ProcessSpecs extends DefaultRunnableSpec with ProxSpecHelpers {
 
           case class StringLength(value: Int)
 
-          val stream = fs2.text.utf8Decode[Task]
+          val stream = fs2.text.utf8.decode[Task]
             .andThen(fs2.text.lines)
             .andThen(_.map(s => StringLength(s.length)))
           val process = Process("echo", List("Hello\nworld!")) >? stream
@@ -105,7 +106,7 @@ object ProcessSpecs extends DefaultRunnableSpec with ProxSpecHelpers {
 
           implicit val processRunner: ProcessRunner[JVMProcessInfo] = new JVMProcessRunner
 
-          val process = Process("echo", List("Hello\nworld!")).drainOutput(fs2.text.utf8Decode.andThen(fs2.text.lines))
+          val process = Process("echo", List("Hello\nworld!")).drainOutput(fs2.text.utf8.decode.andThen(fs2.text.lines))
           val program = process.run().map(_.output)
 
           assertM(program)(equalTo(()))
@@ -117,7 +118,7 @@ object ProcessSpecs extends DefaultRunnableSpec with ProxSpecHelpers {
           implicit val processRunner: ProcessRunner[JVMProcessInfo] = new JVMProcessRunner
 
           val process = Process("echo", List("Hello\nworld!")).foldOutput(
-            fs2.text.utf8Decode.andThen(fs2.text.lines),
+            fs2.text.utf8.decode.andThen(fs2.text.lines),
             Vector.empty,
             (l: Vector[Option[Char]], s: String) => l :+ s.headOption
           )
@@ -152,7 +153,7 @@ object ProcessSpecs extends DefaultRunnableSpec with ProxSpecHelpers {
             val process = Process("perl", List("-e", "print STDERR 'Hello world!'")) !> tempFile.toPath
             val program = for {
               _ <- process.run()
-              contents <- Files[RIO[ZEnv, *]].readAll(tempFile.toPath, 1024).through(fs2.text.utf8Decode).compile.foldMonoid
+              contents <- Files[RIO[ZEnv, *]].readAll(fs2.io.file.Path.fromNioPath(tempFile.toPath), 1024, Flags.Read).through(fs2.text.utf8.decode).compile.foldMonoid
             } yield contents
 
             assertM(program)(equalTo("Hello world!"))
@@ -170,7 +171,7 @@ object ProcessSpecs extends DefaultRunnableSpec with ProxSpecHelpers {
             val program = for {
               _ <- process1.run()
               _ <- process2.run()
-              contents <- Files[RIO[ZEnv, *]].readAll(tempFile.toPath, 1024).through(fs2.text.utf8Decode).compile.foldMonoid
+              contents <- Files[RIO[ZEnv, *]].readAll(fs2.io.file.Path.fromNioPath(tempFile.toPath), 1024, Flags.Read).through(fs2.text.utf8.decode).compile.foldMonoid
             } yield contents
 
             assertM(program)(equalTo("Helloworld"))
@@ -182,7 +183,7 @@ object ProcessSpecs extends DefaultRunnableSpec with ProxSpecHelpers {
 
           implicit val processRunner: ProcessRunner[JVMProcessInfo] = new JVMProcessRunner
 
-          val process = Process("perl", List("-e", """print STDERR "Hello"""")) !># fs2.text.utf8Decode
+          val process = Process("perl", List("-e", """print STDERR "Hello"""")) !># fs2.text.utf8.decode
           val program = process.run().map(_.error)
 
           assertM(program)(equalTo("Hello"))
@@ -193,7 +194,7 @@ object ProcessSpecs extends DefaultRunnableSpec with ProxSpecHelpers {
 
           implicit val processRunner: ProcessRunner[JVMProcessInfo] = new JVMProcessRunner
 
-          val process = Process("perl", List("-e", "print STDERR 'Hello\nworld!'")) !># fs2.text.utf8Decode.andThen(fs2.text.lines)
+          val process = Process("perl", List("-e", "print STDERR 'Hello\nworld!'")) !># fs2.text.utf8.decode.andThen(fs2.text.lines)
           val program = process.run().map(_.error)
 
           assertM(program)(equalTo("Helloworld!"))
@@ -206,7 +207,7 @@ object ProcessSpecs extends DefaultRunnableSpec with ProxSpecHelpers {
 
           case class StringLength(value: Int)
 
-          val stream = fs2.text.utf8Decode[Task]
+          val stream = fs2.text.utf8.decode[Task]
             .andThen(fs2.text.lines)
             .andThen(_.map(s => StringLength(s.length)))
           val process = Process("perl", List("-e", "print STDERR 'Hello\nworld!'")) !>? stream
@@ -220,7 +221,7 @@ object ProcessSpecs extends DefaultRunnableSpec with ProxSpecHelpers {
 
           implicit val processRunner: ProcessRunner[JVMProcessInfo] = new JVMProcessRunner
 
-          val process = Process("perl", List("-e", "print STDERR 'Hello\nworld!'")).drainError(fs2.text.utf8Decode.andThen(fs2.text.lines))
+          val process = Process("perl", List("-e", "print STDERR 'Hello\nworld!'")).drainError(fs2.text.utf8.decode.andThen(fs2.text.lines))
           val program = process.run().map(_.error)
 
           assertM(program)(equalTo(()))
@@ -232,7 +233,7 @@ object ProcessSpecs extends DefaultRunnableSpec with ProxSpecHelpers {
           implicit val processRunner: ProcessRunner[JVMProcessInfo] = new JVMProcessRunner
 
           val process = Process("perl", List("-e", "print STDERR 'Hello\nworld!'")).foldError(
-            fs2.text.utf8Decode.andThen(fs2.text.lines),
+            fs2.text.utf8.decode.andThen(fs2.text.lines),
             Vector.empty,
             (l: Vector[Option[Char]], s: String) => l :+ s.headOption
           )
@@ -264,8 +265,8 @@ object ProcessSpecs extends DefaultRunnableSpec with ProxSpecHelpers {
 
           implicit val processRunner: ProcessRunner[JVMProcessInfo] = new JVMProcessRunner
 
-          val source = fs2.Stream("This is a test string").through(fs2.text.utf8Encode)
-          val process = Process("perl", List("-e", """my $str = <>; print STDERR "$str"""".stripMargin)) < source !># fs2.text.utf8Decode
+          val source = fs2.Stream("This is a test string").through(fs2.text.utf8.encode)
+          val process = Process("perl", List("-e", """my $str = <>; print STDERR "$str"""".stripMargin)) < source !># fs2.text.utf8.decode
           val program = process.run().map(_.error)
 
           assertM(program)(equalTo("This is a test string"))
@@ -276,7 +277,7 @@ object ProcessSpecs extends DefaultRunnableSpec with ProxSpecHelpers {
 
           implicit val processRunner: ProcessRunner[JVMProcessInfo] = new JVMProcessRunner
 
-          val process = (Process("perl", List("-e", """print STDOUT Hello; print STDERR World""".stripMargin)) !># fs2.text.utf8Decode) ># fs2.text.utf8Decode
+          val process = (Process("perl", List("-e", """print STDOUT Hello; print STDERR World""".stripMargin)) !># fs2.text.utf8.decode) ># fs2.text.utf8.decode
           val program = process.run().map(r => r.output + r.error)
 
           assertM(program)(equalTo("HelloWorld"))
@@ -287,7 +288,7 @@ object ProcessSpecs extends DefaultRunnableSpec with ProxSpecHelpers {
 
           implicit val processRunner: ProcessRunner[JVMProcessInfo] = new JVMProcessRunner
 
-          val process = (Process("perl", List("-e", """print STDOUT Hello; print STDERR World""".stripMargin)) ># fs2.text.utf8Decode) !># fs2.text.utf8Decode
+          val process = (Process("perl", List("-e", """print STDOUT Hello; print STDERR World""".stripMargin)) ># fs2.text.utf8.decode) !># fs2.text.utf8.decode
           val program = process.run().map(r => r.output + r.error)
 
           assertM(program)(equalTo("HelloWorld"))
@@ -298,10 +299,10 @@ object ProcessSpecs extends DefaultRunnableSpec with ProxSpecHelpers {
 
           implicit val processRunner: ProcessRunner[JVMProcessInfo] = new JVMProcessRunner
 
-          val source = fs2.Stream("Hello").through(fs2.text.utf8Encode)
+          val source = fs2.Stream("Hello").through(fs2.text.utf8.encode)
           val process = ((Process("perl", List("-e", """my $str = <>; print STDOUT "$str"; print STDERR World""".stripMargin))
-            ># fs2.text.utf8Decode)
-            !># fs2.text.utf8Decode) < source
+            ># fs2.text.utf8.decode)
+            !># fs2.text.utf8.decode) < source
           val program = process.run().map(r => r.output + r.error)
 
           assertM(program)(equalTo("HelloWorld"))
@@ -312,10 +313,10 @@ object ProcessSpecs extends DefaultRunnableSpec with ProxSpecHelpers {
 
           implicit val processRunner: ProcessRunner[JVMProcessInfo] = new JVMProcessRunner
 
-          val source = fs2.Stream("Hello").through(fs2.text.utf8Encode)
+          val source = fs2.Stream("Hello").through(fs2.text.utf8.encode)
           val process = ((Process("perl", List("-e", """my $str = <>; print STDOUT "$str"; print STDERR World""".stripMargin))
-            ># fs2.text.utf8Decode)
-            < source) !># fs2.text.utf8Decode
+            ># fs2.text.utf8.decode)
+            < source) !># fs2.text.utf8.decode
           val program = process.run().map(r => r.output + r.error)
 
           assertM(program)(equalTo("HelloWorld"))
@@ -326,10 +327,10 @@ object ProcessSpecs extends DefaultRunnableSpec with ProxSpecHelpers {
 
           implicit val processRunner: ProcessRunner[JVMProcessInfo] = new JVMProcessRunner
 
-          val source = fs2.Stream("Hello").through(fs2.text.utf8Encode)
+          val source = fs2.Stream("Hello").through(fs2.text.utf8.encode)
           val process = ((Process("perl", List("-e", """my $str = <>; print STDOUT "$str"; print STDERR World""".stripMargin))
             < source)
-            !># fs2.text.utf8Decode) ># fs2.text.utf8Decode
+            !># fs2.text.utf8.decode) ># fs2.text.utf8.decode
           val program = process.run().map(r => r.output + r.error)
 
           assertM(program)(equalTo("HelloWorld"))
@@ -342,8 +343,8 @@ object ProcessSpecs extends DefaultRunnableSpec with ProxSpecHelpers {
 
           implicit val processRunner: ProcessRunner[JVMProcessInfo] = new JVMProcessRunner
 
-          val source = fs2.Stream("This is a test string").through(fs2.text.utf8Encode)
-          val process = Process("wc", List("-w")) < source ># fs2.text.utf8Decode
+          val source = fs2.Stream("This is a test string").through(fs2.text.utf8.encode)
+          val process = Process("wc", List("-w")) < source ># fs2.text.utf8.decode
           val program = process.run().map(_.output.trim)
 
           assertM(program)(equalTo("5"))
@@ -354,8 +355,8 @@ object ProcessSpecs extends DefaultRunnableSpec with ProxSpecHelpers {
 
           implicit val processRunner: ProcessRunner[JVMProcessInfo] = new JVMProcessRunner
 
-          val source = fs2.Stream("This ", "is a test", " string").through(fs2.text.utf8Encode)
-          val process = (Process("wc", List("-w")) !< source) ># fs2.text.utf8Decode
+          val source = fs2.Stream("This ", "is a test", " string").through(fs2.text.utf8.encode)
+          val process = (Process("wc", List("-w")) !< source) ># fs2.text.utf8.decode
           val program = process.run().map(_.output.trim)
 
           assertM(program)(equalTo("5"))
@@ -427,7 +428,7 @@ object ProcessSpecs extends DefaultRunnableSpec with ProxSpecHelpers {
 
           implicit val processRunner: ProcessRunner[JVMProcessInfo] = new JVMProcessRunner
 
-          val p1 = Process("something", List("Hello", "world")) ># fs2.text.utf8Decode
+          val p1 = Process("something", List("Hello", "world")) ># fs2.text.utf8.decode
           val p2 = p1.withCommand("echo")
           val program = p2.run().map(_.output)
 
@@ -439,7 +440,7 @@ object ProcessSpecs extends DefaultRunnableSpec with ProxSpecHelpers {
 
           implicit val processRunner: ProcessRunner[JVMProcessInfo] = new JVMProcessRunner
 
-          val p1 = Process("echo") ># fs2.text.utf8Decode
+          val p1 = Process("echo") ># fs2.text.utf8.decode
           val p2 = p1.withArguments(List("Hello", "world"))
           val program = p2.run().map(_.output)
 
@@ -452,7 +453,7 @@ object ProcessSpecs extends DefaultRunnableSpec with ProxSpecHelpers {
           implicit val processRunner: ProcessRunner[JVMProcessInfo] = new JVMProcessRunner
 
           ZIO(java.nio.file.Files.createTempDirectory("prox")).flatMap { tempDirectory =>
-            val process = (Process("pwd") in tempDirectory) ># fs2.text.utf8Decode
+            val process = (Process("pwd") in tempDirectory) ># fs2.text.utf8.decode
             val program = process.run().map(_.output.trim)
 
             assertM(program)(equalTo(tempDirectory.toString) || equalTo(s"/private${tempDirectory}"))
@@ -466,7 +467,7 @@ object ProcessSpecs extends DefaultRunnableSpec with ProxSpecHelpers {
 
           val process = (Process("sh", List("-c", "echo \"Hello $TEST1! I am $TEST2!\""))
             `with` ("TEST1" -> "world")
-            `with` ("TEST2" -> "prox")) ># fs2.text.utf8Decode
+            `with` ("TEST2" -> "prox")) ># fs2.text.utf8.decode
           val program = process.run().map(_.output)
 
           assertM(program)(equalTo("Hello world! I am prox!\n"))
@@ -480,7 +481,7 @@ object ProcessSpecs extends DefaultRunnableSpec with ProxSpecHelpers {
           val process = (Process("sh", List("-c", "echo \"Hello $TEST1! I am $TEST2!\""))
             `with` ("TEST1" -> "world")
             `with` ("TEST2" -> "prox")
-            `without` "TEST1") ># fs2.text.utf8Decode
+            `without` "TEST1") ># fs2.text.utf8.decode
           val program = process.run().map(_.output)
 
           assertM(program)(equalTo("Hello ! I am prox!\n"))
@@ -491,7 +492,7 @@ object ProcessSpecs extends DefaultRunnableSpec with ProxSpecHelpers {
 
           implicit val processRunner: ProcessRunner[JVMProcessInfo] = new JVMProcessRunner
 
-          val process = (Process("sh", List("-c", "echo \"Hello $TEST1! I am $TEST2!\"")) ># fs2.text.utf8Decode
+          val process = (Process("sh", List("-c", "echo \"Hello $TEST1! I am $TEST2!\"")) ># fs2.text.utf8.decode
             `with` ("TEST1" -> "world")
             `with` ("TEST2" -> "prox"))
           val program = process.run().map(_.output)
@@ -504,10 +505,10 @@ object ProcessSpecs extends DefaultRunnableSpec with ProxSpecHelpers {
 
           implicit val processRunner: ProcessRunner[JVMProcessInfo] = new JVMProcessRunner
 
-          val source = fs2.Stream("This is a test string").through(fs2.text.utf8Encode)
+          val source = fs2.Stream("This is a test string").through(fs2.text.utf8.encode)
           val process = ((Process("sh", List("-c", "cat > /dev/null; echo \"Hello $TEST1! I am $TEST2!\"")) < source)
             `with` ("TEST1" -> "world")
-            `with` ("TEST2" -> "prox")) ># fs2.text.utf8Decode
+            `with` ("TEST2" -> "prox")) ># fs2.text.utf8.decode
           val program = process.run().map(_.output)
 
           assertM(program)(equalTo("Hello world! I am prox!\n"))
@@ -518,10 +519,10 @@ object ProcessSpecs extends DefaultRunnableSpec with ProxSpecHelpers {
 
           implicit val processRunner: ProcessRunner[JVMProcessInfo] = new JVMProcessRunner
 
-          val source = fs2.Stream("This is a test string").through(fs2.text.utf8Encode)
-          val process = ((Process("sh", List("-c", "echo \"Hello $TEST1! I am $TEST2!\"")) !># fs2.text.utf8Decode)
+          val source = fs2.Stream("This is a test string").through(fs2.text.utf8.encode)
+          val process = ((Process("sh", List("-c", "echo \"Hello $TEST1! I am $TEST2!\"")) !># fs2.text.utf8.decode)
             `with` ("TEST1" -> "world")
-            `with` ("TEST2" -> "prox")) ># fs2.text.utf8Decode
+            `with` ("TEST2" -> "prox")) ># fs2.text.utf8.decode
           val program = process.run().map(_.output)
 
           assertM(program)(equalTo("Hello world! I am prox!\n"))
@@ -532,8 +533,8 @@ object ProcessSpecs extends DefaultRunnableSpec with ProxSpecHelpers {
 
           implicit val processRunner: ProcessRunner[JVMProcessInfo] = new JVMProcessRunner
 
-          val source = fs2.Stream("This is a test string").through(fs2.text.utf8Encode)
-          val process = (((Process("sh", List("-c", "cat > /dev/null; echo \"Hello $TEST1! I am $TEST2!\"")) < source) ># fs2.text.utf8Decode)
+          val source = fs2.Stream("This is a test string").through(fs2.text.utf8.encode)
+          val process = (((Process("sh", List("-c", "cat > /dev/null; echo \"Hello $TEST1! I am $TEST2!\"")) < source) ># fs2.text.utf8.decode)
             `with` ("TEST1" -> "world")
             `with` ("TEST2" -> "prox"))
           val program = process.run().map(_.output)
@@ -547,10 +548,10 @@ object ProcessSpecs extends DefaultRunnableSpec with ProxSpecHelpers {
 
           implicit val processRunner: ProcessRunner[JVMProcessInfo] = new JVMProcessRunner
 
-          val source = fs2.Stream("This is a test string").through(fs2.text.utf8Encode)
-          val process = (((Process("sh", List("-c", "cat > /dev/null; echo \"Hello $TEST1! I am $TEST2!\"")) < source) !># fs2.text.utf8Decode)
+          val source = fs2.Stream("This is a test string").through(fs2.text.utf8.encode)
+          val process = (((Process("sh", List("-c", "cat > /dev/null; echo \"Hello $TEST1! I am $TEST2!\"")) < source) !># fs2.text.utf8.decode)
             `with` ("TEST1" -> "world")
-            `with` ("TEST2" -> "prox")) ># fs2.text.utf8Decode
+            `with` ("TEST2" -> "prox")) ># fs2.text.utf8.decode
           val program = process.run().map(_.output)
 
           assertM(program)(equalTo("Hello world! I am prox!\n"))
@@ -561,7 +562,7 @@ object ProcessSpecs extends DefaultRunnableSpec with ProxSpecHelpers {
 
           implicit val processRunner: ProcessRunner[JVMProcessInfo] = new JVMProcessRunner
 
-          val process = (((Process("sh", List("-c", "echo \"Hello $TEST1! I am $TEST2!\"")) !># fs2.text.utf8Decode) ># fs2.text.utf8Decode)
+          val process = (((Process("sh", List("-c", "echo \"Hello $TEST1! I am $TEST2!\"")) !># fs2.text.utf8.decode) ># fs2.text.utf8.decode)
             `with` ("TEST1" -> "world")
             `with` ("TEST2" -> "prox"))
           val program = process.run().map(_.output)
@@ -574,8 +575,8 @@ object ProcessSpecs extends DefaultRunnableSpec with ProxSpecHelpers {
 
           implicit val processRunner: ProcessRunner[JVMProcessInfo] = new JVMProcessRunner
 
-          val source = fs2.Stream("This is a test string").through(fs2.text.utf8Encode)
-          val process = ((((Process("sh", List("-c", "cat > /dev/null; echo \"Hello $TEST1! I am $TEST2!\"")) < source) !># fs2.text.utf8Decode) ># fs2.text.utf8Decode)
+          val source = fs2.Stream("This is a test string").through(fs2.text.utf8.encode)
+          val process = ((((Process("sh", List("-c", "cat > /dev/null; echo \"Hello $TEST1! I am $TEST2!\"")) < source) !># fs2.text.utf8.decode) ># fs2.text.utf8.decode)
             `with` ("TEST1" -> "world")
             `with` ("TEST2" -> "prox"))
           val program = process.run().map(_.output)
@@ -598,7 +599,7 @@ object ProcessSpecs extends DefaultRunnableSpec with ProxSpecHelpers {
       },
       testM("double input redirect is illegal") {
         assertM(
-          typeCheck("""val bad = (Process("echo", List("Hello world")) < fs2.Stream("X").through(fs2.text.utf8Encode)) < fs2.Stream("Y").through(fs2.text.utf8Encode)"""))(
+          typeCheck("""val bad = (Process("echo", List("Hello world")) < fs2.Stream("X").through(fs2.text.utf8.encode)) < fs2.Stream("Y").through(fs2.text.utf8.encode)"""))(
           isLeft(anything)
         )
       }
