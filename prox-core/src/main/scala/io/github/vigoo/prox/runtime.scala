@@ -23,6 +23,7 @@ trait ProxRuntime {
   protected def unit: ProxIO[Unit]
   protected def pure[A](value: A): ProxIO[A]
   protected def effect[A](f: => A, wrapError: Throwable => ProxError): ProxIO[A]
+  protected def blockingEffect[A](f: => A, wrapError: Throwable => ProxError): ProxIO[A]
   protected def raiseError(error: ProxError): ProxIO[Unit]
   protected def ioMap[A, B](io: ProxIO[A], f: A => B): ProxIO[B]
   protected def ioFlatMap[A, B](io: ProxIO[A], f: A => ProxIO[B]): ProxIO[B]

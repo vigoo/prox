@@ -30,11 +30,15 @@ trait ProxFS2[F[_]] extends Prox {
 
   protected override final def pure[A](value: A): ProxIO[A] = Applicative[F].pure(value)
 
-  protected override final def effect[A](f: => A, wrapError: Throwable => ProxError): ProxIO[A] = {
+  protected override final def effect[A](f: => A, wrapError: Throwable => ProxError): ProxIO[A] =
     Sync[F].adaptError(Sync[F].delay(f)) {
       case failure: Throwable => wrapError(failure).toThrowable
     }
-  }
+
+  protected override final def blockingEffect[A](f: => A, wrapError: Throwable => ProxError): ProxIO[A] =
+    Sync[F].adaptError(blocker.delay(f)) {
+      case failure: Throwable => wrapError(failure).toThrowable
+    }
 
   protected override final def raiseError(error: ProxError): ProxIO[Unit] = ApplicativeError[F, Throwable].raiseError(error.toThrowable)
 

@@ -114,7 +114,7 @@ trait ProcessRunnerModule {
 
     def waitForExit(): ProxIO[ProcessResult[O, E]] = {
       for {
-        exitCode <- effect(nativeProcess.waitFor(), FailedToWaitForExit.apply)
+        exitCode <- blockingEffect(nativeProcess.waitFor(), FailedToWaitForExit.apply)
         _ <- runningInput.join
         output <- runningOutput.join
         error <- runningError.join
