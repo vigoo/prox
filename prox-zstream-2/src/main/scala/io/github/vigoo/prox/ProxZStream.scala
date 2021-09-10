@@ -34,22 +34,22 @@ trait ProxZStream extends Prox {
     zio.ExitCode(value)
 
   protected override final def unit: ProxIO[Unit] =
-    ZIO.unit
+    ZIO.debug("unit") *> ZIO.unit
 
   protected override final def pure[A](value: A): ProxIO[A] =
-    ZIO.succeed(value)
+    ZIO.debug("pure") *> ZIO.succeed(value)
 
   protected override final def effect[A](f: => A, wrapError: Throwable => ProxError): ProxIO[A] =
-    ZIO.attempt(f).mapError(wrapError)
+    ZIO.debug("effect") *> ZIO.attempt(f).mapError(wrapError)
 
   protected override final def raiseError(error: ProxError): ProxIO[Unit] =
-    ZIO.fail(error)
+    ZIO.debug("raiseError") *> ZIO.fail(error)
 
   protected override final def ioMap[A, B](io: ProxIO[A], f: A => B): ProxIO[B] =
-    io.map(f)
+    ZIO.debug("map") *> io.map(f)
 
   protected override final def ioFlatMap[A, B](io: ProxIO[A], f: A => ProxIO[B]): ProxIO[B] =
-    io.flatMap(f)
+    ZIO.debug("flatMap") *> io.flatMap(f)
 
   protected override final def traverse[A, B](list: List[A])(f: A => ProxIO[B]): ProxIO[List[B]] =
     ZIO.foreach(list)(f)
@@ -58,7 +58,7 @@ trait ProxZStream extends Prox {
     identity
 
   protected override final def bracket[A, B](acquire: ProxIO[A])(use: A => ProxIO[B])(fin: (A, IOResult) => ProxIO[Unit]): ProxIO[B] = {
-    ZIO.acquireReleaseExitWith(acquire) { (value: A, exit: Exit[ProxError, B]) =>
+    ZIO.debug("bracket") *> ZIO.acquireReleaseExitWith(acquire) { (value: A, exit: Exit[ProxError, B]) =>
       exit match {
         case Exit.Success(_) => fin(value, Completed).mapError(_.toThrowable).orDie
         case Exit.Failure(cause) =>
@@ -75,44 +75,48 @@ trait ProxZStream extends Prox {
     ZManaged.acquireReleaseWith(acquire)(x => release(x).mapError(_.toThrowable).orDie)
 
   protected override final def useResource[A, B](r: ProxResource[A], f: A => ProxIO[B]): ProxIO[B] =
-    r.use(f)
+    ZIO.debug("useResource") *> r.use(f)
 
   protected override final def joinFiber[A](f: ProxFiber[A]): ProxIO[A] =
-    f.join
+    ZIO.debug("joinFiber") *> f.join
 
   protected override final def cancelFiber[A](f: ProxFiber[A]): ProxIO[Unit] =
-    f.interrupt.unit
+    ZIO.debug("cancelFiber") *> f.interrupt.unit
 
   protected override final def drainStream[A](s: ProxStream[A]): ProxIO[Unit] =
-    s.runDrain
+    ZIO.debug("drainStream") *> s.runDrain
 
   protected override final def streamToVector[A](s: ProxStream[A]): ProxIO[Vector[A]] =
-    s.runCollect.map(_.toVector)
+    ZIO.debug("streamToVector") *> s.runCollect.map(_.toVector)
 
   protected override final def foldStream[A, B](s: ProxStream[A], init: B, f: (B, A) => B): ProxIO[B] =
-    s.fold(init)(f)
+    ZIO.debug("foldStream") *> s.fold(init)(f)
 
   protected override final def foldMonoidStream[A: Identity](s: ProxStream[A]): ProxIO[A] =
-    s.fold(Identity[A].identity)((a, b) => Identity[A].combine(a, b))
+    ZIO.debug("foldMonoidStream") *> s.fold(Identity[A].identity)((a, b) => Identity[A].combine(a, b))
 
   protected override final def streamThrough[A, B](s: ProxStream[A], pipe: ProxPipe[A, B]): ProxStream[B] =
     pipe(s)
 
   override protected final def runStreamTo[A](s: ProxStream[A], sink: ProxSink[A]): ProxIO[Unit] =
-    sink.run(s)
+    ZIO.debug("runStreamTo") *> sink.run(s)
 
   protected override final def fromJavaInputStream(input: io.InputStream, chunkSize: Int): ProxStream[Byte] =
     ZStream.fromInputStream(input, chunkSize).mapError(FailedToReadProcessOutput.apply)
 
   protected override final def drainToJavaOutputStream(stream: ProxStream[Byte], output: io.OutputStream, flushChunks: Boolean): ProxIO[Unit] = {
     val managedOutput = ZManaged.acquireReleaseWith(ZIO.succeed(output))(s => ZIO.attempt(s.close()).orDie)
-    if (flushChunks) {
-      stream.run(flushingOutputStreamSink(managedOutput).mapError(FailedToWriteProcessInput.apply)).unit
-    } else {
-      stream
-        .run(ZSink
-          .fromOutputStreamManaged(managedOutput)
-          .mapError(FailedToWriteProcessInput.apply)).unit
+    ZIO.debug(s"drainToJavaOutputStream($flushChunks)") *> {
+      if (flushChunks) {
+        ZIO.debug("Starting to drain stream in flushing mode") *>
+          stream.run(flushingOutputStreamSink(managedOutput).mapError(FailedToWriteProcessInput.apply)).unit
+      } else {
+        ZIO.debug("Starting to drain stream") *>
+          stream
+            .run(ZSink
+              .fromOutputStreamManaged(managedOutput)
+              .mapError(FailedToWriteProcessInput.apply)).unit
+      }
     }
   }
 
@@ -132,7 +136,7 @@ trait ProxZStream extends Prox {
   }
 
   protected override final def startFiber[A](f: ProxIO[A]): ProxIO[ProxFiber[A]] =
-    f.fork
+    ZIO.debug(s"startFiber $f") *> (ZIO.debug(s"Fiber $f started") *> f).tap(_ => ZIO.debug(s"Fiber $f done")).fork
 
   implicit def transducerAsPipe[A, B](transducer: ZTransducer[Any, ProxError, A, B]): ProxPipe[A, B] =
     (s: ProxStream[A]) => s.transduce(transducer)

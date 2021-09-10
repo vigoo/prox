@@ -163,15 +163,23 @@ trait ProcessRunnerModule {
       builder.redirectInput(inputRedirectionToNative(process.inputRedirection))
 
       for {
+        _ <- effect(println("Before process start"), FailedToStartProcess.apply)
         nativeProcess <- effect(builder.start(), FailedToStartProcess.apply)
+        _ <- effect(println("Process started"), FailedToStartProcess.apply)
         processInfo <- getProcessInfo(nativeProcess)
+        _ <- effect(println(s"Got process info: $processInfo"), FailedToStartProcess.apply)
         nativeOutputStream <- effect(nativeProcess.getInputStream, UnknownProxError.apply)
         nativeErrorStream <- effect(nativeProcess.getErrorStream, UnknownProxError.apply)
+        _ <- effect(println("Got output and error streams"), FailedToStartProcess.apply)
 
         inputStream = runInputStream(process, nativeProcess)
+        _ <- effect(println("Defined input stream"), FailedToStartProcess.apply)
         runningInput <- startFiber(inputStream)
+        _ <- effect(println("Started input stream"), FailedToStartProcess.apply)
         runningOutput <- startFiber(process.runOutputStream(nativeOutputStream))
+        _ <- effect(println("Started output stream"), FailedToStartProcess.apply)
         runningError <- startFiber(process.runErrorStream(nativeErrorStream))
+        _ <- effect(println("Started error stream"), FailedToStartProcess.apply)
       } yield new JVMRunningProcess(nativeProcess, runningInput, runningOutput, runningError, processInfo)
     }
 
