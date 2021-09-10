@@ -1,0 +1,225 @@
+<!DOCTYPE html><html><head><title>prox: Customizing environment</title><meta charset="utf-8" /><meta http-equiv="X-UA-Compatible" content="IE=edge,chrome=1" /><meta name="viewport" content="width=device-width, initial-scale=1.0" /><meta name="author" content="Daniel Vigovszky" /><meta name="description" content="A Scala library for working with system processes" /><meta name="og:image" content="https://vigoo.github.io/prox/img/poster.png" /><meta name="image" property="og:image" content="https://vigoo.github.io/prox/img/poster.png" /><meta name="og:title" content="prox: Customizing environment" /><meta name="title" property="og:title" content="prox: Customizing environment" /><meta name="og:site_name" content="prox" /><meta name="og:url" content="https://vigoo.github.io/prox/" /><meta name="og:type" content="website" /><meta name="og:description" content="A Scala library for working with system processes" /><link rel="icon" type="image/png" href="https://vigoo.github.io/prox/img/favicon.png" /><meta name="twitter:title" content="prox: Customizing environment" /><meta name="twitter:image" content="https://vigoo.github.io/prox/img/poster.png" /><meta name="twitter:description" content="A Scala library for working with system processes" /><meta name="twitter:card" content="summary_large_image" /><meta name="twitter:creator" content="@dvigovszky" /><link rel="icon" type="image/png" sizes="16x16" href="https://vigoo.github.io/prox/img/favicon16x16.png" /><link rel="icon" type="image/png" sizes="24x24" href="https://vigoo.github.io/prox/img/favicon24x24.png" /><link rel="icon" type="image/png" sizes="32x32" href="https://vigoo.github.io/prox/img/favicon32x32.png" /><link rel="icon" type="image/png" sizes="48x48" href="https://vigoo.github.io/prox/img/favicon48x48.png" /><link rel="icon" type="image/png" sizes="57x57" href="https://vigoo.github.io/prox/img/favicon57x57.png" /><link rel="icon" type="image/png" sizes="60x60" href="https://vigoo.github.io/prox/img/favicon60x60.png" /><link rel="icon" type="image/png" sizes="64x64" href="https://vigoo.github.io/prox/img/favicon64x64.png" /><link rel="icon" type="image/png" sizes="70x70" href="https://vigoo.github.io/prox/img/favicon70x70.png" /><link rel="icon" type="image/png" sizes="72x72" href="https://vigoo.github.io/prox/img/favicon72x72.png" /><link rel="icon" type="image/png" sizes="76x76" href="https://vigoo.github.io/prox/img/favicon76x76.png" /><link rel="icon" type="image/png" sizes="96x96" href="https://vigoo.github.io/prox/img/favicon96x96.png" /><link rel="icon" type="image/png" sizes="114x114" href="https://vigoo.github.io/prox/img/favicon114x114.png" /><link rel="icon" type="image/png" sizes="120x120" href="https://vigoo.github.io/prox/img/favicon120x120.png" /><link rel="icon" type="image/png" sizes="128x128" href="https://vigoo.github.io/prox/img/favicon128x128.png" /><link rel="icon" type="image/png" sizes="144x144" href="https://vigoo.github.io/prox/img/favicon144x144.png" /><link rel="icon" type="image/png" sizes="150x150" href="https://vigoo.github.io/prox/img/favicon150x150.png" /><link rel="icon" type="image/png" sizes="152x152" href="https://vigoo.github.io/prox/img/favicon152x152.png" /><link rel="icon" type="image/png" sizes="196x196" href="https://vigoo.github.io/prox/img/favicon196x196.png" /><link rel="icon" type="image/png" sizes="310x310" href="https://vigoo.github.io/prox/img/favicon310x310.png" /><link rel="icon" type="image/png" sizes="310x150" href="https://vigoo.github.io/prox/img/favicon310x150.png" /><link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/4.7.0/css/font-awesome.min.css" /><link rel="stylesheet" href="https://vigoo.github.io/prox/highlight/styles/vs.css" /><link rel="stylesheet" href="/prox/css/light-style.css" /><script async="async">
+(function(i,s,o,g,r,a,m){i['GoogleAnalyticsObject']=r;i[r]=i[r]||function(){
+(i[r].q=i[r].q||[]).push(arguments)},i[r].l=1*new Date();a=s.createElement(o),
+m=s.getElementsByTagName(o)[0];a.async=1;a.src=g;m.parentNode.insertBefore(a,m)
+})(window,document,'script','https://www.google-analytics.com/analytics.js','ga');
+
+ga('create', 'UA-56320875-3' , 'auto');
+ga('send', 'pageview');
+      </script></head><body class="docs"><div id="wrapper"><div id="sidebar-wrapper"><div id="sidebar-brand"><a href="/prox/" class="brand"><div class="brand-wrapper"></div><span>prox</span></a><button id="main-toggle" class="sidebar-toggle"><span class="close"></span></button></div><div class="sidebar-nav"> <div class="sidebar-nav-item  "><a href="/prox/index" title="Home" class="">Home</a></div> <div class="sidebar-nav-item  "><a href="/prox/docs/fs2/index.html" title="Cats Effect / FS2" class="drop-nested">Cats Effect / FS2</a><i class="fa fa-angle-right"></i><div class="sub-section"> <a href="/prox/docs/fs2/index.html" title="Getting started" class="">Getting started</a> <a href="/prox/docs/fs2/customize.html" title="Customizing environment" class="">Customizing environment</a> <a href="/prox/docs/fs2/redirection.html" title="Redirection" class="">Redirection</a> <a href="/prox/docs/fs2/processgroups.html" title="Process groups" class="">Process groups</a> <a href="/prox/docs/fs2/running.html" title="Running processes" class="">Running processes</a> <a href="/prox/docs/fs2/custom-runners.html" title="Custom runners" class="">Custom runners</a></div></div> <div class="sidebar-nav-item  open"><a href="/prox/docs/zstream/index.html" title="ZIO / ZStream" class="drop-nested">ZIO / ZStream</a><i class="fa fa-angle-right"></i><div class="sub-section"> <a href="/prox/docs/zstream/index.html" title="Getting started" class="">Getting started</a> <a href="/prox/docs/zstream/customize.html" title="Customizing environment" class="active">Customizing environment</a> <a href="/prox/docs/zstream/redirection.html" title="Redirection" class="">Redirection</a> <a href="/prox/docs/zstream/processgroups.html" title="Process groups" class="">Process groups</a> <a href="/prox/docs/zstream/running.html" title="Running processes" class="">Running processes</a> <a href="/prox/docs/zstream/custom-runners.html" title="Custom runners" class="">Custom runners</a></div></div> <div class="sidebar-nav-item  "><a href="/prox/docs/migration.html" title="Migration" class="">Migration</a></div> <div class="sidebar-nav-item  "><a href="/prox/docs/blogposts.html" title="Blog posts" class="">Blog posts</a></div> <div class="sidebar-nav-item  "><a href="/prox/api/io/github/vigoo/prox/" title="API reference" class="">API reference</a></div></div></div><div id="page-content-wrapper"><div class="nav"><div class="container-fluid"><div class="row"><div class="col-lg-12"><div class="action-menu pull-left clearfix"><a href="#menu-toggle" id="menu-toggle"><i class="fa fa-bars" aria-hidden="true"></i></a></div><ul class="pull-right"><li class="search-nav"><div id="search-dropdown"><label><i class="fa fa-search"></i>Search</label><input id="search-bar" type="text" placeholder="Enter keywords here..." onclick="displayToggleSearch(event)" /><ul id="search-dropdown-content" class="dropdown dropdown-content"></ul></div></li><li id="gh-eyes-item" class="hidden-xs to-uppercase"><a href="https://github.com/vigoo/prox" target="_blank" rel="noopener noreferrer"><i class="fa fa-eye"></i><span>Watchers<span id="eyes" class="label label-default">--</span></span></a></li><li id="gh-stars-item" class="hidden-xs to-uppercase"><a href="https://github.com/vigoo/prox" target="_blank" rel="noopener noreferrer"><i class="fa fa-star-o"></i><span>Stars<span id="stars" class="label label-default">--</span></span></a></li></ul></div></div></div></div><div id="content" data-github-owner="vigoo" data-github-repo="prox"><div class="content-wrapper"><section><h1 id="customizing-the-environment">Customizing the environment</h1>
+
+<p>The type returned by the <code class="highlighter-rouge">Process</code> constructor also implements the <code class="highlighter-rouge">ProcessConfiguration</code> trait,
+adding three methods that can be used to customize the working environment of the process to be started:</p>
+
+<h3 id="working-directory">Working directory</h3>
+
+<p>The <code class="highlighter-rouge">in</code> method can be used to customize the working directory:</p>
+
+<div class="language-scala highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="k">import</span> <span class="nn">io.github.vigoo.prox.path._</span>
+
+<span class="k">val</span> <span class="nv">dir</span> <span class="k">=</span> <span class="n">home</span> <span class="o">/</span> <span class="s">"tmp"</span>
+<span class="c1">// dir: java.nio.file.Path = /home/runner/tmp</span>
+<span class="k">val</span> <span class="nv">proc1</span> <span class="k">=</span> <span class="nc">Process</span><span class="o">(</span><span class="s">"ls"</span><span class="o">)</span> <span class="n">in</span> <span class="n">dir</span> 
+<span class="c1">// proc1: Process.ProcessImpl = ProcessImpl(</span>
+<span class="c1">//   command = "ls",</span>
+<span class="c1">//   arguments = List(),</span>
+<span class="c1">//   workingDirectory = Some(value = /home/runner/tmp),</span>
+<span class="c1">//   environmentVariables = Map(),</span>
+<span class="c1">//   removedEnvironmentVariables = Set(),</span>
+<span class="c1">//   outputRedirection = StdOut(),</span>
+<span class="c1">//   runOutputStream = io.github.vigoo.prox.ProcessModule$Process$$$Lambda$10683/0x0000000103045840@6c6a5ade,</span>
+<span class="c1">//   errorRedirection = StdOut(),</span>
+<span class="c1">//   runErrorStream = io.github.vigoo.prox.ProcessModule$Process$$$Lambda$10684/0x0000000103045040@4cafecb9,</span>
+<span class="c1">//   inputRedirection = StdIn()</span>
+<span class="c1">// )</span>
+</code></pre></div></div>
+
+<p>Not that <code class="highlighter-rouge">dir</code> has the type <code class="highlighter-rouge">java.nio.file.Path</code>, and the <code class="highlighter-rouge">home / tmp</code> syntax is just a thin 
+syntax extension to produce such values.</p>
+
+<h3 id="adding-environment-variables">Adding environment variables</h3>
+
+<p>The <code class="highlighter-rouge">with</code> method can be used to add environment variables to the process in the following
+way:</p>
+
+<div class="language-scala highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="k">val</span> <span class="nv">proc2</span> <span class="k">=</span> <span class="nc">Process</span><span class="o">(</span><span class="s">"echo"</span><span class="o">,</span> <span class="nc">List</span><span class="o">(</span><span class="s">"$TEST"</span><span class="o">))</span> <span class="n">`with`</span> <span class="o">(</span><span class="s">"TEST"</span> <span class="o">-&gt;</span> <span class="s">"Hello world"</span><span class="o">)</span>
+<span class="c1">// proc2: Process.ProcessImpl = ProcessImpl(</span>
+<span class="c1">//   command = "echo",</span>
+<span class="c1">//   arguments = List("$TEST"),</span>
+<span class="c1">//   workingDirectory = None,</span>
+<span class="c1">//   environmentVariables = Map("TEST" -&gt; "Hello world"),</span>
+<span class="c1">//   removedEnvironmentVariables = Set(),</span>
+<span class="c1">//   outputRedirection = StdOut(),</span>
+<span class="c1">//   runOutputStream = io.github.vigoo.prox.ProcessModule$Process$$$Lambda$10683/0x0000000103045840@63c37f07,</span>
+<span class="c1">//   errorRedirection = StdOut(),</span>
+<span class="c1">//   runErrorStream = io.github.vigoo.prox.ProcessModule$Process$$$Lambda$10684/0x0000000103045040@1467873e,</span>
+<span class="c1">//   inputRedirection = StdIn()</span>
+<span class="c1">// )</span>
+</code></pre></div></div>
+
+<h3 id="removing-environment-variables">Removing environment variables</h3>
+
+<p>The subprocess inherits the parent process environment, so it may be necessary to
+<em>remove</em> some already defined environment variables with the <code class="highlighter-rouge">without</code> method:</p>
+
+<div class="language-scala highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="k">val</span> <span class="nv">proc3</span> <span class="k">=</span> <span class="nc">Process</span><span class="o">(</span><span class="s">"echo"</span> <span class="o">,</span> <span class="nc">List</span><span class="o">(</span><span class="s">"$PATH"</span><span class="o">))</span> <span class="n">`without`</span> <span class="s">"PATH"</span>
+<span class="c1">// proc3: Process.ProcessImpl = ProcessImpl(</span>
+<span class="c1">//   command = "echo",</span>
+<span class="c1">//   arguments = List("$PATH"),</span>
+<span class="c1">//   workingDirectory = None,</span>
+<span class="c1">//   environmentVariables = Map(),</span>
+<span class="c1">//   removedEnvironmentVariables = Set("PATH"),</span>
+<span class="c1">//   outputRedirection = StdOut(),</span>
+<span class="c1">//   runOutputStream = io.github.vigoo.prox.ProcessModule$Process$$$Lambda$10683/0x0000000103045840@2a6583c6,</span>
+<span class="c1">//   errorRedirection = StdOut(),</span>
+<span class="c1">//   runErrorStream = io.github.vigoo.prox.ProcessModule$Process$$$Lambda$10684/0x0000000103045040@199c6817,</span>
+<span class="c1">//   inputRedirection = StdIn()</span>
+<span class="c1">// )</span>
+</code></pre></div></div>
+
+<h3 id="writing-reusable-functions">Writing reusable functions</h3>
+
+<p>Because these methods are part of the <code class="highlighter-rouge">ProcessConfiguration</code> <em>capability</em>, writing reusable functions require us to define
+a polymorphic function that requires this capability:</p>
+
+<div class="language-scala highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="k">import</span> <span class="nn">java.nio.file.Path</span>
+
+<span class="k">def</span> <span class="nf">withHome</span><span class="o">[</span><span class="kt">P</span> <span class="k">&lt;:</span> <span class="kt">ProcessLike</span> <span class="kt">with</span> <span class="kt">ProcessLikeConfiguration</span><span class="o">](</span><span class="n">home</span><span class="k">:</span> <span class="kt">Path</span><span class="o">,</span> <span class="n">proc</span><span class="k">:</span> <span class="kt">P</span><span class="o">)</span><span class="k">:</span> <span class="kt">P</span><span class="k">#</span><span class="kt">Self</span> <span class="o">=</span> 
+  <span class="n">proc</span> <span class="n">`with`</span> <span class="o">(</span><span class="s">"HOME"</span> <span class="o">-&gt;</span> <span class="nv">home</span><span class="o">.</span><span class="py">toString</span><span class="o">)</span>
+</code></pre></div></div>
+
+<p>Then we can use it on any kind of process or process group (read about <a href="redirection">redirection</a> to understand
+why there are multiple concrete process types):</p>
+
+<div class="language-scala highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="k">val</span> <span class="nv">proc4</span> <span class="k">=</span> <span class="nc">Process</span><span class="o">(</span><span class="s">"echo"</span><span class="o">,</span> <span class="nc">List</span><span class="o">(</span><span class="s">"$HOME"</span><span class="o">))</span>
+<span class="c1">// proc4: Process.ProcessImpl = ProcessImpl(</span>
+<span class="c1">//   command = "echo",</span>
+<span class="c1">//   arguments = List("$HOME"),</span>
+<span class="c1">//   workingDirectory = None,</span>
+<span class="c1">//   environmentVariables = Map(),</span>
+<span class="c1">//   removedEnvironmentVariables = Set(),</span>
+<span class="c1">//   outputRedirection = StdOut(),</span>
+<span class="c1">//   runOutputStream = io.github.vigoo.prox.ProcessModule$Process$$$Lambda$10683/0x0000000103045840@615f1764,</span>
+<span class="c1">//   errorRedirection = StdOut(),</span>
+<span class="c1">//   runErrorStream = io.github.vigoo.prox.ProcessModule$Process$$$Lambda$10684/0x0000000103045040@49a92206,</span>
+<span class="c1">//   inputRedirection = StdIn()</span>
+<span class="c1">// )</span>
+<span class="k">val</span> <span class="nv">proc5</span> <span class="k">=</span> <span class="nf">withHome</span><span class="o">(</span><span class="n">home</span><span class="o">,</span> <span class="n">proc4</span><span class="o">)</span>
+<span class="c1">// proc5: Process.ProcessImpl#Self = ProcessImpl(</span>
+<span class="c1">//   command = "echo",</span>
+<span class="c1">//   arguments = List("$HOME"),</span>
+<span class="c1">//   workingDirectory = None,</span>
+<span class="c1">//   environmentVariables = Map("HOME" -&gt; "/home/runner"),</span>
+<span class="c1">//   removedEnvironmentVariables = Set(),</span>
+<span class="c1">//   outputRedirection = StdOut(),</span>
+<span class="c1">//   runOutputStream = io.github.vigoo.prox.ProcessModule$Process$$$Lambda$10683/0x0000000103045840@615f1764,</span>
+<span class="c1">//   errorRedirection = StdOut(),</span>
+<span class="c1">//   runErrorStream = io.github.vigoo.prox.ProcessModule$Process$$$Lambda$10684/0x0000000103045040@49a92206,</span>
+<span class="c1">//   inputRedirection = StdIn()</span>
+<span class="c1">// )</span>
+
+<span class="k">val</span> <span class="nv">group1</span> <span class="k">=</span> <span class="nc">Process</span><span class="o">(</span><span class="s">"grep"</span><span class="o">,</span> <span class="nc">List</span><span class="o">(</span><span class="s">"ERROR"</span><span class="o">))</span> <span class="o">|</span> <span class="nc">Process</span><span class="o">(</span><span class="s">"sort"</span><span class="o">)</span>
+<span class="c1">// group1: ProcessGroup.ProcessGroupImpl = ProcessGroupImpl(</span>
+<span class="c1">//   firstProcess = ProcessImplO(</span>
+<span class="c1">//     command = "grep",</span>
+<span class="c1">//     arguments = List("ERROR"),</span>
+<span class="c1">//     workingDirectory = None,</span>
+<span class="c1">//     environmentVariables = Map(),</span>
+<span class="c1">//     removedEnvironmentVariables = Set(),</span>
+<span class="c1">//     outputRedirection = OutputStreamThroughPipe(</span>
+<span class="c1">//       pipe = io.github.vigoo.prox.ProxZStream$$Lambda$10911/0x00000001030ca840@35f2e67b,</span>
+<span class="c1">//       runner = io.github.vigoo.prox.SyntaxModule$ProcessPiping$$Lambda$10686/0x0000000103043040@2c0f2396,</span>
+<span class="c1">//       chunkSize = 8192</span>
+<span class="c1">//     ),</span>
+<span class="c1">//     runOutputStream = io.github.vigoo.prox.ProcessModule$Process$ProcessImpl$$Lambda$10687/0x0000000103042040@2cb69d03,</span>
+<span class="c1">//     errorRedirection = StdOut(),</span>
+<span class="c1">//     runErrorStream = io.github.vigoo.prox.ProcessModule$Process$$$Lambda$10684/0x0000000103045040@44909500,</span>
+<span class="c1">//     inputRedirection = StdIn()</span>
+<span class="c1">//   ),</span>
+<span class="c1">//   innerProcesses = List(),</span>
+<span class="c1">//   lastProcess = ProcessImpl(</span>
+<span class="c1">//     command = "sort",</span>
+<span class="c1">//     arguments = List(),</span>
+<span class="c1">//     workingDirectory = None,</span>
+<span class="c1">//     environmentVariables = Map(),</span>
+<span class="c1">//     removedEnvironmentVariables = Set(),</span>
+<span class="c1">//     outputRedirection = StdOut(),</span>
+<span class="c1">//     runOutputStream = io.github.vigoo.prox.ProcessModule$Process$$$Lambda$10683/0x0000000103045840@667362d7,</span>
+<span class="c1">//     errorRedirection = StdOut(),</span>
+<span class="c1">//     runErrorStream = io.github.vigoo.prox.ProcessModule$Process$$$Lambda$10684/0x0000000103045040@33b5ee1c,</span>
+<span class="c1">//     inputRedirection = StdIn()</span>
+<span class="c1">//   ),</span>
+<span class="c1">//   originalProcesses = List(</span>
+<span class="c1">//     ProcessImpl(</span>
+<span class="c1">//       command = "sort",</span>
+<span class="c1">//       arguments = List(),</span>
+<span class="c1">//       workingDirectory = None,</span>
+<span class="c1">//       environmentVariables = Map(),</span>
+<span class="c1">//       removedEnvironmentVariables = Set(),</span>
+<span class="c1">//       outputRedirection = StdOut(),</span>
+<span class="c1">//       runOutputStream = io.github.vigoo.prox.ProcessModule$Process$$$Lambda$10683/0x0000000103045840@667362d7,</span>
+<span class="c1">//       errorRedirection = StdOut(),</span>
+<span class="c1">//       runErrorStream = io.github.vigoo.prox.ProcessModule$Process$$$Lambda$10684/0x0000000103045040@33b5ee1c,</span>
+<span class="c1">// ...</span>
+<span class="k">val</span> <span class="nv">group2</span> <span class="k">=</span> <span class="nf">withHome</span><span class="o">(</span><span class="n">home</span><span class="o">,</span> <span class="n">group1</span><span class="o">)</span>
+<span class="c1">// group2: ProcessGroup.ProcessGroupImpl#Self = ProcessGroupImpl(</span>
+<span class="c1">//   firstProcess = ProcessImplO(</span>
+<span class="c1">//     command = "grep",</span>
+<span class="c1">//     arguments = List("ERROR"),</span>
+<span class="c1">//     workingDirectory = None,</span>
+<span class="c1">//     environmentVariables = Map("HOME" -&gt; "/home/runner"),</span>
+<span class="c1">//     removedEnvironmentVariables = Set(),</span>
+<span class="c1">//     outputRedirection = OutputStreamThroughPipe(</span>
+<span class="c1">//       pipe = io.github.vigoo.prox.ProxZStream$$Lambda$10911/0x00000001030ca840@35f2e67b,</span>
+<span class="c1">//       runner = io.github.vigoo.prox.SyntaxModule$ProcessPiping$$Lambda$10686/0x0000000103043040@2c0f2396,</span>
+<span class="c1">//       chunkSize = 8192</span>
+<span class="c1">//     ),</span>
+<span class="c1">//     runOutputStream = io.github.vigoo.prox.ProcessModule$Process$ProcessImpl$$Lambda$10687/0x0000000103042040@2cb69d03,</span>
+<span class="c1">//     errorRedirection = StdOut(),</span>
+<span class="c1">//     runErrorStream = io.github.vigoo.prox.ProcessModule$Process$$$Lambda$10684/0x0000000103045040@44909500,</span>
+<span class="c1">//     inputRedirection = StdIn()</span>
+<span class="c1">//   ),</span>
+<span class="c1">//   innerProcesses = List(),</span>
+<span class="c1">//   lastProcess = ProcessImpl(</span>
+<span class="c1">//     command = "sort",</span>
+<span class="c1">//     arguments = List(),</span>
+<span class="c1">//     workingDirectory = None,</span>
+<span class="c1">//     environmentVariables = Map("HOME" -&gt; "/home/runner"),</span>
+<span class="c1">//     removedEnvironmentVariables = Set(),</span>
+<span class="c1">//     outputRedirection = StdOut(),</span>
+<span class="c1">//     runOutputStream = io.github.vigoo.prox.ProcessModule$Process$$$Lambda$10683/0x0000000103045840@667362d7,</span>
+<span class="c1">//     errorRedirection = StdOut(),</span>
+<span class="c1">//     runErrorStream = io.github.vigoo.prox.ProcessModule$Process$$$Lambda$10684/0x0000000103045040@33b5ee1c,</span>
+<span class="c1">//     inputRedirection = StdIn()</span>
+<span class="c1">//   ),</span>
+<span class="c1">//   originalProcesses = List(</span>
+<span class="c1">//     ProcessImpl(</span>
+<span class="c1">//       command = "sort",</span>
+<span class="c1">//       arguments = List(),</span>
+<span class="c1">//       workingDirectory = None,</span>
+<span class="c1">//       environmentVariables = Map(),</span>
+<span class="c1">//       removedEnvironmentVariables = Set(),</span>
+<span class="c1">//       outputRedirection = StdOut(),</span>
+<span class="c1">//       runOutputStream = io.github.vigoo.prox.ProcessModule$Process$$$Lambda$10683/0x0000000103045840@667362d7,</span>
+<span class="c1">//       errorRedirection = StdOut(),</span>
+<span class="c1">//       runErrorStream = io.github.vigoo.prox.ProcessModule$Process$$$Lambda$10684/0x0000000103045040@33b5ee1c,</span>
+<span class="c1">// ...</span>
+</code></pre></div></div>
+</section></div></div></div></div><script src="https://vigoo.github.io/prox/highlight/highlight.pack.js"></script><script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/9.15.10/languages/sbt.min.js"></script><script src="https://vigoo.github.io/prox/lunr/lunr.js"></script><script>
+// For all code blocks, copy the language from the containing div
+// to the inner code tag (where hljs expects it to be)
+const langPrefix = 'language-';
+document.querySelectorAll(`div[class^='${langPrefix}']`).forEach(function(div) {
+  div.classList.forEach(function(cssClass) {
+    if (cssClass.startsWith(langPrefix)) {
+      const lang = cssClass.substring(langPrefix.length);
+      div.querySelectorAll('pre code').forEach(function(code) {
+        code.classList.add(lang);
+      });
+    }
+  });
+});
+
+hljs.configure({languages:['scala','java','bash','scala','sbt']});
+hljs.initHighlightingOnLoad();
+      </script><script>console.info('\x57\x65\x62\x73\x69\x74\x65\x20\x62\x75\x69\x6c\x74\x20\x77\x69\x74\x68\x3a\x0a\x20\x20\x20\x20\x20\x20\x20\x20\x20\x5f\x5f\x20\x20\x20\x20\x5f\x5f\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x5f\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x5f\x20\x5f\x5f\x0a\x20\x20\x20\x5f\x5f\x5f\x5f\x5f\x2f\x20\x2f\x5f\x20\x20\x2f\x20\x2f\x5f\x20\x20\x20\x20\x20\x20\x5f\x5f\x5f\x5f\x20\x5f\x5f\x5f\x20\x20\x28\x5f\x29\x5f\x5f\x5f\x5f\x5f\x5f\x5f\x5f\x5f\x5f\x5f\x5f\x5f\x20\x20\x5f\x5f\x5f\x5f\x5f\x28\x5f\x29\x20\x2f\x5f\x5f\x5f\x5f\x20\x20\x5f\x5f\x5f\x5f\x5f\x0a\x20\x20\x2f\x20\x5f\x5f\x5f\x2f\x20\x5f\x5f\x20\x5c\x2f\x20\x5f\x5f\x2f\x5f\x5f\x5f\x5f\x5f\x2f\x20\x5f\x5f\x20\x60\x5f\x5f\x20\x5c\x2f\x20\x2f\x20\x5f\x5f\x5f\x2f\x20\x5f\x5f\x5f\x2f\x20\x5f\x5f\x20\x5c\x2f\x20\x5f\x5f\x5f\x2f\x20\x2f\x20\x5f\x5f\x2f\x20\x5f\x20\x5c\x2f\x20\x5f\x5f\x5f\x2f\x0a\x20\x28\x5f\x5f\x20\x20\x29\x20\x2f\x5f\x2f\x20\x2f\x20\x2f\x5f\x2f\x5f\x5f\x5f\x5f\x5f\x2f\x20\x2f\x20\x2f\x20\x2f\x20\x2f\x20\x2f\x20\x2f\x20\x2f\x5f\x5f\x2f\x20\x2f\x20\x20\x2f\x20\x2f\x5f\x2f\x20\x28\x5f\x5f\x20\x20\x29\x20\x2f\x20\x2f\x5f\x2f\x20\x20\x5f\x5f\x28\x5f\x5f\x20\x20\x29\x0a\x2f\x5f\x5f\x5f\x5f\x2f\x5f\x2e\x5f\x5f\x5f\x2f\x5c\x5f\x5f\x2f\x20\x20\x20\x20\x20\x2f\x5f\x2f\x20\x2f\x5f\x2f\x20\x2f\x5f\x2f\x5f\x2f\x5c\x5f\x5f\x5f\x2f\x5f\x2f\x20\x20\x20\x5c\x5f\x5f\x5f\x5f\x2f\x5f\x5f\x5f\x5f\x2f\x5f\x2f\x5c\x5f\x5f\x2f\x5c\x5f\x5f\x5f\x2f\x5f\x5f\x5f\x5f\x2f\x0a\x0a\x68\x74\x74\x70\x73\x3a\x2f\x2f\x34\x37\x64\x65\x67\x2e\x67\x69\x74\x68\x75\x62\x2e\x69\x6f\x2f\x73\x62\x74\x2d\x6d\x69\x63\x72\x6f\x73\x69\x74\x65\x73')</script><script src="https://vigoo.github.io/prox/js/search.js"></script><script src="/prox/js/docs.js"></script></body></html>
