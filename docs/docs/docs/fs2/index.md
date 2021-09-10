@@ -8,13 +8,13 @@ title: Getting started
 First add one of the `prox` interfaces as a dependency:
 
 ```sbt
-libraryDependencies += "io.github.vigoo" %% "prox-fs2" % "0.7.1"
+libraryDependencies += "io.github.vigoo" %% "prox-fs2" % "0.7.2"
 ```
 
 or for Cats Effect 3.x / FS2 3.x:
 
 ```sbt
-libraryDependencies += "io.github.vigoo" %% "prox-fs2-3" % "0.7.1"
+libraryDependencies += "io.github.vigoo" %% "prox-fs2-3" % "0.7.2"
 ```
 
 and, assuming that we have a long living `Blocker` thread pool defined already, we can create
