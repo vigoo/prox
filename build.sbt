@@ -3,6 +3,7 @@ val scala213 = "2.13.6"
 val scala3 = "3.0.2"
 
 val zioVersion = "1.0.11"
+val zio2Version = "2.0.0-M2+72-616ee01d-SNAPSHOT"
 
 val scalacOptions212 = Seq("-Ypartial-unification", "-deprecation", "-target:jvm-1.8")
 val scalacOptions213 = Seq("-deprecation", "-target:jvm-1.8")
@@ -111,6 +112,20 @@ lazy val proxZStream = Project("prox-zstream", file("prox-zstream")).settings(co
 
     "dev.zio" %% "zio-test" % zioVersion % "test",
     "dev.zio" %% "zio-test-sbt" % zioVersion % "test",
+  ),
+  testFrameworks += new TestFramework("zio.test.sbt.ZTestFramework"),
+).dependsOn(proxCore)
+
+lazy val proxZStream2 = Project("prox-zstream-2", file("prox-zstream-2")).settings(commonSettings(8)).settings(
+  resolvers +=
+    "Sonatype OSS Snapshots" at "https://oss.sonatype.org/content/repositories/snapshots",
+  libraryDependencies ++= Seq(
+    "dev.zio" %% "zio" % zio2Version,
+    "dev.zio" %% "zio-streams" % zio2Version,
+    "dev.zio" %% "zio-prelude" % "1.0.0-RC5+45-aa9e4694-SNAPSHOT",
+
+    "dev.zio" %% "zio-test" % zio2Version % "test",
+    "dev.zio" %% "zio-test-sbt" % zio2Version % "test",
   ),
   testFrameworks += new TestFramework("zio.test.sbt.ZTestFramework"),
 ).dependsOn(proxCore)
