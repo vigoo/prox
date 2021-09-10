@@ -73,7 +73,7 @@ lazy val prox = project.in(file("."))
     organization := "io.github.vigoo",
     skip in publish := true
   )
-  .aggregate(proxCore, proxFS2, proxFS23, proxZStream, proxJava9)
+  .aggregate(proxCore, proxFS2, proxFS23, proxZStream, proxZStream2, proxJava9)
 
 lazy val proxCore = Project("prox-core", file("prox-core")).settings(commonSettings(8))
 
