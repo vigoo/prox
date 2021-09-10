@@ -8,7 +8,7 @@ title: Getting started
 First add one of the `prox` interfaces as a dependency:
 
 ```sbt
-libraryDependencies += "io.github.vigoo" %% "prox-zstream" % "0.7.0"
+libraryDependencies += "io.github.vigoo" %% "prox-zstream" % "0.7.1"
 ```
 
 and import the ZIO specific API from: 
@@ -17,6 +17,14 @@ and import the ZIO specific API from:
 import io.github.vigoo.prox._
 import io.github.vigoo.prox.zstream._
 ``` 
+
+There is also an experimental version for ZIO 2, based on it's snapshot releases:
+
+```sbt
+libraryDependencies += "io.github.vigoo" %% "prox-zstream-2" % "0.7.1"
+```
+
+The code snippets in the documentation are based on the ZIO 1 version. 
 
 ### Defining a process to run
 In prox a process to be executed is defined by a pure value which implements the `Process[O, E]` trait.
