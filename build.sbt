@@ -2,8 +2,8 @@ val scala212 = "2.12.15"
 val scala213 = "2.13.6"
 val scala3 = "3.0.2"
 
-val zioVersion = "1.0.11"
-val zio2Version = "2.0.0-M3"
+val zioVersion = "1.0.12"
+val zio2Version = "2.0.0-M2+83-c286d83c-SNAPSHOT"
 
 val scalacOptions212 = Seq("-Ypartial-unification", "-deprecation", "-target:jvm-1.8")
 val scalacOptions213 = Seq("-deprecation", "-target:jvm-1.8")
@@ -79,7 +79,7 @@ lazy val proxCore = Project("prox-core", file("prox-core")).settings(commonSetti
 
 lazy val proxFS2 = Project("prox-fs2", file("prox-fs2")).settings(commonSettings(8)).settings(
   libraryDependencies ++= Seq(
-    "org.typelevel" %% "cats-effect" % "2.5.3",
+    "org.typelevel" %% "cats-effect" % "2.5.4",
     "co.fs2" %% "fs2-core" % "2.5.9",
     "co.fs2" %% "fs2-io" % "2.5.9",
 
