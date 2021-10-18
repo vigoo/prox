@@ -119,20 +119,21 @@ trait ProxZStream extends Prox {
     }
   }
 
-  private final def flushingOutputStreamSink(managedOutput: ZManaged[Any, Nothing, io.OutputStream]): ZSink[Any, IOException, Byte, Byte, Long] = {
-    ZSink.managed(managedOutput) { os =>
-      ZSink.foldLeftChunksZIO(0L) { (bytesWritten, byteChunk: Chunk[Byte]) =>
-        ZIO.attemptBlockingInterrupt {
-          val bytes = byteChunk.toArray
-          os.write(bytes)
-          os.flush()
-          bytesWritten + bytes.length
-        }.refineOrDie {
-          case e: IOException => e
+  private final def flushingOutputStreamSink(managedOutput: ZManaged[Any, Nothing, io.OutputStream]): ZSink[Any, IOException, Byte, Byte, Long] =
+    ZSink.unwrapManaged {
+      managedOutput.map { os =>
+        ZSink.foldLeftChunksZIO(0L) { (bytesWritten, byteChunk: Chunk[Byte]) =>
+          ZIO.attemptBlockingInterrupt {
+            val bytes = byteChunk.toArray
+            os.write(bytes)
+            os.flush()
+            bytesWritten + bytes.length
+          }.refineOrDie {
+            case e: IOException => e
+          }
         }
       }
     }
-  }
 
   protected override final def startFiber[A](f: ProxIO[A]): ProxIO[ProxFiber[A]] =
     f.fork

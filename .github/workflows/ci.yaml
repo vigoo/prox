@@ -8,7 +8,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        scala: ['2.12.13', '2.13.6', '3.0.0']
+        scala: ['2.12.14', '2.13.6', '3.0.2']
     steps:
       - name: Checkout
         uses: actions/checkout@v2
@@ -19,8 +19,8 @@ jobs:
       - name: Coursier cache
         uses: coursier/cache-action@v5
       - name: Build and test
-        if: ${{ matrix.scala == '3.0.0' }}
+        if: ${{ matrix.scala == '3.0.2' }}
         run: sbt ++${{ matrix.scala }} clean test
       - name: Build and test
-        if: ${{ matrix.scala != '3.0.0' }}
+        if: ${{ matrix.scala != '3.0.2' }}
         run: sbt ++${{ matrix.scala }} clean coverage test coverageReport && bash <(curl -s https://codecov.io/bash)
