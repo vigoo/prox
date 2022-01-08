@@ -2,7 +2,7 @@ val scala212 = "2.12.15"
 val scala213 = "2.13.7"
 val scala3 = "3.1.0"
 
-val zioVersion = "1.0.12"
+val zioVersion = "1.0.13"
 val zio2Version = "2.0.0-RC1"
 
 val scalacOptions212 = Seq("-Ypartial-unification", "-deprecation", "-target:jvm-1.8")
@@ -55,6 +55,8 @@ def commonSettings(jdk: Int) = Seq(
     Developer(id = "vigoo", name = "Daniel Vigovszky", email = "daniel.vigovszky@gmail.com", url = url("https://vigoo.github.io"))
   ),
 
+  sonatypeCredentialHost := "s01.oss.sonatype.org",
+  sonatypeRepository     := "https://s01.oss.sonatype.org/service/local",
   credentials ++=
     (for {
       username <- Option(System.getenv().get("SONATYPE_USERNAME"))
@@ -62,7 +64,7 @@ def commonSettings(jdk: Int) = Seq(
     } yield
       Credentials(
         "Sonatype Nexus Repository Manager",
-        "oss.sonatype.org",
+        "s01.oss.sonatype.org",
         username,
         password)).toSeq
 )
@@ -93,13 +95,13 @@ lazy val proxFS2 = Project("prox-fs2", file("prox-fs2")).settings(commonSettings
 
 lazy val proxFS23 = Project("prox-fs2-3", file("prox-fs2-3")).settings(commonSettings(8)).settings(
   libraryDependencies ++= Seq(
-    "co.fs2" %% "fs2-core" % "3.2.3",
-    "co.fs2" %% "fs2-io" % "3.2.3",
+    "co.fs2" %% "fs2-core" % "3.2.4",
+    "co.fs2" %% "fs2-io" % "3.2.4",
 
     "dev.zio" %% "zio" % zioVersion % "test",
     "dev.zio" %% "zio-test" % zioVersion % "test",
     "dev.zio" %% "zio-test-sbt" % zioVersion % "test",
-    "dev.zio" %% "zio-interop-cats" % "3.1.1.0" % "test",
+    "dev.zio" %% "zio-interop-cats" % "3.2.9.0" % "test",
   ),
   testFrameworks += new TestFramework("zio.test.sbt.ZTestFramework"),
 ).dependsOn(proxCore)
@@ -122,7 +124,7 @@ lazy val proxZStream2 = Project("prox-zstream-2", file("prox-zstream-2")).settin
   libraryDependencies ++= Seq(
     "dev.zio" %% "zio" % zio2Version,
     "dev.zio" %% "zio-streams" % zio2Version,
-    "dev.zio" %% "zio-prelude" % "1.0.0-RC5+45-aa9e4694-SNAPSHOT",
+    "dev.zio" %% "zio-prelude" % "1.0.0-RC9",
 
     "dev.zio" %% "zio-test" % zio2Version % "test",
     "dev.zio" %% "zio-test-sbt" % zio2Version % "test",
