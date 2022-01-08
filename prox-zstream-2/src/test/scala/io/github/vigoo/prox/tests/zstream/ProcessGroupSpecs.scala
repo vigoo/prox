@@ -3,7 +3,7 @@ package io.github.vigoo.prox.tests.zstream
 import io.github.vigoo.prox.zstream._
 import io.github.vigoo.prox.{UnknownProxError, zstream}
 import zio.{Clock, _}
-import zio.stream.{ZSink, ZStream, ZTransducer}
+import zio.stream.{ZSink, ZStream, ZPipeline}
 import zio.test.Assertion._
 import zio.test.TestAspect._
 import zio.test._
@@ -19,7 +19,7 @@ object ProcessGroupSpecs extends DefaultRunnableSpec with ProxSpecHelpers {
       suite("Piping")(
         test("is possible with two") {
 
-          val processGroup = (Process("echo", List("This is a test string")) | Process("wc", List("-w"))) ># ZTransducer.utf8Decode
+          val processGroup = (Process("echo", List("This is a test string")) | Process("wc", List("-w"))) ># ZPipeline.utf8Decode
           val program = processGroup.run().map(_.output.trim)
 
           assertM(program)(equalTo("5"))
@@ -32,7 +32,7 @@ object ProcessGroupSpecs extends DefaultRunnableSpec with ProxSpecHelpers {
               Process("sort") |
               Process("uniq", List("-c")) |
               Process("head", List("-n 1"))
-            ) >? (ZTransducer.utf8Decode >>> ZTransducer.splitLines)
+            ) >? (ZPipeline.utf8Decode >>> ZPipeline.splitLines)
 
           val program = processGroup.run().map(
             r => r.output.map(_.stripLineEnd.trim).filter(_.nonEmpty)
@@ -43,12 +43,12 @@ object ProcessGroupSpecs extends DefaultRunnableSpec with ProxSpecHelpers {
 
         test("is customizable with pipes") {
           val customPipe = (s: zstream.ProxStream[Byte]) => s
-            .transduce(ZTransducer.utf8Decode >>> ZTransducer.splitLines)
+            .via(ZPipeline.utf8Decode >>> ZPipeline.splitLines)
             .map(_.split(' ').toVector)
             .map(v => v.map(_ + " !!!").mkString(" "))
             .intersperse("\n")
             .flatMap(s => ZStream.fromIterable(s.getBytes(StandardCharsets.UTF_8)))
-          val processGroup = Process("echo", List("This is a test string")).via(customPipe).to(Process("wc", List("-w"))) ># ZTransducer.utf8Decode
+          val processGroup = Process("echo", List("This is a test string")).via(customPipe).to(Process("wc", List("-w"))) ># ZPipeline.utf8Decode
           val program = processGroup.run().map(_.output.trim)
 
           assertM(program)(equalTo("10"))
@@ -57,7 +57,7 @@ object ProcessGroupSpecs extends DefaultRunnableSpec with ProxSpecHelpers {
         test("can be mapped") {
           import zstream.Process._
 
-          val processGroup1 = (Process("!echo", List("This is a test string")) | Process("!wc", List("-w"))) ># ZTransducer.utf8Decode
+          val processGroup1 = (Process("!echo", List("This is a test string")) | Process("!wc", List("-w"))) ># ZPipeline.utf8Decode
           val processGroup2 = processGroup1.map(new ProcessGroup.Mapper[String, Unit] {
             override def mapFirst[P <: Process[zstream.ProxStream[Byte], Unit]](process: P): P = process.withCommand(process.command.tail).asInstanceOf[P]
 
@@ -122,7 +122,7 @@ object ProcessGroupSpecs extends DefaultRunnableSpec with ProxSpecHelpers {
         test("can be fed with an input stream") {
 
           val stream = ZStream("This is a test string").flatMap(s => ZStream.fromIterable(s.getBytes(StandardCharsets.UTF_8)))
-          val processGroup = (Process("cat") | Process("wc", List("-w"))) < stream ># ZTransducer.utf8Decode
+          val processGroup = (Process("cat") | Process("wc", List("-w"))) < stream ># ZPipeline.utf8Decode
           val program = processGroup.run().map(_.output.trim)
 
           assertM(program)(equalTo("5"))
@@ -133,7 +133,7 @@ object ProcessGroupSpecs extends DefaultRunnableSpec with ProxSpecHelpers {
           withTempFile { tempFile =>
             val program = for {
               _ <- ZIO.attempt(Files.write(tempFile.toPath, "This is a test string".getBytes("UTF-8"))).mapError(UnknownProxError.apply)
-              processGroup = (Process("cat") | Process("wc", List("-w"))) < tempFile.toPath ># ZTransducer.utf8Decode
+              processGroup = (Process("cat") | Process("wc", List("-w"))) < tempFile.toPath ># ZPipeline.utf8Decode
               result <- processGroup.run()
             } yield result.output.trim
 
@@ -148,7 +148,7 @@ object ProcessGroupSpecs extends DefaultRunnableSpec with ProxSpecHelpers {
             val processGroup = (Process("echo", List("This is a test string")) | Process("wc", List("-w"))) > tempFile.toPath
             val program = for {
               _ <- processGroup.run()
-              contents <- ZStream.fromFile(tempFile.toPath, 1024).transduce(ZTransducer.utf8Decode).fold("")(_ + _).mapError(UnknownProxError.apply)
+              contents <- ZStream.fromFile(tempFile, 1024).via(ZPipeline.utf8Decode).runFold("")(_ + _).mapError(UnknownProxError.apply)
             } yield contents.trim
 
             assertM(program)(equalTo("5"))
@@ -161,7 +161,7 @@ object ProcessGroupSpecs extends DefaultRunnableSpec with ProxSpecHelpers {
 
           val p1 = Process("perl", List("-e", """print STDERR "Hello""""))
           val p2 = Process("perl", List("-e", """print STDERR "world""""))
-          val processGroup = (p1 | p2) !># ZTransducer.utf8Decode
+          val processGroup = (p1 | p2) !># ZPipeline.utf8Decode
           val program = processGroup.run()
 
           program.map { result =>
@@ -199,7 +199,7 @@ object ProcessGroupSpecs extends DefaultRunnableSpec with ProxSpecHelpers {
           val p1 = Process("perl", List("-e", """print STDERR "Hello""""))
           val p2 = Process("perl", List("-e", """print STDERR "world!""""))
 
-          val stream = (ZTransducer.utf8Decode >>> ZTransducer.splitLines).map(_.length)
+          val stream = ZPipeline.utf8Decode >>> ZPipeline.splitLines >>> ZPipeline.map(_.length)
 
           val processGroup = (p1 | p2) !>? stream
           val program = processGroup.run()
@@ -217,7 +217,7 @@ object ProcessGroupSpecs extends DefaultRunnableSpec with ProxSpecHelpers {
 
           val p1 = Process("perl", List("-e", """print STDERR "Hello""""))
           val p2 = Process("perl", List("-e", """print STDERR "world""""))
-          val processGroup = (p1 | p2) drainErrors ZTransducer.utf8Decode
+          val processGroup = (p1 | p2) drainErrors ZPipeline.utf8Decode
           val program = processGroup.run()
 
           program.map { result =>
@@ -234,7 +234,7 @@ object ProcessGroupSpecs extends DefaultRunnableSpec with ProxSpecHelpers {
           val p1 = Process("perl", List("-e", "print STDERR 'Hello\nworld'"))
           val p2 = Process("perl", List("-e", "print STDERR 'Does\nit\nwork?'"))
           val processGroup = (p1 | p2).foldErrors(
-            ZTransducer.utf8Decode >>> ZTransducer.splitLines,
+            ZPipeline.utf8Decode >>> ZPipeline.splitLines,
             Vector.empty,
             (l: Vector[Option[Char]], s: String) => l :+ s.headOption
           )
@@ -255,8 +255,8 @@ object ProcessGroupSpecs extends DefaultRunnableSpec with ProxSpecHelpers {
           val p1 = Process("perl", List("-e", """print STDERR "Hello""""))
           val p2 = Process("perl", List("-e", """print STDERR "world""""))
           val processGroup = (p1 | p2).customizedPerProcess.errorsToFoldMonoid {
-            case p if p == p1 => ZTransducer.utf8Decode.map(s => "P1: " + s)
-            case p if p == p2 => ZTransducer.utf8Decode.map(s => "P2: " + s)
+            case p if p == p1 => ZPipeline.utf8Decode >>> ZPipeline.map(s => "P1: " + s)
+            case p if p == p2 => ZPipeline.utf8Decode >>> ZPipeline.map(s => "P2: " + s)
           }
           val program = processGroup.run()
 
@@ -299,11 +299,11 @@ object ProcessGroupSpecs extends DefaultRunnableSpec with ProxSpecHelpers {
           val p1 = Process("perl", List("-e", """print STDERR "Hello""""))
           val p2 = Process("perl", List("-e", """print STDERR "world!""""))
 
-          val stream = (ZTransducer.utf8Decode >>> ZTransducer.splitLines).map(_.length)
+          val stream = ZPipeline.utf8Decode >>> ZPipeline.splitLines >>> ZPipeline.map(_.length)
 
           val processGroup = (p1 | p2).customizedPerProcess.errorsToVector {
-            case p if p == p1 => stream.map(l => (1, l))
-            case p if p == p2 => stream.map(l => (2, l))
+            case p if p == p1 => stream >>> ZPipeline.map(l => (1, l))
+            case p if p == p2 => stream >>> ZPipeline.map(l => (2, l))
           }
           val program = processGroup.run()
 
@@ -320,7 +320,7 @@ object ProcessGroupSpecs extends DefaultRunnableSpec with ProxSpecHelpers {
 
           val p1 = Process("perl", List("-e", """print STDERR "Hello""""))
           val p2 = Process("perl", List("-e", """print STDERR "world""""))
-          val processGroup = (p1 | p2).customizedPerProcess.drainErrors(_ => ZTransducer.utf8Decode)
+          val processGroup = (p1 | p2).customizedPerProcess.drainErrors(_ => ZPipeline.utf8Decode)
           val program = processGroup.run()
 
           program.map { result =>
@@ -338,8 +338,8 @@ object ProcessGroupSpecs extends DefaultRunnableSpec with ProxSpecHelpers {
           val p2 = Process("perl", List("-e", "print STDERR 'Does\nit\nwork?'"))
           val processGroup = (p1 | p2).customizedPerProcess.foldErrors(
             {
-              case p if p == p1 => ZTransducer.utf8Decode >>> ZTransducer.splitLines
-              case p if p == p2 => (ZTransducer.utf8Decode >>> ZTransducer.splitLines).map(_.reverse)
+              case p if p == p1 => ZPipeline.utf8Decode >>> ZPipeline.splitLines
+              case p if p == p2 => ZPipeline.utf8Decode >>> ZPipeline.splitLines >>> ZPipeline.map(_.reverse)
             },
             Vector.empty,
             (l: Vector[Option[Char]], s: String) => l :+ s.headOption
@@ -367,8 +367,8 @@ object ProcessGroupSpecs extends DefaultRunnableSpec with ProxSpecHelpers {
               }
               val program = for {
                 _ <- processGroup.run()
-                contents1 <- ZStream.fromFile(tempFile1.toPath, 1024).transduce(ZTransducer.utf8Decode).fold("")(_ + _).mapError(UnknownProxError.apply)
-                contents2 <- ZStream.fromFile(tempFile2.toPath, 1024).transduce(ZTransducer.utf8Decode).fold("")(_ + _).mapError(UnknownProxError.apply)
+                contents1 <- ZStream.fromFile(tempFile1, 1024).via(ZPipeline.utf8Decode).runFold("")(_ + _).mapError(UnknownProxError.apply)
+                contents2 <- ZStream.fromFile(tempFile2, 1024).via(ZPipeline.utf8Decode).runFold("")(_ + _).mapError(UnknownProxError.apply)
               } yield (contents1, contents2)
 
               assertM(program)(equalTo(("Hello", "world")))
@@ -384,7 +384,7 @@ object ProcessGroupSpecs extends DefaultRunnableSpec with ProxSpecHelpers {
           val p1 = Process("perl", List("-e", """my $str=<>; print STDERR Hello; print STDOUT "$str""""))
           val p2 = Process("sort")
           val p3 = Process("wc", List("-w"))
-          val processGroup = (p1 | p2 | p3) < stream ># ZTransducer.utf8Decode !># ZTransducer.utf8Decode
+          val processGroup = (p1 | p2 | p3) < stream ># ZPipeline.utf8Decode !># ZPipeline.utf8Decode
 
           processGroup.run()
             .map { result =>
@@ -401,7 +401,7 @@ object ProcessGroupSpecs extends DefaultRunnableSpec with ProxSpecHelpers {
           val p1 = Process("perl", List("-e", """my $str=<>; print STDERR Hello; print STDOUT "$str""""))
           val p2 = Process("sort")
           val p3 = Process("wc", List("-w"))
-          val processGroup = ((p1 | p2 | p3) < stream !># ZTransducer.utf8Decode) ># ZTransducer.utf8Decode
+          val processGroup = ((p1 | p2 | p3) < stream !># ZPipeline.utf8Decode) ># ZPipeline.utf8Decode
 
           processGroup.run()
             .map { result =>
@@ -418,7 +418,7 @@ object ProcessGroupSpecs extends DefaultRunnableSpec with ProxSpecHelpers {
           val p1 = Process("perl", List("-e", """my $str=<>; print STDERR Hello; print STDOUT "$str""""))
           val p2 = Process("sort")
           val p3 = Process("wc", List("-w"))
-          val processGroup = ((p1 | p2 | p3) !># ZTransducer.utf8Decode) ># ZTransducer.utf8Decode < stream
+          val processGroup = ((p1 | p2 | p3) !># ZPipeline.utf8Decode) ># ZPipeline.utf8Decode < stream
 
           processGroup.run()
             .map { result =>
@@ -435,7 +435,7 @@ object ProcessGroupSpecs extends DefaultRunnableSpec with ProxSpecHelpers {
           val p1 = Process("perl", List("-e", """my $str=<>; print STDERR Hello; print STDOUT "$str""""))
           val p2 = Process("sort")
           val p3 = Process("wc", List("-w"))
-          val processGroup = ((p1 | p2 | p3) !># ZTransducer.utf8Decode) < stream ># ZTransducer.utf8Decode
+          val processGroup = ((p1 | p2 | p3) !># ZPipeline.utf8Decode) < stream ># ZPipeline.utf8Decode
 
           processGroup.run()
             .map { result =>
@@ -452,7 +452,7 @@ object ProcessGroupSpecs extends DefaultRunnableSpec with ProxSpecHelpers {
           val p1 = Process("perl", List("-e", """my $str=<>; print STDERR Hello; print STDOUT "$str""""))
           val p2 = Process("sort")
           val p3 = Process("wc", List("-w"))
-          val processGroup = ((p1 | p2 | p3) ># ZTransducer.utf8Decode) < stream !># ZTransducer.utf8Decode
+          val processGroup = ((p1 | p2 | p3) ># ZPipeline.utf8Decode) < stream !># ZPipeline.utf8Decode
 
           processGroup.run()
             .map { result =>
@@ -469,7 +469,7 @@ object ProcessGroupSpecs extends DefaultRunnableSpec with ProxSpecHelpers {
           val p1 = Process("perl", List("-e", """my $str=<>; print STDERR Hello; print STDOUT "$str""""))
           val p2 = Process("sort")
           val p3 = Process("wc", List("-w"))
-          val processGroup = (((p1 | p2 | p3) ># ZTransducer.utf8Decode) !># ZTransducer.utf8Decode) < stream
+          val processGroup = (((p1 | p2 | p3) ># ZPipeline.utf8Decode) !># ZPipeline.utf8Decode) < stream
 
           processGroup.run()
             .map { result =>
@@ -483,7 +483,7 @@ object ProcessGroupSpecs extends DefaultRunnableSpec with ProxSpecHelpers {
 
       test("bound process is not pipeable") {
         assertM(
-          typeCheck("""val bad = (Process("echo", List("Hello world")) ># ZTransducer.utf8Decode) | Process("wc", List("-w"))"""))(
+          typeCheck("""val bad = (Process("echo", List("Hello world")) ># ZPipeline.utf8Decode) | Process("wc", List("-w"))"""))(
           isLeft(anything)
         )
       }

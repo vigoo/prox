@@ -3,7 +3,7 @@ val scala213 = "2.13.7"
 val scala3 = "3.1.0"
 
 val zioVersion = "1.0.13"
-val zio2Version = "2.0.0-M4"
+val zio2Version = "2.0.0-RC1"
 
 val scalacOptions212 = Seq("-Ypartial-unification", "-deprecation", "-target:jvm-1.8")
 val scalacOptions213 = Seq("-deprecation", "-target:jvm-1.8")
@@ -124,7 +124,7 @@ lazy val proxZStream2 = Project("prox-zstream-2", file("prox-zstream-2")).settin
   libraryDependencies ++= Seq(
     "dev.zio" %% "zio" % zio2Version,
     "dev.zio" %% "zio-streams" % zio2Version,
-    "dev.zio" %% "zio-prelude" % "1.0.0-RC5+45-aa9e4694-SNAPSHOT",
+    "dev.zio" %% "zio-prelude" % "1.0.0-RC9",
 
     "dev.zio" %% "zio-test" % zio2Version % "test",
     "dev.zio" %% "zio-test-sbt" % zio2Version % "test",
@@ -138,7 +138,7 @@ lazy val proxJava9 = Project("prox-java9", file("prox-java9")).settings(commonSe
 lazy val docs = project
   .enablePlugins(GhpagesPlugin, SiteScaladocPlugin, ScalaUnidocPlugin, MicrositesPlugin)
   .settings(
-    addCompilerPlugin("org.typelevel" %% s"kind-projector" % "0.13.0" cross CrossVersion.full),
+    addCompilerPlugin("org.typelevel" %% s"kind-projector" % "0.13.2" cross CrossVersion.full),
     publishArtifact := false,
     skip in publish := true,
     scalaVersion := scala213,

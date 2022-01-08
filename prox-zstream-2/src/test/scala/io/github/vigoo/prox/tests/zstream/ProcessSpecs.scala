@@ -6,11 +6,10 @@ import java.nio.file.Files
 import io.github.vigoo.prox.{ProxError, UnknownProxError, zstream}
 import io.github.vigoo.prox.zstream._
 import zio._
-import zio.stream.{ZSink, ZStream, ZTransducer}
+import zio.stream.{ZSink, ZStream, ZPipeline}
 import zio.test.Assertion.{anything, equalTo, hasSameElements, isLeft}
 import zio.test.TestAspect._
 import zio.test._
-import zio.test.environment.Live
 import zio.{ExitCode, ZIO}
 
 object ProcessSpecs extends DefaultRunnableSpec with ProxSpecHelpers {
@@ -33,7 +32,7 @@ object ProcessSpecs extends DefaultRunnableSpec with ProxSpecHelpers {
             val process = Process("echo", List("Hello world!")) > tempFile.toPath
             val program = for {
               _ <- process.run()
-              contents <- ZStream.fromFile(tempFile.toPath, 1024).transduce(ZTransducer.utf8Decode).fold("")(_ + _).mapError(UnknownProxError.apply)
+              contents <- ZStream.fromFile(tempFile, 1024).via(ZPipeline.utf8Decode).runFold("")(_ + _).mapError(UnknownProxError.apply)
             } yield contents
 
             assertM(program)(equalTo("Hello world!\n"))
@@ -47,7 +46,7 @@ object ProcessSpecs extends DefaultRunnableSpec with ProxSpecHelpers {
             val program = for {
               _ <- process1.run()
               _ <- process2.run()
-              contents <- ZStream.fromFile(tempFile.toPath, 1024).transduce(ZTransducer.utf8Decode).fold("")(_ + _).mapError(UnknownProxError.apply)
+              contents <- ZStream.fromFile(tempFile, 1024).via(ZPipeline.utf8Decode).runFold("")(_ + _).mapError(UnknownProxError.apply)
             } yield contents
 
             assertM(program)(equalTo("Hello\nworld\n"))
@@ -55,14 +54,14 @@ object ProcessSpecs extends DefaultRunnableSpec with ProxSpecHelpers {
         },
 
         test("can redirect output to stream") {
-          val process = Process("echo", List("Hello world!")) ># ZTransducer.utf8Decode
+          val process = Process("echo", List("Hello world!")) ># ZPipeline.utf8Decode
           val program = process.run().map(_.output)
 
           assertM(program)(equalTo("Hello world!\n"))
         },
 
         test("can redirect output to stream folding monoid") {
-          val process = Process("echo", List("Hello\nworld!")) ># (ZTransducer.utf8Decode >>> ZTransducer.splitLines)
+          val process = Process("echo", List("Hello\nworld!")) ># (ZPipeline.utf8Decode >>> ZPipeline.splitLines)
           val program = process.run().map(_.output)
 
           assertM(program)(equalTo("Helloworld!"))
@@ -72,8 +71,9 @@ object ProcessSpecs extends DefaultRunnableSpec with ProxSpecHelpers {
           case class StringLength(value: Int)
 
           val stream =
-            ZTransducer.utf8Decode >>>
-              ZTransducer.splitLines.map(s => StringLength(s.length))
+            ZPipeline.utf8Decode >>>
+              ZPipeline.splitLines >>>
+              ZPipeline.map(s => StringLength(s.length))
 
           val process = Process("echo", List("Hello\nworld!")) >? stream
           val program = process.run().map(_.output)
@@ -82,7 +82,7 @@ object ProcessSpecs extends DefaultRunnableSpec with ProxSpecHelpers {
         },
 
         test("can redirect output to stream and ignore it's result") {
-          val process = Process("echo", List("Hello\nworld!")).drainOutput(ZTransducer.utf8Decode >>> ZTransducer.splitLines)
+          val process = Process("echo", List("Hello\nworld!")).drainOutput(ZPipeline.utf8Decode >>> ZPipeline.splitLines)
           val program = process.run().map(_.output)
 
           assertM(program)(equalTo(()))
@@ -90,7 +90,7 @@ object ProcessSpecs extends DefaultRunnableSpec with ProxSpecHelpers {
 
         test("can redirect output to stream and fold it") {
           val process = Process("echo", List("Hello\nworld!")).foldOutput(
-            ZTransducer.utf8Decode >>> ZTransducer.splitLines,
+            ZPipeline.utf8Decode >>> ZPipeline.splitLines,
             Vector.empty,
             (l: Vector[Option[Char]], s: String) => l :+ s.headOption
           )
@@ -115,7 +115,7 @@ object ProcessSpecs extends DefaultRunnableSpec with ProxSpecHelpers {
             val process = Process("perl", List("-e", "print STDERR 'Hello world!'")) !> tempFile.toPath
             val program = for {
               _ <- process.run()
-              contents <- ZStream.fromFile(tempFile.toPath, 1024).transduce(ZTransducer.utf8Decode).fold("")(_ + _).mapError(UnknownProxError.apply)
+              contents <- ZStream.fromFile(tempFile, 1024).via(ZPipeline.utf8Decode).runFold("")(_ + _).mapError(UnknownProxError.apply)
             } yield contents
 
             assertM(program)(equalTo("Hello world!"))
@@ -129,7 +129,7 @@ object ProcessSpecs extends DefaultRunnableSpec with ProxSpecHelpers {
             val program = for {
               _ <- process1.run()
               _ <- process2.run()
-              contents <- ZStream.fromFile(tempFile.toPath, 1024).transduce(ZTransducer.utf8Decode).fold("")(_ + _).mapError(UnknownProxError.apply)
+              contents <- ZStream.fromFile(tempFile, 1024).via(ZPipeline.utf8Decode).runFold("")(_ + _).mapError(UnknownProxError.apply)
             } yield contents
 
             assertM(program)(equalTo("Helloworld"))
@@ -137,14 +137,14 @@ object ProcessSpecs extends DefaultRunnableSpec with ProxSpecHelpers {
         },
 
         test("can redirect error to stream") {
-          val process = Process("perl", List("-e", """print STDERR "Hello"""")) !># ZTransducer.utf8Decode
+          val process = Process("perl", List("-e", """print STDERR "Hello"""")) !># ZPipeline.utf8Decode
           val program = process.run().map(_.error)
 
           assertM(program)(equalTo("Hello"))
         },
 
         test("can redirect error to stream folding monoid") {
-          val process = Process("perl", List("-e", "print STDERR 'Hello\nworld!'")) !># (ZTransducer.utf8Decode >>> ZTransducer.splitLines)
+          val process = Process("perl", List("-e", "print STDERR 'Hello\nworld!'")) !># (ZPipeline.utf8Decode >>> ZPipeline.splitLines)
           val program = process.run().map(_.error)
 
           assertM(program)(equalTo("Helloworld!"))
@@ -154,8 +154,9 @@ object ProcessSpecs extends DefaultRunnableSpec with ProxSpecHelpers {
           case class StringLength(value: Int)
 
           val stream =
-            ZTransducer.utf8Decode >>>
-              ZTransducer.splitLines.map(s => StringLength(s.length))
+            ZPipeline.utf8Decode >>>
+              ZPipeline.splitLines >>>
+              ZPipeline.map(s => StringLength(s.length))
 
           val process = Process("perl", List("-e", "print STDERR 'Hello\nworld!'")) !>? stream
           val program = process.run().map(_.error)
@@ -164,7 +165,7 @@ object ProcessSpecs extends DefaultRunnableSpec with ProxSpecHelpers {
         },
 
         test("can redirect error to stream and ignore it's result") {
-          val process = Process("perl", List("-e", "print STDERR 'Hello\nworld!'")).drainError(ZTransducer.utf8Decode >>> ZTransducer.splitLines)
+          val process = Process("perl", List("-e", "print STDERR 'Hello\nworld!'")).drainError(ZPipeline.utf8Decode >>> ZPipeline.splitLines)
           val program = process.run().map(_.error)
 
           assertM(program)(equalTo(()))
@@ -172,7 +173,7 @@ object ProcessSpecs extends DefaultRunnableSpec with ProxSpecHelpers {
 
         test("can redirect error to stream and fold it") {
           val process = Process("perl", List("-e", "print STDERR 'Hello\nworld!'")).foldError(
-            ZTransducer.utf8Decode >>> ZTransducer.splitLines,
+            ZPipeline.utf8Decode >>> ZPipeline.splitLines,
             Vector.empty,
             (l: Vector[Option[Char]], s: String) => l :+ s.headOption
           )
@@ -195,21 +196,21 @@ object ProcessSpecs extends DefaultRunnableSpec with ProxSpecHelpers {
       suite("Redirection ordering")(
         test("can redirect first input and then error to stream") {
           val source = ZStream("This is a test string").flatMap(s => ZStream.fromIterable(s.getBytes(StandardCharsets.UTF_8)))
-          val process = Process("perl", List("-e", """my $str = <>; print STDERR "$str"""".stripMargin)) < source !># ZTransducer.utf8Decode
+          val process = Process("perl", List("-e", """my $str = <>; print STDERR "$str"""".stripMargin)) < source !># ZPipeline.utf8Decode
           val program = process.run().map(_.error)
 
           assertM(program)(equalTo("This is a test string"))
         },
 
         test("can redirect error first then output to stream") {
-          val process = (Process("perl", List("-e", """print STDOUT Hello; print STDERR World""".stripMargin)) !># ZTransducer.utf8Decode) ># ZTransducer.utf8Decode
+          val process = (Process("perl", List("-e", """print STDOUT Hello; print STDERR World""".stripMargin)) !># ZPipeline.utf8Decode) ># ZPipeline.utf8Decode
           val program = process.run().map(r => r.output + r.error)
 
           assertM(program)(equalTo("HelloWorld"))
         },
 
         test("can redirect output first then error to stream") {
-          val process = (Process("perl", List("-e", """print STDOUT Hello; print STDERR World""".stripMargin)) ># ZTransducer.utf8Decode) !># ZTransducer.utf8Decode
+          val process = (Process("perl", List("-e", """print STDOUT Hello; print STDERR World""".stripMargin)) ># ZPipeline.utf8Decode) !># ZPipeline.utf8Decode
           val program = process.run().map(r => r.output + r.error)
 
           assertM(program)(equalTo("HelloWorld"))
@@ -218,8 +219,8 @@ object ProcessSpecs extends DefaultRunnableSpec with ProxSpecHelpers {
         test("can redirect output first then error finally input to stream") {
           val source = ZStream("Hello").flatMap(s => ZStream.fromIterable(s.getBytes(StandardCharsets.UTF_8)))
           val process = ((Process("perl", List("-e", """my $str = <>; print STDOUT "$str"; print STDERR World""".stripMargin))
-            ># ZTransducer.utf8Decode)
-            !># ZTransducer.utf8Decode) < source
+            ># ZPipeline.utf8Decode)
+            !># ZPipeline.utf8Decode) < source
           val program = process.run().map(r => r.output + r.error)
 
           assertM(program)(equalTo("HelloWorld"))
@@ -228,8 +229,8 @@ object ProcessSpecs extends DefaultRunnableSpec with ProxSpecHelpers {
         test("can redirect output first then input finally error to stream") {
           val source = ZStream("Hello").flatMap(s => ZStream.fromIterable(s.getBytes(StandardCharsets.UTF_8)))
           val process = ((Process("perl", List("-e", """my $str = <>; print STDOUT "$str"; print STDERR World""".stripMargin))
-            ># ZTransducer.utf8Decode)
-            < source) !># ZTransducer.utf8Decode
+            ># ZPipeline.utf8Decode)
+            < source) !># ZPipeline.utf8Decode
           val program = process.run().map(r => r.output + r.error)
 
           assertM(program)(equalTo("HelloWorld"))
@@ -239,7 +240,7 @@ object ProcessSpecs extends DefaultRunnableSpec with ProxSpecHelpers {
           val source = ZStream("Hello").flatMap(s => ZStream.fromIterable(s.getBytes(StandardCharsets.UTF_8)))
           val process = ((Process("perl", List("-e", """my $str = <>; print STDOUT "$str"; print STDERR World""".stripMargin))
             < source)
-            !># ZTransducer.utf8Decode) ># ZTransducer.utf8Decode
+            !># ZPipeline.utf8Decode) ># ZPipeline.utf8Decode
           val program = process.run().map(r => r.output + r.error)
 
           assertM(program)(equalTo("HelloWorld"))
@@ -249,7 +250,7 @@ object ProcessSpecs extends DefaultRunnableSpec with ProxSpecHelpers {
       suite("Input redirection")(
         test("can use stream as input") {
           val source = ZStream("This is a test string").flatMap(s => ZStream.fromIterable(s.getBytes(StandardCharsets.UTF_8)))
-          val process = Process("wc", List("-w")) < source ># ZTransducer.utf8Decode
+          val process = Process("wc", List("-w")) < source ># ZPipeline.utf8Decode
           val program = process.run().map(_.output.trim)
 
           assertM(program)(equalTo("5"))
@@ -257,7 +258,7 @@ object ProcessSpecs extends DefaultRunnableSpec with ProxSpecHelpers {
 
         test("can use stream as input flushing after each chunk") {
           val source = ZStream("This ", "is a test", " string").flatMap(s => ZStream.fromIterable(s.getBytes(StandardCharsets.UTF_8)))
-          val process = (Process("wc", List("-w")) !< source) ># ZTransducer.utf8Decode
+          val process = (Process("wc", List("-w")) !< source) ># ZPipeline.utf8Decode
           val program = process.run().map(_.output.trim)
 
           assertM(program)(equalTo("5"))
@@ -309,7 +310,7 @@ object ProcessSpecs extends DefaultRunnableSpec with ProxSpecHelpers {
 
       suite("Customization")(
         test("can change the command") {
-          val p1 = Process("something", List("Hello", "world")) ># ZTransducer.utf8Decode
+          val p1 = Process("something", List("Hello", "world")) ># ZPipeline.utf8Decode
           val p2 = p1.withCommand("echo")
           val program = p2.run().map(_.output)
 
@@ -317,7 +318,7 @@ object ProcessSpecs extends DefaultRunnableSpec with ProxSpecHelpers {
         },
 
         test("can change the arguments") {
-          val p1 = Process("echo") ># ZTransducer.utf8Decode
+          val p1 = Process("echo") ># ZPipeline.utf8Decode
           val p2 = p1.withArguments(List("Hello", "world"))
           val program = p2.run().map(_.output)
 
@@ -326,7 +327,7 @@ object ProcessSpecs extends DefaultRunnableSpec with ProxSpecHelpers {
 
         test("respects the working directory") {
           ZIO.attempt(Files.createTempDirectory("prox")).flatMap { tempDirectory =>
-            val process = (Process("pwd") in tempDirectory) ># ZTransducer.utf8Decode
+            val process = (Process("pwd") in tempDirectory) ># ZPipeline.utf8Decode
             val program = process.run().map(_.output.trim)
 
             assertM(program)(equalTo(tempDirectory.toString) || equalTo(s"/private${tempDirectory}"))
@@ -336,7 +337,7 @@ object ProcessSpecs extends DefaultRunnableSpec with ProxSpecHelpers {
         test("is customizable with environment variables") {
           val process = (Process("sh", List("-c", "echo \"Hello $TEST1! I am $TEST2!\""))
             `with` ("TEST1" -> "world")
-            `with` ("TEST2" -> "prox")) ># ZTransducer.utf8Decode
+            `with` ("TEST2" -> "prox")) ># ZPipeline.utf8Decode
           val program = process.run().map(_.output)
 
           assertM(program)(equalTo("Hello world! I am prox!\n"))
@@ -346,14 +347,14 @@ object ProcessSpecs extends DefaultRunnableSpec with ProxSpecHelpers {
           val process = (Process("sh", List("-c", "echo \"Hello $TEST1! I am $TEST2!\""))
             `with` ("TEST1" -> "world")
             `with` ("TEST2" -> "prox")
-            `without` "TEST1") ># ZTransducer.utf8Decode
+            `without` "TEST1") ># ZPipeline.utf8Decode
           val program = process.run().map(_.output)
 
           assertM(program)(equalTo("Hello ! I am prox!\n"))
         },
 
         test("is customizable with environment variables output is bound") {
-          val process = (Process("sh", List("-c", "echo \"Hello $TEST1! I am $TEST2!\"")) ># ZTransducer.utf8Decode
+          val process = (Process("sh", List("-c", "echo \"Hello $TEST1! I am $TEST2!\"")) ># ZPipeline.utf8Decode
             `with` ("TEST1" -> "world")
             `with` ("TEST2" -> "prox"))
           val program = process.run().map(_.output)
@@ -365,16 +366,16 @@ object ProcessSpecs extends DefaultRunnableSpec with ProxSpecHelpers {
           val source = ZStream("This is a test string").flatMap(s => ZStream.fromIterable(s.getBytes(StandardCharsets.UTF_8)))
           val process = ((Process("sh", List("-c", "cat > /dev/null; echo \"Hello $TEST1! I am $TEST2!\"")) < source)
             `with` ("TEST1" -> "world")
-            `with` ("TEST2" -> "prox")) ># ZTransducer.utf8Decode
+            `with` ("TEST2" -> "prox")) ># ZPipeline.utf8Decode
           val program = process.run().map(_.output)
 
           assertM(program)(equalTo("Hello world! I am prox!\n"))
         },
 
         test("is customizable with environment variables if error is bound") {
-          val process = ((Process("sh", List("-c", "echo \"Hello $TEST1! I am $TEST2!\"")) !># ZTransducer.utf8Decode)
+          val process = ((Process("sh", List("-c", "echo \"Hello $TEST1! I am $TEST2!\"")) !># ZPipeline.utf8Decode)
             `with` ("TEST1" -> "world")
-            `with` ("TEST2" -> "prox")) ># ZTransducer.utf8Decode
+            `with` ("TEST2" -> "prox")) ># ZPipeline.utf8Decode
           val program = process.run().map(_.output)
 
           assertM(program)(equalTo("Hello world! I am prox!\n"))
@@ -382,7 +383,7 @@ object ProcessSpecs extends DefaultRunnableSpec with ProxSpecHelpers {
 
         test("is customizable with environment variables if input and output are bound") {
           val source = ZStream("This is a test string").flatMap(s => ZStream.fromIterable(s.getBytes(StandardCharsets.UTF_8)))
-          val process = (((Process("sh", List("-c", "cat > /dev/null; echo \"Hello $TEST1! I am $TEST2!\"")) < source) ># ZTransducer.utf8Decode)
+          val process = (((Process("sh", List("-c", "cat > /dev/null; echo \"Hello $TEST1! I am $TEST2!\"")) < source) ># ZPipeline.utf8Decode)
             `with` ("TEST1" -> "world")
             `with` ("TEST2" -> "prox"))
           val program = process.run().map(_.output)
@@ -392,16 +393,16 @@ object ProcessSpecs extends DefaultRunnableSpec with ProxSpecHelpers {
 
         test("is customizable with environment variables if input and error are bound") {
           val source = ZStream("This is a test string").flatMap(s => ZStream.fromIterable(s.getBytes(StandardCharsets.UTF_8)))
-          val process = (((Process("sh", List("-c", "cat > /dev/null; echo \"Hello $TEST1! I am $TEST2!\"")) < source) !># ZTransducer.utf8Decode)
+          val process = (((Process("sh", List("-c", "cat > /dev/null; echo \"Hello $TEST1! I am $TEST2!\"")) < source) !># ZPipeline.utf8Decode)
             `with` ("TEST1" -> "world")
-            `with` ("TEST2" -> "prox")) ># ZTransducer.utf8Decode
+            `with` ("TEST2" -> "prox")) ># ZPipeline.utf8Decode
           val program = process.run().map(_.output)
 
           assertM(program)(equalTo("Hello world! I am prox!\n"))
         },
 
         test("is customizable with environment variables if output and error are bound") {
-          val process = (((Process("sh", List("-c", "echo \"Hello $TEST1! I am $TEST2!\"")) !># ZTransducer.utf8Decode) ># ZTransducer.utf8Decode)
+          val process = (((Process("sh", List("-c", "echo \"Hello $TEST1! I am $TEST2!\"")) !># ZPipeline.utf8Decode) ># ZPipeline.utf8Decode)
             `with` ("TEST1" -> "world")
             `with` ("TEST2" -> "prox"))
           val program = process.run().map(_.output)
@@ -411,7 +412,7 @@ object ProcessSpecs extends DefaultRunnableSpec with ProxSpecHelpers {
 
         test("is customizable with environment variables if everything is bound") {
           val source = ZStream("This is a test string").flatMap(s => ZStream.fromIterable(s.getBytes(StandardCharsets.UTF_8)))
-          val process = ((((Process("sh", List("-c", "cat > /dev/null; echo \"Hello $TEST1! I am $TEST2!\"")) < source) !># ZTransducer.utf8Decode) ># ZTransducer.utf8Decode)
+          val process = ((((Process("sh", List("-c", "cat > /dev/null; echo \"Hello $TEST1! I am $TEST2!\"")) < source) !># ZPipeline.utf8Decode) ># ZPipeline.utf8Decode)
             `with` ("TEST1" -> "world")
             `with` ("TEST2" -> "prox"))
           val program = process.run().map(_.output)
