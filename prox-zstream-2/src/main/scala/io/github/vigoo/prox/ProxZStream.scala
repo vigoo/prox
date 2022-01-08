@@ -4,7 +4,7 @@ import java.io
 import java.io.IOException
 
 import zio.prelude.Identity
-import zio.stream.{ZSink, ZStream, ZTransducer}
+import zio.stream.{ZSink, ZStream, ZPipeline}
 import zio._
 
 import scala.language.implicitConversions
@@ -17,8 +17,8 @@ trait ProxZStream extends Prox {
       transform(s).run(sink)
   }
   object TransformAndSink {
-    def apply[A, B](transducer: ZTransducer[Any, ProxError, A, B], sink: ZSink[Any, ProxError, B, Any, Unit]): TransformAndSink[A, B] =
-      TransformAndSink(_.transduce(transducer), sink)
+    def apply[A, B](transducer: ZPipeline[Any, ProxError, A, B], sink: ZSink[Any, ProxError, B, Any, Unit]): TransformAndSink[A, B] =
+      TransformAndSink(_.via(transducer), sink)
   }
 
   override type ProxExitCode = zio.ExitCode
@@ -93,10 +93,10 @@ trait ProxZStream extends Prox {
     s.runCollect.map(_.toVector)
 
   protected override final def foldStream[A, B](s: ProxStream[A], init: B, f: (B, A) => B): ProxIO[B] =
-    s.fold(init)(f)
+    s.runFold(init)(f)
 
   protected override final def foldMonoidStream[A: Identity](s: ProxStream[A]): ProxIO[A] =
-    s.fold(Identity[A].identity)((a, b) => Identity[A].combine(a, b))
+    s.runFold(Identity[A].identity)((a, b) => Identity[A].combine(a, b))
 
   protected override final def streamThrough[A, B](s: ProxStream[A], pipe: ProxPipe[A, B]): ProxStream[B] =
     pipe(s)
@@ -138,8 +138,8 @@ trait ProxZStream extends Prox {
   protected override final def startFiber[A](f: ProxIO[A]): ProxIO[ProxFiber[A]] =
     f.fork
 
-  implicit def transducerAsPipe[A, B](transducer: ZTransducer[Any, ProxError, A, B]): ProxPipe[A, B] =
-    (s: ProxStream[A]) => s.transduce(transducer)
+  implicit def transducerAsPipe[A, B](transducer: ZPipeline[Any, ProxError, A, B]): ProxPipe[A, B] =
+    (s: ProxStream[A]) => s.via(transducer)
 
   implicit def sinkAsTransformAndSink[A](sink: ZSink[Any, ProxError, A, Any, Unit]): TransformAndSink[A, A] =
     TransformAndSink(identity[ZStream[Any, ProxError, A]] _, sink)
