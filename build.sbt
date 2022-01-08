@@ -70,6 +70,7 @@ def commonSettings(jdk: Int) = Seq(
 )
 
 lazy val prox = project.in(file("."))
+  .settings(commonSettings(8))
   .settings(
     name := "prox",
     organization := "io.github.vigoo",
@@ -137,6 +138,7 @@ lazy val proxJava9 = Project("prox-java9", file("prox-java9")).settings(commonSe
 
 lazy val docs = project
   .enablePlugins(GhpagesPlugin, SiteScaladocPlugin, ScalaUnidocPlugin, MicrositesPlugin)
+  .settings(commonSettings(8))
   .settings(
     addCompilerPlugin("org.typelevel" %% s"kind-projector" % "0.13.2" cross CrossVersion.full),
     publishArtifact := false,
