@@ -1,3 +1,6 @@
 coverage:
   precision: 0
   round: down
+  status:
+    default_rules:
+      threshold: 2%
