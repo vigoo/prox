@@ -339,7 +339,7 @@ object ProcessGroupSpecs extends DefaultRunnableSpec with ProxSpecHelpers {
           val processGroup = (p1 | p2).customizedPerProcess.foldErrors(
             {
               case p if p == p1 => ZPipeline.utf8Decode >>> ZPipeline.splitLines
-              case p if p == p2 => ZPipeline.utf8Decode >>> ZPipeline.splitLines >>> ZPipeline.map(_.reverse)
+              case p if p == p2 => ZPipeline.utf8Decode >>> ZPipeline.splitLines >>> ZPipeline.map[String, String](_.reverse)
             },
             Vector.empty,
             (l: Vector[Option[Char]], s: String) => l :+ s.headOption
