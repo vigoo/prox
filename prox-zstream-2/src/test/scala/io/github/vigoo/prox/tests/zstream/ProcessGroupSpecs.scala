@@ -199,7 +199,7 @@ object ProcessGroupSpecs extends DefaultRunnableSpec with ProxSpecHelpers {
           val p1 = Process("perl", List("-e", """print STDERR "Hello""""))
           val p2 = Process("perl", List("-e", """print STDERR "world!""""))
 
-          val stream = ZPipeline.utf8Decode >>> ZPipeline.splitLines >>> ZPipeline.map(_.length)
+          val stream = ZPipeline.utf8Decode >>> ZPipeline.splitLines >>> ZPipeline.map[String, Int](_.length)
 
           val processGroup = (p1 | p2) !>? stream
           val program = processGroup.run()
@@ -299,7 +299,7 @@ object ProcessGroupSpecs extends DefaultRunnableSpec with ProxSpecHelpers {
           val p1 = Process("perl", List("-e", """print STDERR "Hello""""))
           val p2 = Process("perl", List("-e", """print STDERR "world!""""))
 
-          val stream = ZPipeline.utf8Decode >>> ZPipeline.splitLines >>> ZPipeline.map(_.length)
+          val stream = ZPipeline.utf8Decode >>> ZPipeline.splitLines >>> ZPipeline.map[String, Int](_.length)
 
           val processGroup = (p1 | p2).customizedPerProcess.errorsToVector {
             case p if p == p1 => stream >>> ZPipeline.map(l => (1, l))
@@ -339,7 +339,7 @@ object ProcessGroupSpecs extends DefaultRunnableSpec with ProxSpecHelpers {
           val processGroup = (p1 | p2).customizedPerProcess.foldErrors(
             {
               case p if p == p1 => ZPipeline.utf8Decode >>> ZPipeline.splitLines
-              case p if p == p2 => ZPipeline.utf8Decode >>> ZPipeline.splitLines >>> ZPipeline.map(_.reverse)
+              case p if p == p2 => ZPipeline.utf8Decode >>> ZPipeline.splitLines >>> ZPipeline.map[String, String](_.reverse)
             },
             Vector.empty,
             (l: Vector[Option[Char]], s: String) => l :+ s.headOption
