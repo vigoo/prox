@@ -73,7 +73,7 @@ object ProcessSpecs extends DefaultRunnableSpec with ProxSpecHelpers {
           val stream =
             ZPipeline.utf8Decode >>>
               ZPipeline.splitLines >>>
-              ZPipeline.map(s => StringLength(s.length))
+              ZPipeline.map[String, StringLength](s => StringLength(s.length))
 
           val process = Process("echo", List("Hello\nworld!")) >? stream
           val program = process.run().map(_.output)
@@ -156,7 +156,7 @@ object ProcessSpecs extends DefaultRunnableSpec with ProxSpecHelpers {
           val stream =
             ZPipeline.utf8Decode >>>
               ZPipeline.splitLines >>>
-              ZPipeline.map(s => StringLength(s.length))
+              ZPipeline.map[String, StringLength](s => StringLength(s.length))
 
           val process = Process("perl", List("-e", "print STDERR 'Hello\nworld!'")) !>? stream
           val program = process.run().map(_.error)
