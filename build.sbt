@@ -3,7 +3,7 @@ val scala213 = "2.13.8"
 val scala3 = "3.1.1"
 
 val zioVersion = "1.0.13"
-val zio2Version = "2.0.0-RC2"
+val zio2Version = "2.0.0-RC5"
 
 val scalacOptions212 = Seq("-Ypartial-unification", "-deprecation", "-target:jvm-1.8")
 val scalacOptions213 = Seq("-deprecation", "-target:jvm-1.8")
@@ -125,7 +125,7 @@ lazy val proxZStream2 = Project("prox-zstream-2", file("prox-zstream-2")).settin
   libraryDependencies ++= Seq(
     "dev.zio" %% "zio" % zio2Version,
     "dev.zio" %% "zio-streams" % zio2Version,
-    "dev.zio" %% "zio-prelude" % "1.0.0-RC10",
+    "dev.zio" %% "zio-prelude" % "1.0.0-RC13",
 
     "dev.zio" %% "zio-test" % zio2Version % "test",
     "dev.zio" %% "zio-test-sbt" % zio2Version % "test",

@@ -12,7 +12,7 @@ import zio.test.TestAspect._
 import zio.test._
 import zio.{ExitCode, ZIO}
 
-object ProcessSpecs extends DefaultRunnableSpec with ProxSpecHelpers {
+object ProcessSpecs extends ZIOSpecDefault with ProxSpecHelpers {
   implicit val processRunner: ProcessRunner[JVMProcessInfo] = new JVMProcessRunner
 
   override val spec =
@@ -268,7 +268,7 @@ object ProcessSpecs extends DefaultRunnableSpec with ProxSpecHelpers {
       suite("Termination")(
         test("can be terminated with cancellation") {
           val process = Process("perl", List("-e", """$SIG{TERM} = sub { exit 1 }; sleep 30; exit 0"""))
-          val program = process.start().use { fiber => fiber.interrupt.unit }
+          val program = ZIO.scoped { process.start().flatMap { fiber => fiber.interrupt.unit } }
 
           assertM(program)(equalTo(()))
         } @@ TestAspect.timeout(5.seconds),
@@ -281,19 +281,19 @@ object ProcessSpecs extends DefaultRunnableSpec with ProxSpecHelpers {
             result <- runningProcess.terminate()
           } yield result.exitCode
 
-          assertM(program.provideLayer(Clock.live))(equalTo(ExitCode(1)))
-        },
+          assertM(program)(equalTo(ExitCode(1)))
+        } @@ withLiveClock,
 
         test("can be killed") {
           val process = Process("perl", List("-e", """$SIG{TERM} = 'IGNORE'; sleep 30; exit 2"""))
           val program = for {
             runningProcess <- process.startProcess()
-            _ <- ZIO(Thread.sleep(250))
+            _ <- ZIO.sleep(250.millis)
             result <- runningProcess.kill()
           } yield result.exitCode
 
-          assertM(program.provideLayer(Clock.live))(equalTo(ExitCode(137)))
-        },
+          assertM(program)(equalTo(ExitCode(137)))
+        } @@ withLiveClock,
 
         test("can be checked if is alive") {
           val process = Process("sleep", List("10"))
