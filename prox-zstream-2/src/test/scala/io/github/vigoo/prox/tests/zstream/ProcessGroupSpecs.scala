@@ -11,7 +11,7 @@ import zio.test._
 import java.nio.charset.StandardCharsets
 import java.nio.file.Files
 
-object ProcessGroupSpecs extends DefaultRunnableSpec with ProxSpecHelpers {
+object ProcessGroupSpecs extends ZIOSpecDefault with ProxSpecHelpers {
   implicit val processRunner: ProcessRunner[JVMProcessInfo] = new JVMProcessRunner
 
   override val spec =
@@ -78,7 +78,7 @@ object ProcessGroupSpecs extends DefaultRunnableSpec with ProxSpecHelpers {
           val processGroup =
             Process("perl", List("-e", """$SIG{TERM} = sub { exit 1 }; sleep 30; exit 0""")) |
               Process("sort")
-          val program = processGroup.start().use { fiber => fiber.interrupt.unit }
+          val program = ZIO.scoped { processGroup.start().flatMap { fiber => fiber.interrupt.unit } }
 
           assertM(program)(equalTo(()))
         } @@ TestAspect.timeout(5.seconds),
@@ -95,8 +95,8 @@ object ProcessGroupSpecs extends DefaultRunnableSpec with ProxSpecHelpers {
             result <- runningProcesses.terminate()
           } yield result.exitCodes.toList
 
-          assertM(program.provideLayer(Clock.live))(contains[(Process[Unit, Unit], ProxExitCode)](p1 -> ExitCode(1)))
-        },
+          assertM(program)(contains[(Process[Unit, Unit], ProxExitCode)](p1 -> ExitCode(1)))
+        } @@ withLiveClock,
 
         test("can be killed") {
 
@@ -112,10 +112,10 @@ object ProcessGroupSpecs extends DefaultRunnableSpec with ProxSpecHelpers {
 
           // Note: we can't assert on the second process' exit code because there is a race condition
           // between killing it directly and being stopped because of the upstream process got killed.
-          assertM(program.provideLayer(Clock.live))(
+          assertM(program)(
             contains(p1 -> ExitCode(137)
             ))
-        }
+        } @@ withLiveClock
       ),
 
       suite("Input redirection")(

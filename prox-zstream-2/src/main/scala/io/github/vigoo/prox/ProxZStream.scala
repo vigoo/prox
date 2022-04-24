@@ -24,7 +24,7 @@ trait ProxZStream extends Prox {
   override type ProxExitCode = zio.ExitCode
   override type ProxFiber[A] = zio.Fiber[ProxError, A]
   override type ProxIO[A] = ZIO[Any, ProxError, A]
-  override type ProxResource[A] = ZManaged[Any, ProxError, A]
+  override type ProxResource[A] = ZIO[Scope, ProxError, A]
   override type ProxStream[A] = ZStream[Any, ProxError, A]
   override type ProxPipe[A, B] = ProxStream[A] => ProxStream[B]
   override type ProxSink[A] = TransformAndSink[A, _]
@@ -75,10 +75,10 @@ trait ProxZStream extends Prox {
   }
 
   protected override final def makeResource[A](acquire: ProxIO[A], release: A => ProxIO[Unit]): ProxResource[A] =
-    ZManaged.acquireReleaseWith(acquire)(x => release(x).mapError(_.toThrowable).orDie)
+    ZIO.acquireRelease(acquire)(x => release(x).mapError(_.toThrowable).orDie)
 
   protected override final def useResource[A, B](r: ProxResource[A], f: A => ProxIO[B]): ProxIO[B] =
-    r.use(f)
+    ZIO.scoped(r.flatMap(f))
 
   protected override final def joinFiber[A](f: ProxFiber[A]): ProxIO[A] =
     f.join
@@ -108,19 +108,19 @@ trait ProxZStream extends Prox {
     ZStream.fromInputStream(input, chunkSize).mapError(FailedToReadProcessOutput.apply)
 
   protected override final def drainToJavaOutputStream(stream: ProxStream[Byte], output: io.OutputStream, flushChunks: Boolean): ProxIO[Unit] = {
-    val managedOutput = ZManaged.acquireReleaseWith(ZIO.succeed(output))(s => ZIO.attempt(s.close()).orDie)
+    val managedOutput = ZIO.acquireRelease(ZIO.succeed(output))(s => ZIO.attempt(s.close()).orDie)
     if (flushChunks) {
       stream.run(flushingOutputStreamSink(managedOutput).mapError(FailedToWriteProcessInput.apply)).unit
     } else {
       stream
         .run(ZSink
-          .fromOutputStreamManaged(managedOutput)
+          .fromOutputStreamScoped(managedOutput)
           .mapError(FailedToWriteProcessInput.apply)).unit
     }
   }
 
-  private final def flushingOutputStreamSink(managedOutput: ZManaged[Any, Nothing, io.OutputStream]): ZSink[Any, IOException, Byte, Byte, Long] =
-    ZSink.unwrapManaged {
+  private final def flushingOutputStreamSink(managedOutput: ZIO[Scope, Nothing, io.OutputStream]): ZSink[Any, IOException, Byte, Byte, Long] =
+    ZSink.unwrapScoped {
       managedOutput.map { os =>
         ZSink.foldLeftChunksZIO(0L) { (bytesWritten, byteChunk: Chunk[Byte]) =>
           ZIO.attemptBlockingInterrupt {
