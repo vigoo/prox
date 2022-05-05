@@ -141,6 +141,9 @@ trait ProxZStream extends Prox {
   implicit def transducerAsPipe[A, B](transducer: ZPipeline[Any, ProxError, A, B]): ProxPipe[A, B] =
     (s: ProxStream[A]) => s.via(transducer)
 
+  implicit def transducerAsPipeThrowable[A, B](transducer: ZPipeline[Any, Throwable, A, B]): ProxPipe[A, B] =
+    (s: ProxStream[A]) => s.via(ZPipeline.fromChannel(transducer.channel.mapError(UnknownProxError.apply)))
+
   implicit def sinkAsTransformAndSink[A](sink: ZSink[Any, ProxError, A, Any, Unit]): TransformAndSink[A, A] =
     TransformAndSink(identity[ZStream[Any, ProxError, A]] _, sink)
 }

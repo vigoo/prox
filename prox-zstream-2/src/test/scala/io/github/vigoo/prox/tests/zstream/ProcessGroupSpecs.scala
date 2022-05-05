@@ -22,7 +22,7 @@ object ProcessGroupSpecs extends ZIOSpecDefault with ProxSpecHelpers {
           val processGroup = (Process("echo", List("This is a test string")) | Process("wc", List("-w"))) ># ZPipeline.utf8Decode
           val program = processGroup.run().map(_.output.trim)
 
-          assertM(program)(equalTo("5"))
+          assertZIO(program)(equalTo("5"))
         },
 
         test("is possible with multiple") {
@@ -38,12 +38,16 @@ object ProcessGroupSpecs extends ZIOSpecDefault with ProxSpecHelpers {
             r => r.output.map(_.stripLineEnd.trim).filter(_.nonEmpty)
           )
 
-          assertM(program)(hasSameElements(List("1 apple")))
+          assertZIO(program)(hasSameElements(List("1 apple")))
         },
 
         test("is customizable with pipes") {
           val customPipe = (s: zstream.ProxStream[Byte]) => s
-            .via(ZPipeline.utf8Decode >>> ZPipeline.splitLines)
+            .via(
+              ZPipeline.fromChannel(
+                (ZPipeline.utf8Decode >>> ZPipeline.splitLines).channel.mapError(UnknownProxError.apply)
+              )
+            )
             .map(_.split(' ').toVector)
             .map(v => v.map(_ + " !!!").mkString(" "))
             .intersperse("\n")
@@ -51,7 +55,7 @@ object ProcessGroupSpecs extends ZIOSpecDefault with ProxSpecHelpers {
           val processGroup = Process("echo", List("This is a test string")).via(customPipe).to(Process("wc", List("-w"))) ># ZPipeline.utf8Decode
           val program = processGroup.run().map(_.output.trim)
 
-          assertM(program)(equalTo("10"))
+          assertZIO(program)(equalTo("10"))
         },
 
         test("can be mapped") {
@@ -68,7 +72,7 @@ object ProcessGroupSpecs extends ZIOSpecDefault with ProxSpecHelpers {
 
           val program = processGroup2.run().map(_.output.trim)
 
-          assertM(program)(equalTo("5"))
+          assertZIO(program)(equalTo("5"))
         }
       ),
 
@@ -80,7 +84,7 @@ object ProcessGroupSpecs extends ZIOSpecDefault with ProxSpecHelpers {
               Process("sort")
           val program = ZIO.scoped { processGroup.start().flatMap { fiber => fiber.interrupt.unit } }
 
-          assertM(program)(equalTo(()))
+          assertZIO(program)(equalTo(()))
         } @@ TestAspect.timeout(5.seconds),
 
         test("can be terminated") {
@@ -95,7 +99,7 @@ object ProcessGroupSpecs extends ZIOSpecDefault with ProxSpecHelpers {
             result <- runningProcesses.terminate()
           } yield result.exitCodes.toList
 
-          assertM(program)(contains[(Process[Unit, Unit], ProxExitCode)](p1 -> ExitCode(1)))
+          assertZIO(program)(contains[(Process[Unit, Unit], ProxExitCode)](p1 -> ExitCode(1)))
         } @@ withLiveClock,
 
         test("can be killed") {
@@ -112,7 +116,7 @@ object ProcessGroupSpecs extends ZIOSpecDefault with ProxSpecHelpers {
 
           // Note: we can't assert on the second process' exit code because there is a race condition
           // between killing it directly and being stopped because of the upstream process got killed.
-          assertM(program)(
+          assertZIO(program)(
             contains(p1 -> ExitCode(137)
             ))
         } @@ withLiveClock
@@ -125,7 +129,7 @@ object ProcessGroupSpecs extends ZIOSpecDefault with ProxSpecHelpers {
           val processGroup = (Process("cat") | Process("wc", List("-w"))) < stream ># ZPipeline.utf8Decode
           val program = processGroup.run().map(_.output.trim)
 
-          assertM(program)(equalTo("5"))
+          assertZIO(program)(equalTo("5"))
         },
 
         test("can be fed with an input file") {
@@ -137,7 +141,7 @@ object ProcessGroupSpecs extends ZIOSpecDefault with ProxSpecHelpers {
               result <- processGroup.run()
             } yield result.output.trim
 
-            assertM(program)(equalTo("5"))
+            assertZIO(program)(equalTo("5"))
           }
         }
       ),
@@ -151,7 +155,7 @@ object ProcessGroupSpecs extends ZIOSpecDefault with ProxSpecHelpers {
               contents <- ZStream.fromFile(tempFile, 1024).via(ZPipeline.utf8Decode).runFold("")(_ + _).mapError(UnknownProxError.apply)
             } yield contents.trim
 
-            assertM(program)(equalTo("5"))
+            assertZIO(program)(equalTo("5"))
           }
         },
       ),
@@ -261,8 +265,8 @@ object ProcessGroupSpecs extends ZIOSpecDefault with ProxSpecHelpers {
           val program = processGroup.run()
 
           program.map { result =>
-            assert(result.errors.get(p1))(isSome(equalTo("P1: Hello"))) &&
-              assert(result.errors.get(p2))(isSome(equalTo("P2: world"))) &&
+            assert(result.errors.get(p1))(isSome(equalTo("P1: HelloP1: "))) &&
+              assert(result.errors.get(p2))(isSome(equalTo("P2: worldP2: "))) &&
               assert(result.output)(equalTo(())) &&
               assert(result.exitCodes.get(p1))(isSome(equalTo(ExitCode(0)))) &&
               assert(result.exitCodes.get(p2))(isSome(equalTo(ExitCode(0))))
@@ -371,7 +375,7 @@ object ProcessGroupSpecs extends ZIOSpecDefault with ProxSpecHelpers {
                 contents2 <- ZStream.fromFile(tempFile2, 1024).via(ZPipeline.utf8Decode).runFold("")(_ + _).mapError(UnknownProxError.apply)
               } yield (contents1, contents2)
 
-              assertM(program)(equalTo(("Hello", "world")))
+              assertZIO(program)(equalTo(("Hello", "world")))
             }
           }
         },
@@ -482,7 +486,7 @@ object ProcessGroupSpecs extends ZIOSpecDefault with ProxSpecHelpers {
       ),
 
       test("bound process is not pipeable") {
-        assertM(
+        assertZIO(
           typeCheck("""val bad = (Process("echo", List("Hello world")) ># ZPipeline.utf8Decode) | Process("wc", List("-w"))"""))(
           isLeft(anything)
         )
