@@ -23,7 +23,7 @@ object ProcessSpecs extends ZIOSpecDefault with ProxSpecHelpers {
           falseResult <- Process("false").run()
         } yield (trueResult.exitCode, falseResult.exitCode)
 
-        assertM(program)(equalTo((ExitCode(0), ExitCode(1))))
+        assertZIO(program)(equalTo((ExitCode(0), ExitCode(1))))
       },
 
       suite("Output redirection")(
@@ -35,7 +35,7 @@ object ProcessSpecs extends ZIOSpecDefault with ProxSpecHelpers {
               contents <- ZStream.fromFile(tempFile, 1024).via(ZPipeline.utf8Decode).runFold("")(_ + _).mapError(UnknownProxError.apply)
             } yield contents
 
-            assertM(program)(equalTo("Hello world!\n"))
+            assertZIO(program)(equalTo("Hello world!\n"))
           }
         },
 
@@ -49,7 +49,7 @@ object ProcessSpecs extends ZIOSpecDefault with ProxSpecHelpers {
               contents <- ZStream.fromFile(tempFile, 1024).via(ZPipeline.utf8Decode).runFold("")(_ + _).mapError(UnknownProxError.apply)
             } yield contents
 
-            assertM(program)(equalTo("Hello\nworld\n"))
+            assertZIO(program)(equalTo("Hello\nworld\n"))
           }
         },
 
@@ -57,14 +57,14 @@ object ProcessSpecs extends ZIOSpecDefault with ProxSpecHelpers {
           val process = Process("echo", List("Hello world!")) ># ZPipeline.utf8Decode
           val program = process.run().map(_.output)
 
-          assertM(program)(equalTo("Hello world!\n"))
+          assertZIO(program)(equalTo("Hello world!\n"))
         },
 
         test("can redirect output to stream folding monoid") {
           val process = Process("echo", List("Hello\nworld!")) ># (ZPipeline.utf8Decode >>> ZPipeline.splitLines)
           val program = process.run().map(_.output)
 
-          assertM(program)(equalTo("Helloworld!"))
+          assertZIO(program)(equalTo("Helloworld!"))
         },
 
         test("can redirect output to stream collected to vector") {
@@ -78,14 +78,14 @@ object ProcessSpecs extends ZIOSpecDefault with ProxSpecHelpers {
           val process = Process("echo", List("Hello\nworld!")) >? stream
           val program = process.run().map(_.output)
 
-          assertM(program)(hasSameElements(List(StringLength(5), StringLength(6))))
+          assertZIO(program)(hasSameElements(List(StringLength(5), StringLength(6))))
         },
 
         test("can redirect output to stream and ignore it's result") {
           val process = Process("echo", List("Hello\nworld!")).drainOutput(ZPipeline.utf8Decode >>> ZPipeline.splitLines)
           val program = process.run().map(_.output)
 
-          assertM(program)(equalTo(()))
+          assertZIO(program)(equalTo(()))
         },
 
         test("can redirect output to stream and fold it") {
@@ -96,7 +96,7 @@ object ProcessSpecs extends ZIOSpecDefault with ProxSpecHelpers {
           )
           val program = process.run().map(_.output)
 
-          assertM(program)(equalTo(Vector(Some('H'), Some('w'))))
+          assertZIO(program)(equalTo(Vector(Some('H'), Some('w'))))
         },
 
         test("can redirect output to a sink") {
@@ -106,7 +106,7 @@ object ProcessSpecs extends ZIOSpecDefault with ProxSpecHelpers {
           val process = Process("echo", List("Hello world!")) > target
           val program = process.run().as(builder.toString)
 
-          assertM(program)(equalTo("Hello world!\n"))
+          assertZIO(program)(equalTo("Hello world!\n"))
         },
       ),
       suite("Error redirection")(
@@ -118,7 +118,7 @@ object ProcessSpecs extends ZIOSpecDefault with ProxSpecHelpers {
               contents <- ZStream.fromFile(tempFile, 1024).via(ZPipeline.utf8Decode).runFold("")(_ + _).mapError(UnknownProxError.apply)
             } yield contents
 
-            assertM(program)(equalTo("Hello world!"))
+            assertZIO(program)(equalTo("Hello world!"))
           }
         },
 
@@ -132,7 +132,7 @@ object ProcessSpecs extends ZIOSpecDefault with ProxSpecHelpers {
               contents <- ZStream.fromFile(tempFile, 1024).via(ZPipeline.utf8Decode).runFold("")(_ + _).mapError(UnknownProxError.apply)
             } yield contents
 
-            assertM(program)(equalTo("Helloworld"))
+            assertZIO(program)(equalTo("Helloworld"))
           }
         },
 
@@ -140,14 +140,14 @@ object ProcessSpecs extends ZIOSpecDefault with ProxSpecHelpers {
           val process = Process("perl", List("-e", """print STDERR "Hello"""")) !># ZPipeline.utf8Decode
           val program = process.run().map(_.error)
 
-          assertM(program)(equalTo("Hello"))
+          assertZIO(program)(equalTo("Hello"))
         },
 
         test("can redirect error to stream folding monoid") {
           val process = Process("perl", List("-e", "print STDERR 'Hello\nworld!'")) !># (ZPipeline.utf8Decode >>> ZPipeline.splitLines)
           val program = process.run().map(_.error)
 
-          assertM(program)(equalTo("Helloworld!"))
+          assertZIO(program)(equalTo("Helloworld!"))
         },
 
         test("can redirect error to stream collected to vector") {
@@ -161,14 +161,14 @@ object ProcessSpecs extends ZIOSpecDefault with ProxSpecHelpers {
           val process = Process("perl", List("-e", "print STDERR 'Hello\nworld!'")) !>? stream
           val program = process.run().map(_.error)
 
-          assertM(program)(hasSameElements(List(StringLength(5), StringLength(6))))
+          assertZIO(program)(hasSameElements(List(StringLength(5), StringLength(6))))
         },
 
         test("can redirect error to stream and ignore it's result") {
           val process = Process("perl", List("-e", "print STDERR 'Hello\nworld!'")).drainError(ZPipeline.utf8Decode >>> ZPipeline.splitLines)
           val program = process.run().map(_.error)
 
-          assertM(program)(equalTo(()))
+          assertZIO(program)(equalTo(()))
         },
 
         test("can redirect error to stream and fold it") {
@@ -179,7 +179,7 @@ object ProcessSpecs extends ZIOSpecDefault with ProxSpecHelpers {
           )
           val program = process.run().map(_.error)
 
-          assertM(program)(equalTo(Vector(Some('H'), Some('w'))))
+          assertZIO(program)(equalTo(Vector(Some('H'), Some('w'))))
         },
 
         test("can redirect error to a sink") {
@@ -189,7 +189,7 @@ object ProcessSpecs extends ZIOSpecDefault with ProxSpecHelpers {
           val process = Process("perl", List("-e", """print STDERR "Hello"""")) !> target
           val program = process.run().as(builder.toString)
 
-          assertM(program)(equalTo("Hello"))
+          assertZIO(program)(equalTo("Hello"))
         },
       ),
 
@@ -199,21 +199,21 @@ object ProcessSpecs extends ZIOSpecDefault with ProxSpecHelpers {
           val process = Process("perl", List("-e", """my $str = <>; print STDERR "$str"""".stripMargin)) < source !># ZPipeline.utf8Decode
           val program = process.run().map(_.error)
 
-          assertM(program)(equalTo("This is a test string"))
+          assertZIO(program)(equalTo("This is a test string"))
         },
 
         test("can redirect error first then output to stream") {
           val process = (Process("perl", List("-e", """print STDOUT Hello; print STDERR World""".stripMargin)) !># ZPipeline.utf8Decode) ># ZPipeline.utf8Decode
           val program = process.run().map(r => r.output + r.error)
 
-          assertM(program)(equalTo("HelloWorld"))
+          assertZIO(program)(equalTo("HelloWorld"))
         },
 
         test("can redirect output first then error to stream") {
           val process = (Process("perl", List("-e", """print STDOUT Hello; print STDERR World""".stripMargin)) ># ZPipeline.utf8Decode) !># ZPipeline.utf8Decode
           val program = process.run().map(r => r.output + r.error)
 
-          assertM(program)(equalTo("HelloWorld"))
+          assertZIO(program)(equalTo("HelloWorld"))
         },
 
         test("can redirect output first then error finally input to stream") {
@@ -223,7 +223,7 @@ object ProcessSpecs extends ZIOSpecDefault with ProxSpecHelpers {
             !># ZPipeline.utf8Decode) < source
           val program = process.run().map(r => r.output + r.error)
 
-          assertM(program)(equalTo("HelloWorld"))
+          assertZIO(program)(equalTo("HelloWorld"))
         },
 
         test("can redirect output first then input finally error to stream") {
@@ -233,7 +233,7 @@ object ProcessSpecs extends ZIOSpecDefault with ProxSpecHelpers {
             < source) !># ZPipeline.utf8Decode
           val program = process.run().map(r => r.output + r.error)
 
-          assertM(program)(equalTo("HelloWorld"))
+          assertZIO(program)(equalTo("HelloWorld"))
         },
 
         test("can redirect input first then error finally output to stream") {
@@ -243,7 +243,7 @@ object ProcessSpecs extends ZIOSpecDefault with ProxSpecHelpers {
             !># ZPipeline.utf8Decode) ># ZPipeline.utf8Decode
           val program = process.run().map(r => r.output + r.error)
 
-          assertM(program)(equalTo("HelloWorld"))
+          assertZIO(program)(equalTo("HelloWorld"))
         },
       ),
 
@@ -253,7 +253,7 @@ object ProcessSpecs extends ZIOSpecDefault with ProxSpecHelpers {
           val process = Process("wc", List("-w")) < source ># ZPipeline.utf8Decode
           val program = process.run().map(_.output.trim)
 
-          assertM(program)(equalTo("5"))
+          assertZIO(program)(equalTo("5"))
         },
 
         test("can use stream as input flushing after each chunk") {
@@ -261,7 +261,7 @@ object ProcessSpecs extends ZIOSpecDefault with ProxSpecHelpers {
           val process = (Process("wc", List("-w")) !< source) ># ZPipeline.utf8Decode
           val program = process.run().map(_.output.trim)
 
-          assertM(program)(equalTo("5"))
+          assertZIO(program)(equalTo("5"))
         },
       ),
 
@@ -270,7 +270,7 @@ object ProcessSpecs extends ZIOSpecDefault with ProxSpecHelpers {
           val process = Process("perl", List("-e", """$SIG{TERM} = sub { exit 1 }; sleep 30; exit 0"""))
           val program = ZIO.scoped { process.start().flatMap { fiber => fiber.interrupt.unit } }
 
-          assertM(program)(equalTo(()))
+          assertZIO(program)(equalTo(()))
         } @@ TestAspect.timeout(5.seconds),
 
         test("can be terminated") {
@@ -281,7 +281,7 @@ object ProcessSpecs extends ZIOSpecDefault with ProxSpecHelpers {
             result <- runningProcess.terminate()
           } yield result.exitCode
 
-          assertM(program)(equalTo(ExitCode(1)))
+          assertZIO(program)(equalTo(ExitCode(1)))
         } @@ withLiveClock,
 
         test("can be killed") {
@@ -292,7 +292,7 @@ object ProcessSpecs extends ZIOSpecDefault with ProxSpecHelpers {
             result <- runningProcess.kill()
           } yield result.exitCode
 
-          assertM(program)(equalTo(ExitCode(137)))
+          assertZIO(program)(equalTo(ExitCode(137)))
         } @@ withLiveClock,
 
         test("can be checked if is alive") {
@@ -304,7 +304,7 @@ object ProcessSpecs extends ZIOSpecDefault with ProxSpecHelpers {
             isAliveAfter <- runningProcess.isAlive
           } yield (isAliveBefore, isAliveAfter)
 
-          assertM(program)(equalTo((true, false)))
+          assertZIO(program)(equalTo((true, false)))
         },
       ),
 
@@ -314,7 +314,7 @@ object ProcessSpecs extends ZIOSpecDefault with ProxSpecHelpers {
           val p2 = p1.withCommand("echo")
           val program = p2.run().map(_.output)
 
-          assertM(program)(equalTo("Hello world\n"))
+          assertZIO(program)(equalTo("Hello world\n"))
         },
 
         test("can change the arguments") {
@@ -322,7 +322,7 @@ object ProcessSpecs extends ZIOSpecDefault with ProxSpecHelpers {
           val p2 = p1.withArguments(List("Hello", "world"))
           val program = p2.run().map(_.output)
 
-          assertM(program)(equalTo("Hello world\n"))
+          assertZIO(program)(equalTo("Hello world\n"))
         },
 
         test("respects the working directory") {
@@ -330,7 +330,7 @@ object ProcessSpecs extends ZIOSpecDefault with ProxSpecHelpers {
             val process = (Process("pwd") in tempDirectory) ># ZPipeline.utf8Decode
             val program = process.run().map(_.output.trim)
 
-            assertM(program)(equalTo(tempDirectory.toString) || equalTo(s"/private${tempDirectory}"))
+            assertZIO(program)(equalTo(tempDirectory.toString) || equalTo(s"/private${tempDirectory}"))
           }
         },
 
@@ -340,7 +340,7 @@ object ProcessSpecs extends ZIOSpecDefault with ProxSpecHelpers {
             `with` ("TEST2" -> "prox")) ># ZPipeline.utf8Decode
           val program = process.run().map(_.output)
 
-          assertM(program)(equalTo("Hello world! I am prox!\n"))
+          assertZIO(program)(equalTo("Hello world! I am prox!\n"))
         },
 
         test("is customizable with excluded environment variables") {
@@ -350,7 +350,7 @@ object ProcessSpecs extends ZIOSpecDefault with ProxSpecHelpers {
             `without` "TEST1") ># ZPipeline.utf8Decode
           val program = process.run().map(_.output)
 
-          assertM(program)(equalTo("Hello ! I am prox!\n"))
+          assertZIO(program)(equalTo("Hello ! I am prox!\n"))
         },
 
         test("is customizable with environment variables output is bound") {
@@ -359,7 +359,7 @@ object ProcessSpecs extends ZIOSpecDefault with ProxSpecHelpers {
             `with` ("TEST2" -> "prox"))
           val program = process.run().map(_.output)
 
-          assertM(program)(equalTo("Hello world! I am prox!\n"))
+          assertZIO(program)(equalTo("Hello world! I am prox!\n"))
         },
 
         test("is customizable with environment variables if input is bound") {
@@ -369,7 +369,7 @@ object ProcessSpecs extends ZIOSpecDefault with ProxSpecHelpers {
             `with` ("TEST2" -> "prox")) ># ZPipeline.utf8Decode
           val program = process.run().map(_.output)
 
-          assertM(program)(equalTo("Hello world! I am prox!\n"))
+          assertZIO(program)(equalTo("Hello world! I am prox!\n"))
         },
 
         test("is customizable with environment variables if error is bound") {
@@ -378,7 +378,7 @@ object ProcessSpecs extends ZIOSpecDefault with ProxSpecHelpers {
             `with` ("TEST2" -> "prox")) ># ZPipeline.utf8Decode
           val program = process.run().map(_.output)
 
-          assertM(program)(equalTo("Hello world! I am prox!\n"))
+          assertZIO(program)(equalTo("Hello world! I am prox!\n"))
         },
 
         test("is customizable with environment variables if input and output are bound") {
@@ -388,7 +388,7 @@ object ProcessSpecs extends ZIOSpecDefault with ProxSpecHelpers {
             `with` ("TEST2" -> "prox"))
           val program = process.run().map(_.output)
 
-          assertM(program)(equalTo("Hello world! I am prox!\n"))
+          assertZIO(program)(equalTo("Hello world! I am prox!\n"))
         },
 
         test("is customizable with environment variables if input and error are bound") {
@@ -398,7 +398,7 @@ object ProcessSpecs extends ZIOSpecDefault with ProxSpecHelpers {
             `with` ("TEST2" -> "prox")) ># ZPipeline.utf8Decode
           val program = process.run().map(_.output)
 
-          assertM(program)(equalTo("Hello world! I am prox!\n"))
+          assertZIO(program)(equalTo("Hello world! I am prox!\n"))
         },
 
         test("is customizable with environment variables if output and error are bound") {
@@ -407,7 +407,7 @@ object ProcessSpecs extends ZIOSpecDefault with ProxSpecHelpers {
             `with` ("TEST2" -> "prox"))
           val program = process.run().map(_.output)
 
-          assertM(program)(equalTo("Hello world! I am prox!\n"))
+          assertZIO(program)(equalTo("Hello world! I am prox!\n"))
         },
 
         test("is customizable with environment variables if everything is bound") {
@@ -417,24 +417,24 @@ object ProcessSpecs extends ZIOSpecDefault with ProxSpecHelpers {
             `with` ("TEST2" -> "prox"))
           val program = process.run().map(_.output)
 
-          assertM(program)(equalTo("Hello world! I am prox!\n"))
+          assertZIO(program)(equalTo("Hello world! I am prox!\n"))
         },
       ),
 
       test("double output redirect is illegal") {
-        assertM(
+        assertZIO(
           typeCheck("""val bad = Process("echo", List("Hello world")) > new File("x").toPath > new File("y").toPath"""))(
           isLeft(anything)
         )
       },
       test("double error redirect is illegal") {
-        assertM(
+        assertZIO(
           typeCheck("""val bad = Process("echo", List("Hello world")) !> new File("x").toPath !> new File("y").toPath"""))(
           isLeft(anything)
         )
       },
       test("double input redirect is illegal") {
-        assertM(
+        assertZIO(
           typeCheck("""val bad = (Process("echo", List("Hello world")) < ZStream("X").flatMap(s => ZStream.fromIterable(s.getBytes(StandardCharsets.UTF_8)))) < ZStream("Y").flatMap(s => ZStream.fromIterable(s.getBytes(StandardCharsets.UTF_8)))"""))(
           isLeft(anything)
         )

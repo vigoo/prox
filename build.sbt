@@ -3,7 +3,7 @@ val scala213 = "2.13.8"
 val scala3 = "3.1.2"
 
 val zioVersion = "1.0.14"
-val zio2Version = "2.0.0-RC5"
+val zio2Version = "2.0.0-RC6"
 
 val scalacOptions212 = Seq("-Ypartial-unification", "-deprecation", "-target:jvm-1.8")
 val scalacOptions213 = Seq("-deprecation", "-target:jvm-1.8")
@@ -96,8 +96,8 @@ lazy val proxFS2 = Project("prox-fs2", file("prox-fs2")).settings(commonSettings
 
 lazy val proxFS23 = Project("prox-fs2-3", file("prox-fs2-3")).settings(commonSettings(8)).settings(
   libraryDependencies ++= Seq(
-    "co.fs2" %% "fs2-core" % "3.2.5",
-    "co.fs2" %% "fs2-io" % "3.2.5",
+    "co.fs2" %% "fs2-core" % "3.2.7",
+    "co.fs2" %% "fs2-io" % "3.2.7",
 
     "dev.zio" %% "zio" % zioVersion % "test",
     "dev.zio" %% "zio-test" % zioVersion % "test",
@@ -125,7 +125,7 @@ lazy val proxZStream2 = Project("prox-zstream-2", file("prox-zstream-2")).settin
   libraryDependencies ++= Seq(
     "dev.zio" %% "zio" % zio2Version,
     "dev.zio" %% "zio-streams" % zio2Version,
-    "dev.zio" %% "zio-prelude" % "1.0.0-RC13",
+    "dev.zio" %% "zio-prelude" % "1.0.0-RC14",
 
     "dev.zio" %% "zio-test" % zio2Version % "test",
     "dev.zio" %% "zio-test-sbt" % zio2Version % "test",
