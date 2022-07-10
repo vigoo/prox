@@ -89,7 +89,7 @@ lazy val proxFS2 = Project("prox-fs2", file("prox-fs2")).settings(commonSettings
     "dev.zio" %% "zio" % zioVersion % "test",
     "dev.zio" %% "zio-test" % zioVersion % "test",
     "dev.zio" %% "zio-test-sbt" % zioVersion % "test",
-    "dev.zio" %% "zio-interop-cats" % "2.5.1.0" % "test",
+    "dev.zio" %% "zio-interop-cats" % "2.5.1.1" % "test",
   ),
   testFrameworks += new TestFramework("zio.test.sbt.ZTestFramework"),
 ).dependsOn(proxCore)
