@@ -3,7 +3,7 @@ val scala213 = "2.13.8"
 val scala3 = "3.1.3"
 
 val zioVersion = "1.0.15"
-val zio2Version = "2.0.0"
+val zio2Version = "2.0.1"
 
 val scalacOptions212 = Seq("-Ypartial-unification", "-deprecation", "-target:jvm-1.8")
 val scalacOptions213 = Seq("-deprecation", "-target:jvm-1.8")
@@ -30,7 +30,7 @@ def commonSettings(jdk: Int) = Seq(
       )
   }),
   libraryDependencies ++= Seq(
-    "org.scala-lang.modules" %% "scala-collection-compat" % "2.7.0"
+    "org.scala-lang.modules" %% "scala-collection-compat" % "2.8.1"
   ),
 
   coverageEnabled in(Test, compile) := true,
@@ -96,8 +96,8 @@ lazy val proxFS2 = Project("prox-fs2", file("prox-fs2")).settings(commonSettings
 
 lazy val proxFS23 = Project("prox-fs2-3", file("prox-fs2-3")).settings(commonSettings(8)).settings(
   libraryDependencies ++= Seq(
-    "co.fs2" %% "fs2-core" % "3.2.10",
-    "co.fs2" %% "fs2-io" % "3.2.10",
+    "co.fs2" %% "fs2-core" % "3.2.12",
+    "co.fs2" %% "fs2-io" % "3.2.12",
 
     "dev.zio" %% "zio" % zioVersion % "test",
     "dev.zio" %% "zio-test" % zioVersion % "test",
