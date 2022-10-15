@@ -34,7 +34,7 @@ trait ProxFS2[F[_]] extends Prox {
     }
 
   protected override final def blockingEffect[A](f: => A, wrapError: Throwable => ProxError): ProxIO[A] =
-    Sync[F].adaptError(Sync[F].blocking(f)) {
+    Sync[F].adaptError(Sync[F].interruptibleMany(f)) {
       case failure: Throwable => wrapError(failure).toThrowable
     }
 
