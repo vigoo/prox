@@ -2,7 +2,7 @@ package io.github.vigoo.prox
 
 import java.io
 import java.io.IOException
-import zio.blocking.{Blocking, effectBlocking}
+import zio.blocking.{Blocking, effectBlocking, effectBlockingInterrupt}
 import zio.prelude.Identity
 import zio.stream.{ZSink, ZStream, ZTransducer}
 import zio._
@@ -43,7 +43,7 @@ trait ProxZStream extends Prox {
     ZIO.effect(f).mapError(wrapError)
 
   protected override final def blockingEffect[A](f: => A, wrapError: Throwable => ProxError): ProxIO[A] =
-    effectBlocking(f).mapError(wrapError)
+    effectBlockingInterrupt(f).mapError(wrapError).interruptible
 
   protected override final def raiseError(error: ProxError): ProxIO[Unit] =
     ZIO.fail(error)

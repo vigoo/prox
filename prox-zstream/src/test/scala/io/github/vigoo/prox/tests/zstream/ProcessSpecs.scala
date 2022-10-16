@@ -2,7 +2,6 @@ package io.github.vigoo.prox.tests.zstream
 
 import java.nio.charset.StandardCharsets
 import java.nio.file.Files
-
 import io.github.vigoo.prox.{ProxError, UnknownProxError, zstream}
 import io.github.vigoo.prox.zstream._
 import zio.blocking.Blocking
@@ -11,7 +10,7 @@ import zio.duration._
 import zio.stream.{ZSink, ZStream, ZTransducer}
 import zio.test.Assertion.{anything, equalTo, hasSameElements, isLeft}
 import zio.test.TestAspect._
-import zio.test._
+import zio.test.{assertM, _}
 import zio.test.environment.Live
 import zio.{ExitCode, ZIO}
 
@@ -269,7 +268,14 @@ object ProcessSpecs extends DefaultRunnableSpec with ProxSpecHelpers {
       suite("Termination")(
         testM("can be terminated with cancellation") {
           val process = Process("perl", List("-e", """$SIG{TERM} = sub { exit 1 }; sleep 30; exit 0"""))
-          val program = process.start().use { fiber => fiber.interrupt.unit }
+          val program = process.start().use { fiber => ZIO(Thread.sleep(250)) *> fiber.interrupt.unit }
+
+          assertM(program)(equalTo(()))
+        } @@ TestAspect.timeout(5.seconds),
+
+        testM("can be terminated by releasing the resource") {
+          val process = Process("perl", List("-e", """$SIG{TERM} = sub { exit 1 }; sleep 30; exit 0"""))
+          val program = process.start().use { _ => ZIO(Thread.sleep(250)) }
 
           assertM(program)(equalTo(()))
         } @@ TestAspect.timeout(5.seconds),
