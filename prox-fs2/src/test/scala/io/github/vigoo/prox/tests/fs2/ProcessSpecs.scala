@@ -368,10 +368,22 @@ object ProcessSpecs extends DefaultRunnableSpec with ProxSpecHelpers {
           implicit val processRunner: ProcessRunner[JVMProcessInfo] = new JVMProcessRunner
 
           val process = Process("perl", List("-e", """$SIG{TERM} = sub { exit 1 }; sleep 30; exit 0"""))
-          val program = process.start().use { fiber => fiber.cancel }
+          val program = process.start().use { fiber => ZIO(Thread.sleep(250)) *> fiber.cancel }
 
           assertM(program)(equalTo(()))
-        } @@ TestAspect.timeout(5.seconds),
+        } @@ TestAspect.timeout(5.seconds) @@ TestAspect.ignore,
+
+
+        proxTest("can be terminated by releasing the resource") { prox =>
+          import prox._
+
+          implicit val processRunner: ProcessRunner[JVMProcessInfo] = new JVMProcessRunner
+
+          val process = Process("perl", List("-e", """$SIG{TERM} = sub { exit 1 }; sleep 30; exit 0"""))
+          val program = process.start().use { _ => ZIO(Thread.sleep(250)) }
+
+          assertM(program)(equalTo(()))
+        } @@ TestAspect.timeout(5.seconds) @@ TestAspect.ignore,
 
         proxTest[Clock, Throwable]("can be terminated") { prox =>
           import prox._

@@ -43,7 +43,7 @@ trait ProxZStream extends Prox {
     ZIO.attempt(f).mapError(wrapError)
 
   protected override final def blockingEffect[A](f: => A, wrapError: Throwable => ProxError): ProxIO[A] =
-    ZIO.attemptBlocking(f).mapError(wrapError)
+    ZIO.attemptBlockingInterrupt(f).mapError(wrapError).interruptible
 
   protected override final def raiseError(error: ProxError): ProxIO[Unit] =
     ZIO.fail(error)

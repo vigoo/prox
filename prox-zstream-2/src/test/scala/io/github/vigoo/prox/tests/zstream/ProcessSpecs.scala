@@ -2,11 +2,10 @@ package io.github.vigoo.prox.tests.zstream
 
 import java.nio.charset.StandardCharsets
 import java.nio.file.Files
-
 import io.github.vigoo.prox.{ProxError, UnknownProxError, zstream}
 import io.github.vigoo.prox.zstream._
 import zio._
-import zio.stream.{ZSink, ZStream, ZPipeline}
+import zio.stream.{ZPipeline, ZSink, ZStream}
 import zio.test.Assertion.{anything, equalTo, hasSameElements, isLeft}
 import zio.test.TestAspect._
 import zio.test._
@@ -268,7 +267,18 @@ object ProcessSpecs extends ZIOSpecDefault with ProxSpecHelpers {
       suite("Termination")(
         test("can be terminated with cancellation") {
           val process = Process("perl", List("-e", """$SIG{TERM} = sub { exit 1 }; sleep 30; exit 0"""))
-          val program = ZIO.scoped { process.start().flatMap { fiber => fiber.interrupt.unit } }
+          val program = ZIO.scoped {
+            process.start().flatMap { fiber => ZIO.attempt(Thread.sleep(250)) *> fiber.interrupt.unit }
+          }
+
+          assertZIO(program)(equalTo(()))
+        } @@ TestAspect.timeout(5.seconds) @@ TestAspect.diagnose(2.seconds),
+
+        test("can be terminated by releasing the resource") {
+          val process = Process("perl", List("-e", """$SIG{TERM} = sub { exit 1 }; sleep 30; exit 0"""))
+          val program = ZIO.scoped {
+            process.start().flatMap { _ => ZIO.attempt(Thread.sleep(250)) }
+          }
 
           assertZIO(program)(equalTo(()))
         } @@ TestAspect.timeout(5.seconds),
