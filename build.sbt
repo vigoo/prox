@@ -1,6 +1,6 @@
 val scala212 = "2.12.15"
 val scala213 = "2.13.8"
-val scala3 = "3.2.0"
+val scala3 = "3.2.1"
 
 val zioVersion = "1.0.16"
 val zio2Version = "2.0.2"
@@ -96,8 +96,8 @@ lazy val proxFS2 = Project("prox-fs2", file("prox-fs2")).settings(commonSettings
 
 lazy val proxFS23 = Project("prox-fs2-3", file("prox-fs2-3")).settings(commonSettings(8)).settings(
   libraryDependencies ++= Seq(
-    "co.fs2" %% "fs2-core" % "3.2.14",
-    "co.fs2" %% "fs2-io" % "3.2.14",
+    "co.fs2" %% "fs2-core" % "3.3.0",
+    "co.fs2" %% "fs2-io" % "3.3.0",
 
     "dev.zio" %% "zio" % zioVersion % "test",
     "dev.zio" %% "zio-test" % zioVersion % "test",
