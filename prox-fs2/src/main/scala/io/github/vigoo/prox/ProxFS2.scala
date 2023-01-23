@@ -2,7 +2,7 @@ package io.github.vigoo.prox
 
 import java.io
 
-import cats.effect.{Blocker, Concurrent, ContextShift, ExitCase, Sync}
+import cats.effect.{Concurrent, ExitCase, Sync}
 import cats.{Applicative, ApplicativeError, FlatMap, Traverse}
 
 import scala.concurrent.blocking
@@ -36,7 +36,7 @@ trait ProxFS2[F[_]] extends Prox {
     }
 
   protected override final def blockingEffect[A](f: => A, wrapError: Throwable => ProxError): ProxIO[A] =
-    Sync[F].adaptError(blocker.delay(f)) {
+    Sync[F].adaptError(Sync[F].blocking(f)) {
       case failure: Throwable => wrapError(failure).toThrowable
     }
 
@@ -104,7 +104,7 @@ trait ProxFS2[F[_]] extends Prox {
         .bracket(Applicative[F].pure(stream))(os => Sync[F].delay(os.close()))
         .flatMap { os =>
           s.chunks.evalMap { chunk =>
-            blocker.delay {
+            Sync[F].blocking {
               os.write(chunk.toArray)
               os.flush()
             }
@@ -114,7 +114,7 @@ trait ProxFS2[F[_]] extends Prox {
 }
 
 object ProxFS2 {
-  def apply[F[_]](blk: Blocker)(implicit c: Concurrent[F], cs: ContextShift[F]): ProxFS2[F] = new ProxFS2[F] {
+  def apply[F[_]](implicit c: Concurrent[F]): ProxFS2[F] = new ProxFS2[F] {
     override implicit val concurrent: Concurrent[F] = c
     override implicit val blocker: Blocker = blk
     override implicit val contextShift: ContextShift[F] = cs
