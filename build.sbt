@@ -3,7 +3,7 @@ val scala213 = "2.13.12"
 val scala3 = "3.2.2"
 
 val zioVersion = "1.0.16"
-val zio2Version = "2.0.2"
+val zio2Version = "2.0.21"
 
 val scalacOptions212 = Seq("-Ypartial-unification", "-deprecation", "-target:jvm-1.8")
 val scalacOptions213 = Seq("-deprecation", "-target:jvm-1.8")
