@@ -1,0 +1,471 @@
+<!DOCTYPE html><html><head><title>prox: Redirection</title><meta charset="utf-8" /><meta http-equiv="X-UA-Compatible" content="IE=edge,chrome=1" /><meta name="viewport" content="width=device-width, initial-scale=1.0" /><meta name="author" content="Daniel Vigovszky" /><meta name="description" content="A Scala library for working with system processes" /><meta name="og:image" content="https://vigoo.github.io/prox/img/poster.png" /><meta name="image" property="og:image" content="https://vigoo.github.io/prox/img/poster.png" /><meta name="og:title" content="prox: Redirection" /><meta name="title" property="og:title" content="prox: Redirection" /><meta name="og:site_name" content="prox" /><meta name="og:url" content="https://vigoo.github.io/prox/" /><meta name="og:type" content="website" /><meta name="og:description" content="A Scala library for working with system processes" /><link rel="icon" type="image/png" href="https://vigoo.github.io/prox/img/favicon.png" /><meta name="twitter:title" content="prox: Redirection" /><meta name="twitter:image" content="https://vigoo.github.io/prox/img/poster.png" /><meta name="twitter:description" content="A Scala library for working with system processes" /><meta name="twitter:card" content="summary_large_image" /><meta name="twitter:creator" content="@dvigovszky" /><link rel="icon" type="image/png" sizes="16x16" href="https://vigoo.github.io/prox/img/favicon16x16.png" /><link rel="icon" type="image/png" sizes="24x24" href="https://vigoo.github.io/prox/img/favicon24x24.png" /><link rel="icon" type="image/png" sizes="32x32" href="https://vigoo.github.io/prox/img/favicon32x32.png" /><link rel="icon" type="image/png" sizes="48x48" href="https://vigoo.github.io/prox/img/favicon48x48.png" /><link rel="icon" type="image/png" sizes="57x57" href="https://vigoo.github.io/prox/img/favicon57x57.png" /><link rel="icon" type="image/png" sizes="60x60" href="https://vigoo.github.io/prox/img/favicon60x60.png" /><link rel="icon" type="image/png" sizes="64x64" href="https://vigoo.github.io/prox/img/favicon64x64.png" /><link rel="icon" type="image/png" sizes="70x70" href="https://vigoo.github.io/prox/img/favicon70x70.png" /><link rel="icon" type="image/png" sizes="72x72" href="https://vigoo.github.io/prox/img/favicon72x72.png" /><link rel="icon" type="image/png" sizes="76x76" href="https://vigoo.github.io/prox/img/favicon76x76.png" /><link rel="icon" type="image/png" sizes="96x96" href="https://vigoo.github.io/prox/img/favicon96x96.png" /><link rel="icon" type="image/png" sizes="114x114" href="https://vigoo.github.io/prox/img/favicon114x114.png" /><link rel="icon" type="image/png" sizes="120x120" href="https://vigoo.github.io/prox/img/favicon120x120.png" /><link rel="icon" type="image/png" sizes="128x128" href="https://vigoo.github.io/prox/img/favicon128x128.png" /><link rel="icon" type="image/png" sizes="144x144" href="https://vigoo.github.io/prox/img/favicon144x144.png" /><link rel="icon" type="image/png" sizes="150x150" href="https://vigoo.github.io/prox/img/favicon150x150.png" /><link rel="icon" type="image/png" sizes="152x152" href="https://vigoo.github.io/prox/img/favicon152x152.png" /><link rel="icon" type="image/png" sizes="196x196" href="https://vigoo.github.io/prox/img/favicon196x196.png" /><link rel="icon" type="image/png" sizes="310x310" href="https://vigoo.github.io/prox/img/favicon310x310.png" /><link rel="icon" type="image/png" sizes="310x150" href="https://vigoo.github.io/prox/img/favicon310x150.png" /><link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/4.7.0/css/font-awesome.min.css" /><link rel="stylesheet" href="https://vigoo.github.io/prox/highlight/styles/vs.css" /><link rel="stylesheet" href="/prox/css/light-style.css" /><script async="async">
+(function(i,s,o,g,r,a,m){i['GoogleAnalyticsObject']=r;i[r]=i[r]||function(){
+(i[r].q=i[r].q||[]).push(arguments)},i[r].l=1*new Date();a=s.createElement(o),
+m=s.getElementsByTagName(o)[0];a.async=1;a.src=g;m.parentNode.insertBefore(a,m)
+})(window,document,'script','https://www.google-analytics.com/analytics.js','ga');
+
+ga('create', 'UA-56320875-3' , 'auto');
+ga('send', 'pageview');
+      </script></head><body class="docs"><div id="wrapper"><div id="sidebar-wrapper"><div id="sidebar-brand"><a href="/prox/" class="brand"><div class="brand-wrapper"></div><span>prox</span></a><button id="main-toggle" class="sidebar-toggle"><span class="close"></span></button></div><div class="sidebar-nav"> <div class="sidebar-nav-item  "><a href="/prox/index" title="Home" class="">Home</a></div> <div class="sidebar-nav-item  "><a href="/prox/docs/fs2/index.html" title="Cats Effect / FS2" class="drop-nested">Cats Effect / FS2</a><i class="fa fa-angle-right"></i><div class="sub-section"> <a href="/prox/docs/fs2/index.html" title="Getting started" class="">Getting started</a> <a href="/prox/docs/fs2/customize.html" title="Customizing environment" class="">Customizing environment</a> <a href="/prox/docs/fs2/redirection.html" title="Redirection" class="">Redirection</a> <a href="/prox/docs/fs2/processgroups.html" title="Process groups" class="">Process groups</a> <a href="/prox/docs/fs2/running.html" title="Running processes" class="">Running processes</a> <a href="/prox/docs/fs2/custom-runners.html" title="Custom runners" class="">Custom runners</a></div></div> <div class="sidebar-nav-item  open"><a href="/prox/docs/zstream/index.html" title="ZIO / ZStream" class="drop-nested">ZIO / ZStream</a><i class="fa fa-angle-right"></i><div class="sub-section"> <a href="/prox/docs/zstream/index.html" title="Getting started" class="">Getting started</a> <a href="/prox/docs/zstream/customize.html" title="Customizing environment" class="">Customizing environment</a> <a href="/prox/docs/zstream/redirection.html" title="Redirection" class="active">Redirection</a> <a href="/prox/docs/zstream/processgroups.html" title="Process groups" class="">Process groups</a> <a href="/prox/docs/zstream/running.html" title="Running processes" class="">Running processes</a> <a href="/prox/docs/zstream/custom-runners.html" title="Custom runners" class="">Custom runners</a></div></div> <div class="sidebar-nav-item  "><a href="/prox/docs/migration.html" title="Migration" class="">Migration</a></div> <div class="sidebar-nav-item  "><a href="/prox/docs/blogposts.html" title="Blog posts" class="">Blog posts</a></div> <div class="sidebar-nav-item  "><a href="/prox/api/io/github/vigoo/prox/" title="API reference" class="">API reference</a></div></div></div><div id="page-content-wrapper"><div class="nav"><div class="container-fluid"><div class="row"><div class="col-lg-12"><div class="action-menu pull-left clearfix"><a href="#menu-toggle" id="menu-toggle"><i class="fa fa-bars" aria-hidden="true"></i></a></div><ul class="pull-right"><li class="search-nav"><div id="search-dropdown"><label><i class="fa fa-search"></i>Search</label><input id="search-bar" type="text" placeholder="Enter keywords here..." onclick="displayToggleSearch(event)" /><ul id="search-dropdown-content" class="dropdown dropdown-content"></ul></div></li><li id="gh-eyes-item" class="hidden-xs to-uppercase"><a href="https://github.com/vigoo/prox" target="_blank" rel="noopener noreferrer"><i class="fa fa-eye"></i><span>Watchers<span id="eyes" class="label label-default">--</span></span></a></li><li id="gh-stars-item" class="hidden-xs to-uppercase"><a href="https://github.com/vigoo/prox" target="_blank" rel="noopener noreferrer"><i class="fa fa-star-o"></i><span>Stars<span id="stars" class="label label-default">--</span></span></a></li></ul></div></div></div></div><div id="content" data-github-owner="vigoo" data-github-repo="prox"><div class="content-wrapper"><section><h1 id="redirecting-input-output-and-error">Redirecting input, output and error</h1>
+
+<p>Similarly to <a href="customize">customization</a>, redirection is also implemented with <em>capability traits</em>.
+The <code class="highlighter-rouge">ProcessIO</code> type returned by the <code class="highlighter-rouge">Process</code> constructor implements all the three redirection capability
+traits:</p>
+
+<ul>
+  <li><code class="highlighter-rouge">RedirectableInput</code> marks that the standard input of the process is not bound yet</li>
+  <li><code class="highlighter-rouge">RedirectableOutput</code> marks that the standard output of the process is not bound yet</li>
+  <li><code class="highlighter-rouge">RedirectableError</code> marks that the standard error output of the process is not bound yet</li>
+</ul>
+
+<p>Each of the three channels can be <strong>only redirected once</strong>. The result type of each redirection method no longer
+implements the given capability.</p>
+
+<p>Let’s see an example of this (redirection methods are described below on this page):</p>
+
+<div class="language-scala highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="k">import</span> <span class="nn">zio._</span>
+<span class="k">import</span> <span class="nn">zio.stream._</span>
+<span class="k">import</span> <span class="nn">zio.prelude._</span>
+
+<span class="k">val</span> <span class="nv">proc1</span> <span class="k">=</span> <span class="nc">Process</span><span class="o">(</span><span class="s">"echo"</span><span class="o">,</span> <span class="nc">List</span><span class="o">(</span><span class="s">"Hello world"</span><span class="o">))</span>
+<span class="c1">// proc1: Process.ProcessImpl = ProcessImpl(</span>
+<span class="c1">//   command = "echo",</span>
+<span class="c1">//   arguments = List("Hello world"),</span>
+<span class="c1">//   workingDirectory = None,</span>
+<span class="c1">//   environmentVariables = Map(),</span>
+<span class="c1">//   removedEnvironmentVariables = Set(),</span>
+<span class="c1">//   outputRedirection = StdOut(),</span>
+<span class="c1">//   runOutputStream = io.github.vigoo.prox.ProcessModule$Process$$$Lambda$10749/0x00000008026fb840@b529dfc,</span>
+<span class="c1">//   errorRedirection = StdOut(),</span>
+<span class="c1">//   runErrorStream = io.github.vigoo.prox.ProcessModule$Process$$$Lambda$10750/0x00000008026fe840@2fa098fc,</span>
+<span class="c1">//   inputRedirection = StdIn()</span>
+<span class="c1">// )</span>
+<span class="k">val</span> <span class="nv">proc2</span> <span class="k">=</span> <span class="n">proc1</span> <span class="o">&gt;#</span> <span class="nv">ZPipeline</span><span class="o">.</span><span class="py">utf8Decode</span>
+<span class="c1">// proc2: Process.ProcessImplO[String] = ProcessImplO(</span>
+<span class="c1">//   command = "echo",</span>
+<span class="c1">//   arguments = List("Hello world"),</span>
+<span class="c1">//   workingDirectory = None,</span>
+<span class="c1">//   environmentVariables = Map(),</span>
+<span class="c1">//   removedEnvironmentVariables = Set(),</span>
+<span class="c1">//   outputRedirection = OutputStreamThroughPipe(</span>
+<span class="c1">//     pipe = io.github.vigoo.prox.ProxZStream$$Lambda$11009/0x00000008031e4040@2c9910a0,</span>
+<span class="c1">//     runner = io.github.vigoo.prox.RedirectionModule$RedirectableOutput$$Lambda$10928/0x0000000803107040@75e7b94b,</span>
+<span class="c1">//     chunkSize = 8192</span>
+<span class="c1">//   ),</span>
+<span class="c1">//   runOutputStream = io.github.vigoo.prox.ProcessModule$Process$ProcessImpl$$Lambda$10753/0x00000008026ff840@6a456776,</span>
+<span class="c1">//   errorRedirection = StdOut(),</span>
+<span class="c1">//   runErrorStream = io.github.vigoo.prox.ProcessModule$Process$$$Lambda$10750/0x00000008026fe840@2fa098fc,</span>
+<span class="c1">//   inputRedirection = StdIn()</span>
+<span class="c1">// )</span>
+</code></pre></div></div>
+
+<p>It is no longer possible to redirect the output of <code class="highlighter-rouge">proc2</code>:</p>
+
+<div class="language-scala highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="k">val</span> <span class="nv">proc3</span> <span class="k">=</span> <span class="n">proc2</span> <span class="o">&gt;?</span> <span class="o">(</span><span class="nv">ZPipeline</span><span class="o">.</span><span class="py">utf8Decode</span> <span class="o">&gt;&gt;&gt;</span> <span class="nv">ZPipeline</span><span class="o">.</span><span class="py">splitLines</span><span class="o">)</span> 
+<span class="c1">// error: value &gt;? is not a member of io.github.vigoo.prox.zstream.Process.ProcessImplO[String]</span>
+<span class="c1">// did you mean !&gt;??</span>
+<span class="c1">// val proc3 = proc2 &gt;? (ZPipeline.utf8Decode &gt;&gt;&gt; ZPipeline.splitLines) </span>
+<span class="c1">//             ^^^^^^^^</span>
+</code></pre></div></div>
+
+<p>Many redirection methods have an <em>operator</em> version but all of them have alphanumberic
+variants as well.</p>
+
+<h3 id="input-redirection">Input redirection</h3>
+<p>Input redirection is enabled by the <code class="highlighter-rouge">RedirectableInput</code> trait. The following operations
+are supported:</p>
+
+<table>
+  <thead>
+    <tr>
+      <th>operator</th>
+      <th>alternative</th>
+      <th>parameter type</th>
+      <th>what it does</th>
+    </tr>
+  </thead>
+  <tbody>
+    <tr>
+      <td><code class="highlighter-rouge">&lt;</code></td>
+      <td><code class="highlighter-rouge">fromFile</code></td>
+      <td><code class="highlighter-rouge">java.nio.file.Path</code></td>
+      <td>Natively attach a source file to STDIN</td>
+    </tr>
+    <tr>
+      <td><code class="highlighter-rouge">&lt;</code></td>
+      <td><code class="highlighter-rouge">fromStream</code></td>
+      <td><code class="highlighter-rouge">ZStream[Any, ProxError, Byte]</code></td>
+      <td>Attach a <em>ZIO byte stream</em> to STDIN</td>
+    </tr>
+    <tr>
+      <td><code class="highlighter-rouge">!&lt;</code></td>
+      <td><code class="highlighter-rouge">fromStream</code></td>
+      <td><code class="highlighter-rouge">ZStream[Any, ProxError, Byte]</code></td>
+      <td>Attach a <em>ZIO byte stream</em> to STDIN and <strong>flush</strong> after each chunk</td>
+    </tr>
+  </tbody>
+</table>
+
+<h3 id="output-redirection">Output redirection</h3>
+<p>Output redirection is enabled by the <code class="highlighter-rouge">RedirectableOutput</code> trait. 
+The following operations are supported:</p>
+
+<table>
+  <thead>
+    <tr>
+      <th>operator</th>
+      <th>alternative</th>
+      <th>parameter type</th>
+      <th>result type</th>
+      <th>what it does</th>
+    </tr>
+  </thead>
+  <tbody>
+    <tr>
+      <td><code class="highlighter-rouge">&gt;</code></td>
+      <td><code class="highlighter-rouge">toFile</code></td>
+      <td><code class="highlighter-rouge">java.nio.file.Path</code></td>
+      <td><code class="highlighter-rouge">Unit</code></td>
+      <td>Natively attach STDOUT to a file</td>
+    </tr>
+    <tr>
+      <td><code class="highlighter-rouge">&gt;&gt;</code></td>
+      <td><code class="highlighter-rouge">appendToFile</code></td>
+      <td><code class="highlighter-rouge">java.nio.file.Path</code></td>
+      <td><code class="highlighter-rouge">Unit</code></td>
+      <td>Natively attach STDOUT to a file in append mode</td>
+    </tr>
+    <tr>
+      <td><code class="highlighter-rouge">&gt;</code></td>
+      <td><code class="highlighter-rouge">toSink</code></td>
+      <td><code class="highlighter-rouge">TransformAndSink[Byte, _]</code></td>
+      <td><code class="highlighter-rouge">Unit</code></td>
+      <td>Drains the STDOUT through the given sink</td>
+    </tr>
+    <tr>
+      <td><code class="highlighter-rouge">&gt;#</code></td>
+      <td><code class="highlighter-rouge">toFoldMonoid</code></td>
+      <td><code class="highlighter-rouge">[O: Identity](ZStream[Any, ProxError, Byte] =&gt; ZStream[Any, ProxError, O])</code></td>
+      <td><code class="highlighter-rouge">O</code></td>
+      <td>Sends STDOUT through the stream and folds the result using its <em>monoid</em> instance</td>
+    </tr>
+    <tr>
+      <td><code class="highlighter-rouge">&gt;?</code></td>
+      <td><code class="highlighter-rouge">toVector</code></td>
+      <td><code class="highlighter-rouge">ZStream[Any, ProxError, Byte] =&gt; ZStream[Any, ProxError, O])</code></td>
+      <td><code class="highlighter-rouge">Vector[O]</code></td>
+      <td>Sends STDOUT through the stream and collects the results</td>
+    </tr>
+    <tr>
+      <td> </td>
+      <td><code class="highlighter-rouge">drainOutput</code></td>
+      <td><code class="highlighter-rouge">ZStream[Any, ProxError, Byte] =&gt; ZStream[Any, ProxError, O])</code></td>
+      <td><code class="highlighter-rouge">Unit</code></td>
+      <td>Drains the STDOUT through the given stream</td>
+    </tr>
+    <tr>
+      <td> </td>
+      <td><code class="highlighter-rouge">foldOutput</code></td>
+      <td><code class="highlighter-rouge">ZStream[Any, ProxError, Byte] =&gt; ZStream[Any, ProxError, O]), R, (R, O) =&gt; R</code></td>
+      <td><code class="highlighter-rouge">R</code></td>
+      <td>Sends STDOUT through the stream and folds the result using a custom fold function</td>
+    </tr>
+  </tbody>
+</table>
+
+<p>All the variants that accept a <em>stream transformation</em> (<code class="highlighter-rouge">ZStream[Any, ProxError, Byte] =&gt; ZStream[Any, ProxError, O])</code>) are also usable by directly passing
+a <code class="highlighter-rouge">ZPipeline</code>.</p>
+
+<p><code class="highlighter-rouge">TransformAndSink</code> encapsulates a <em>stream transformation</em> and a <em>unit sink</em>. It is possible to use a sink directly if transformation is not needed.</p>
+
+<div class="language-scala highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="k">case</span> <span class="k">class</span> <span class="nc">TransformAndSink</span><span class="o">[</span><span class="kt">A</span>, <span class="kt">B</span><span class="o">](</span><span class="n">transform</span><span class="k">:</span> <span class="kt">ZStream</span><span class="o">[</span><span class="kt">Any</span>, <span class="kt">ProxError</span>, <span class="kt">A</span><span class="o">]</span> <span class="k">=&gt;</span> <span class="nc">ZStream</span><span class="o">[</span><span class="kt">Any</span>, <span class="kt">ProxError</span>, <span class="kt">B</span><span class="o">],</span>
+                                  <span class="n">sink</span><span class="k">:</span> <span class="kt">ZSink</span><span class="o">[</span><span class="kt">Any</span>, <span class="kt">ProxError</span>, <span class="kt">B</span>, <span class="kt">Any</span>, <span class="kt">Unit</span><span class="o">])</span>
+</code></pre></div></div>
+
+<h3 id="error-redirection">Error redirection</h3>
+<p>Error redirection is enabled by the <code class="highlighter-rouge">RedirectableError</code> trait. 
+The following operations are supported:</p>
+
+<table>
+  <thead>
+    <tr>
+      <th>operator</th>
+      <th>alternative</th>
+      <th>parameter type</th>
+      <th>result type</th>
+      <th>what it does</th>
+    </tr>
+  </thead>
+  <tbody>
+    <tr>
+      <td><code class="highlighter-rouge">!&gt;</code></td>
+      <td><code class="highlighter-rouge">errorToFile</code></td>
+      <td><code class="highlighter-rouge">java.nio.file.Path</code></td>
+      <td><code class="highlighter-rouge">Unit</code></td>
+      <td>Natively attach STDERR to a file</td>
+    </tr>
+    <tr>
+      <td><code class="highlighter-rouge">!&gt;&gt;</code></td>
+      <td><code class="highlighter-rouge">appendErrorToFile</code></td>
+      <td><code class="highlighter-rouge">java.nio.file.Path</code></td>
+      <td><code class="highlighter-rouge">Unit</code></td>
+      <td>Natively attach STDERR to a file in append mode</td>
+    </tr>
+    <tr>
+      <td><code class="highlighter-rouge">!&gt;</code></td>
+      <td><code class="highlighter-rouge">errorToSink</code></td>
+      <td><code class="highlighter-rouge">TransformAndSink[Byte, _]</code></td>
+      <td><code class="highlighter-rouge">Unit</code></td>
+      <td>Drains the STDERR through the given sink</td>
+    </tr>
+    <tr>
+      <td><code class="highlighter-rouge">!&gt;#</code></td>
+      <td><code class="highlighter-rouge">errorToFoldMonoid</code></td>
+      <td><code class="highlighter-rouge">[O: Monoid](ZStream[Any, ProxError, Byte] =&gt; ZStream[Any, ProxError, O])</code></td>
+      <td><code class="highlighter-rouge">O</code></td>
+      <td>Sends STDERR through the pipe and folds the result using its <em>monoid</em> instance</td>
+    </tr>
+    <tr>
+      <td><code class="highlighter-rouge">!&gt;?</code></td>
+      <td><code class="highlighter-rouge">errorToVector</code></td>
+      <td><code class="highlighter-rouge">ZStream[Any, ProxError, Byte] =&gt; ZStream[Any, ProxError, O])</code></td>
+      <td><code class="highlighter-rouge">Vector[O]</code></td>
+      <td>Sends STDERR through the pipe and collects the results</td>
+    </tr>
+    <tr>
+      <td> </td>
+      <td><code class="highlighter-rouge">drainError</code></td>
+      <td><code class="highlighter-rouge">ZStream[Any, ProxError, Byte] =&gt; ZStream[Any, ProxError, O])</code></td>
+      <td><code class="highlighter-rouge">Unit</code></td>
+      <td>Drains the STDERR through the given pipe</td>
+    </tr>
+    <tr>
+      <td> </td>
+      <td><code class="highlighter-rouge">foldError</code></td>
+      <td><code class="highlighter-rouge">ZStream[Any, ProxError, Byte] =&gt; ZStream[Any, ProxError, O]), R, (R, O) =&gt; R</code></td>
+      <td><code class="highlighter-rouge">R</code></td>
+      <td>Sends STDERR through the pipe and folds the result using a custom fold function</td>
+    </tr>
+  </tbody>
+</table>
+
+<h3 id="redirection-for-process-groups">Redirection for process groups</h3>
+<p><a href="processgroups">Process groups</a> are two or more processes attached together through pipes.
+This connection is internally implemented using the above described redirection capabilities. 
+This means that all but the first process has their <em>inputs</em> bound, and all but the last one has
+their <em>outputs</em> bound. Redirection of input and output for a <em>process group</em> is thus a well defined
+operation meaning redirection of input of the <em>first</em> process and redirection of output of the <em>last process</em>.</p>
+
+<p>For this reason the class created via <em>process piping</em> implements the <code class="highlighter-rouge">RedirectableInput</code> and 
+<code class="highlighter-rouge">RedirectableOutput</code> traits described above.</p>
+
+<p>For the sake of simplicity the library does not support anymore the fully customizable
+per-process error redirection for process groups, but a reduced but still quite expressive 
+version described by the <code class="highlighter-rouge">RedirectableErrors</code> trait.</p>
+
+<p>The methods in this trait define error redirection for <strong>all process in the group at once</strong>:</p>
+
+<table>
+  <thead>
+    <tr>
+      <th>operator</th>
+      <th>alternative</th>
+      <th>parameter type</th>
+      <th>result type</th>
+      <th>what it does</th>
+    </tr>
+  </thead>
+  <tbody>
+    <tr>
+      <td><code class="highlighter-rouge">!&gt;</code></td>
+      <td><code class="highlighter-rouge">errorsToSink</code></td>
+      <td><code class="highlighter-rouge">TransformAndSink[Byte, _]</code></td>
+      <td><code class="highlighter-rouge">Unit</code></td>
+      <td>Drains the STDERR through the given sink</td>
+    </tr>
+    <tr>
+      <td><code class="highlighter-rouge">!&gt;#</code></td>
+      <td><code class="highlighter-rouge">errorsToFoldMonoid</code></td>
+      <td><code class="highlighter-rouge">[O: Monoid](ZStream[Any, ProxError, Byte] =&gt; ZStream[Any, ProxError, O])</code></td>
+      <td><code class="highlighter-rouge">O</code></td>
+      <td>Sends STDERR through the stream and folds the result using its <em>monoid</em> instance</td>
+    </tr>
+    <tr>
+      <td><code class="highlighter-rouge">!&gt;?</code></td>
+      <td><code class="highlighter-rouge">errorsToVector</code></td>
+      <td><code class="highlighter-rouge">ZStream[Any, ProxError, Byte] =&gt; ZStream[Any, ProxError, O])</code></td>
+      <td><code class="highlighter-rouge">Vector[O]</code></td>
+      <td>Sends STDERR through the stream and collects the results</td>
+    </tr>
+    <tr>
+      <td> </td>
+      <td><code class="highlighter-rouge">drainErrors</code></td>
+      <td><code class="highlighter-rouge">ZStream[Any, ProxError, Byte] =&gt; ZStream[Any, ProxError, O])</code></td>
+      <td><code class="highlighter-rouge">Unit</code></td>
+      <td>Drains the STDERR through the given stream</td>
+    </tr>
+    <tr>
+      <td> </td>
+      <td><code class="highlighter-rouge">foldErrors</code></td>
+      <td><code class="highlighter-rouge">ZStream[Any, ProxError, Byte] =&gt; ZStream[Any, ProxError, O]), R, (R, O) =&gt; R</code></td>
+      <td><code class="highlighter-rouge">R</code></td>
+      <td>Sends STDERR through the stream and folds the result using a custom fold function</td>
+    </tr>
+  </tbody>
+</table>
+
+<p>Redirection to file is not possible through this interface as only a single path could be
+provided.
+The result of these redirections is accessible through the <code class="highlighter-rouge">ProcessGroupResult</code> interface as 
+it is described in the <a href="running">running processes section</a>.</p>
+
+<p>By using the <code class="highlighter-rouge">RedirectableErrors.customizedPerProcess</code> interface (having the type
+<code class="highlighter-rouge">RedirectableErrors.CustomizedPerProcess</code>) it is possible to customize the redirection 
+targets per process while keeping their types uniform:</p>
+
+<table>
+  <thead>
+    <tr>
+      <th>operator</th>
+      <th>alternative</th>
+      <th>parameter type</th>
+      <th>result type</th>
+      <th>what it does</th>
+    </tr>
+  </thead>
+  <tbody>
+    <tr>
+      <td> </td>
+      <td><code class="highlighter-rouge">errorsToFile</code></td>
+      <td><code class="highlighter-rouge">Process =&gt; java.nio.file.Path</code></td>
+      <td><code class="highlighter-rouge">Unit</code></td>
+      <td>Natively attach STDERR to a file</td>
+    </tr>
+    <tr>
+      <td> </td>
+      <td><code class="highlighter-rouge">appendErrorsToFile</code></td>
+      <td><code class="highlighter-rouge">Process =&gt; java.nio.file.Path</code></td>
+      <td><code class="highlighter-rouge">Unit</code></td>
+      <td>Natively attach STDERR to a file in append mode</td>
+    </tr>
+    <tr>
+      <td> </td>
+      <td><code class="highlighter-rouge">errorsToSink</code></td>
+      <td><code class="highlighter-rouge">Process =&gt; TransformAndSink[Byte, _]</code></td>
+      <td><code class="highlighter-rouge">Unit</code></td>
+      <td>Drains the STDERR through the given sink</td>
+    </tr>
+    <tr>
+      <td> </td>
+      <td><code class="highlighter-rouge">errorsToFoldMonoid</code></td>
+      <td><code class="highlighter-rouge">Process =&gt; [O: Monoid](ZStream[Any, ProxError, Byte] =&gt; ZStream[Any, ProxError, O])</code></td>
+      <td><code class="highlighter-rouge">O</code></td>
+      <td>Sends STDERR through the stream and folds the result using its <em>monoid</em> instance</td>
+    </tr>
+    <tr>
+      <td> </td>
+      <td><code class="highlighter-rouge">errorsToVector</code></td>
+      <td><code class="highlighter-rouge">Process =&gt; ZStream[Any, ProxError, Byte] =&gt; ZStream[Any, ProxError, O])</code></td>
+      <td><code class="highlighter-rouge">Vector[O]</code></td>
+      <td>Sends STDERR through the stream and collects the results</td>
+    </tr>
+    <tr>
+      <td> </td>
+      <td><code class="highlighter-rouge">drainErrors</code></td>
+      <td><code class="highlighter-rouge">Process =&gt; ZStream[Any, ProxError, Byte] =&gt; ZStream[Any, ProxError, O])</code></td>
+      <td><code class="highlighter-rouge">Unit</code></td>
+      <td>Drains the STDERR through the given stream</td>
+    </tr>
+    <tr>
+      <td> </td>
+      <td><code class="highlighter-rouge">foldErrors</code></td>
+      <td><code class="highlighter-rouge">Process =&gt; ZStream[Any, ProxError, Byte] =&gt; ZStream[Any, ProxError, O]), R, (R, O) =&gt; R</code></td>
+      <td><code class="highlighter-rouge">R</code></td>
+      <td>Sends STDERR through the stream and folds the result using a custom fold function</td>
+    </tr>
+  </tbody>
+</table>
+
+<p>Let’s see an example of how this works!</p>
+
+<p>First we define a queue where we want to send <em>error lines</em> from all the involved
+processes, then we define the two processes separately, connect them with a pipe and 
+customize the error redirection where we prefix the parsed lines based on which
+process they came from:</p>
+
+<div class="language-scala highlighter-rouge"><div class="highlight"><pre class="highlight"><code>
+<span class="k">for</span> <span class="o">{</span>
+  <span class="n">errors</span> <span class="k">&lt;-</span> <span class="nv">Queue</span><span class="o">.</span><span class="py">unbounded</span><span class="o">[</span><span class="kt">String</span><span class="o">]</span>
+  <span class="n">parseLines</span> <span class="k">=</span> <span class="o">(</span><span class="n">s</span><span class="k">:</span> <span class="kt">ZStream</span><span class="o">[</span><span class="kt">Any</span>, <span class="kt">ProxError</span>, <span class="kt">Byte</span><span class="o">])</span> <span class="k">=&gt;</span> <span class="nv">s</span><span class="o">.</span><span class="py">via</span><span class="o">(</span><span class="nv">ZPipeline</span><span class="o">.</span><span class="py">utf8Decode</span><span class="o">.</span><span class="py">mapError</span><span class="o">(</span><span class="nv">UnknownProxError</span><span class="o">.</span><span class="py">apply</span><span class="o">)</span> <span class="o">&gt;&gt;&gt;</span> <span class="nv">ZPipeline</span><span class="o">.</span><span class="py">splitLines</span><span class="o">)</span>
+ 
+  <span class="n">p1</span> <span class="k">=</span> <span class="nc">Process</span><span class="o">(</span><span class="s">"proc1"</span><span class="o">)</span>
+  <span class="n">p2</span> <span class="k">=</span> <span class="nc">Process</span><span class="o">(</span><span class="s">"proc2"</span><span class="o">)</span>
+  <span class="n">group</span> <span class="k">=</span> <span class="o">(</span><span class="n">p1</span> <span class="o">|</span> <span class="n">p2</span><span class="o">).</span><span class="py">customizedPerProcess</span><span class="o">.</span><span class="py">errorsToSink</span> <span class="o">{</span>
+    <span class="k">case</span> <span class="n">p</span> <span class="k">if</span> <span class="n">p</span> <span class="o">==</span> <span class="n">p1</span> <span class="k">=&gt;</span> <span class="nc">TransformAndSink</span><span class="o">(</span><span class="nv">parseLines</span><span class="o">.</span><span class="py">andThen</span><span class="o">(</span><span class="nv">_</span><span class="o">.</span><span class="py">map</span><span class="o">(</span><span class="n">s</span> <span class="k">=&gt;</span> <span class="s">"P1: "</span> <span class="o">+</span> <span class="n">s</span><span class="o">)),</span> <span class="nv">ZSink</span><span class="o">.</span><span class="py">foreach</span><span class="o">(</span><span class="nv">errors</span><span class="o">.</span><span class="py">offer</span><span class="o">))</span>
+    <span class="k">case</span> <span class="n">p</span> <span class="k">if</span> <span class="n">p</span> <span class="o">==</span> <span class="n">p2</span> <span class="k">=&gt;</span> <span class="nc">TransformAndSink</span><span class="o">(</span><span class="nv">parseLines</span><span class="o">.</span><span class="py">andThen</span><span class="o">(</span><span class="nv">_</span><span class="o">.</span><span class="py">map</span><span class="o">(</span><span class="n">s</span> <span class="k">=&gt;</span> <span class="s">"P2: "</span> <span class="o">+</span> <span class="n">s</span><span class="o">)),</span> <span class="nv">ZSink</span><span class="o">.</span><span class="py">foreach</span><span class="o">(</span><span class="nv">errors</span><span class="o">.</span><span class="py">offer</span><span class="o">))</span>
+  <span class="o">}</span>
+<span class="o">}</span> <span class="nf">yield</span> <span class="o">()</span>
+</code></pre></div></div>
+
+<h3 id="creating-reusable-functions">Creating reusable functions</h3>
+<p>The <code class="highlighter-rouge">Process</code> object contains several useful <em>type aliases</em> for writing functions that work with any process by
+only specifying what redirection channels we want <em>unbounded</em>.</p>
+
+<p>The <code class="highlighter-rouge">UnboundProcess</code> represents a process which is fully unbound, no redirection has been done yet. It is 
+defined as follows:</p>
+
+<div class="language-scala highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="k">type</span> <span class="kt">UnboundProcess</span> <span class="o">=</span> <span class="nc">Process</span><span class="o">[</span><span class="kt">Unit</span>, <span class="kt">Unit</span><span class="o">]</span>
+    <span class="k">with</span> <span class="nc">RedirectableInput</span><span class="o">[</span><span class="kt">UnboundOEProcess</span><span class="o">]</span>
+    <span class="k">with</span> <span class="nc">RedirectableOutput</span><span class="o">[</span><span class="kt">UnboundIEProcess</span><span class="o">[</span><span class="kt">*</span><span class="o">]]</span>
+    <span class="k">with</span> <span class="nc">RedirectableError</span><span class="o">[</span><span class="kt">UnboundIOProcess</span><span class="o">[</span><span class="kt">*</span><span class="o">]]</span>
+</code></pre></div></div>
+
+<p>where <code class="highlighter-rouge">UnboundIOProcess[E]</code> for example represents a process which has its <em>error output</em> already bound.</p>
+
+<p>These type aliases can be used to define functions performing redirection on arbitrary processes, for example:</p>
+
+<div class="language-scala highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="k">def</span> <span class="nf">logErrors</span><span class="o">[</span><span class="kt">P</span> <span class="k">&lt;:</span> <span class="kt">Process.UnboundEProcess</span><span class="o">[</span><span class="k">_</span><span class="o">]](</span><span class="n">proc</span><span class="k">:</span> <span class="kt">P</span><span class="o">)</span> <span class="k">=</span> <span class="o">{</span>
+   <span class="k">val</span> <span class="nv">target</span> <span class="k">=</span> <span class="nc">TransformAndSink</span><span class="o">(</span>
+     <span class="nv">ZPipeline</span><span class="o">.</span><span class="py">utf8Decode</span><span class="o">.</span><span class="py">mapError</span><span class="o">(</span><span class="nv">UnknownProxError</span><span class="o">.</span><span class="py">apply</span><span class="o">)</span> <span class="o">&gt;&gt;&gt;</span> <span class="nv">ZPipeline</span><span class="o">.</span><span class="py">splitLines</span><span class="o">,</span>
+     <span class="nv">ZSink</span><span class="o">.</span><span class="py">foreach</span><span class="o">((</span><span class="n">line</span><span class="k">:</span> <span class="kt">String</span><span class="o">)</span> <span class="k">=&gt;</span> <span class="nv">ZIO</span><span class="o">.</span><span class="py">debug</span><span class="o">(</span><span class="n">line</span><span class="o">)))</span> 
+   <span class="n">proc</span> <span class="o">!&gt;</span> <span class="n">target</span> 
+<span class="o">}</span>
+
+<span class="k">val</span> <span class="nv">proc4</span> <span class="k">=</span> <span class="nf">logErrors</span><span class="o">(</span><span class="nc">Process</span><span class="o">(</span><span class="s">"something"</span><span class="o">))</span>
+<span class="c1">// proc4: Process[_, Unit] = ProcessImplE(</span>
+<span class="c1">//   command = "something",</span>
+<span class="c1">//   arguments = List(),</span>
+<span class="c1">//   workingDirectory = None,</span>
+<span class="c1">//   environmentVariables = Map(),</span>
+<span class="c1">//   removedEnvironmentVariables = Set(),</span>
+<span class="c1">//   outputRedirection = StdOut(),</span>
+<span class="c1">//   runOutputStream = io.github.vigoo.prox.ProcessModule$Process$$$Lambda$10749/0x00000008026fb840@6b1de09e,</span>
+<span class="c1">//   errorRedirection = OutputStreamToSink(</span>
+<span class="c1">//     sink = TransformAndSink(</span>
+<span class="c1">//       transform = io.github.vigoo.prox.ProxZStream$TransformAndSink$$$Lambda$11021/0x000000080323e040@3b03ed66,</span>
+<span class="c1">//       sink = zio.stream.ZSink@d807c3f5</span>
+<span class="c1">//     ),</span>
+<span class="c1">//     chunkSize = 8192</span>
+<span class="c1">//   ),</span>
+<span class="c1">//   runErrorStream = io.github.vigoo.prox.ProcessModule$Process$ProcessImpl$$Lambda$10932/0x0000000803103840@41fa834b,</span>
+<span class="c1">//   inputRedirection = StdIn()</span>
+<span class="c1">// )</span>
+</code></pre></div></div>
+</section></div></div></div></div><script src="https://vigoo.github.io/prox/highlight/highlight.pack.js"></script><script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/9.15.10/languages/sbt.min.js"></script><script src="https://vigoo.github.io/prox/lunr/lunr.js"></script><script>
+// For all code blocks, copy the language from the containing div
+// to the inner code tag (where hljs expects it to be)
+const langPrefix = 'language-';
+document.querySelectorAll(`div[class^='${langPrefix}']`).forEach(function(div) {
+  div.classList.forEach(function(cssClass) {
+    if (cssClass.startsWith(langPrefix)) {
+      const lang = cssClass.substring(langPrefix.length);
+      div.querySelectorAll('pre code').forEach(function(code) {
+        code.classList.add(lang);
+      });
+    }
+  });
+});
+
+hljs.configure({languages:['scala','java','bash','scala','sbt']});
+hljs.initHighlightingOnLoad();
+      </script><script>console.info('\x57\x65\x62\x73\x69\x74\x65\x20\x62\x75\x69\x6c\x74\x20\x77\x69\x74\x68\x3a\x0a\x20\x20\x20\x20\x20\x20\x20\x20\x20\x5f\x5f\x20\x20\x20\x20\x5f\x5f\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x5f\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x5f\x20\x5f\x5f\x0a\x20\x20\x20\x5f\x5f\x5f\x5f\x5f\x2f\x20\x2f\x5f\x20\x20\x2f\x20\x2f\x5f\x20\x20\x20\x20\x20\x20\x5f\x5f\x5f\x5f\x20\x5f\x5f\x5f\x20\x20\x28\x5f\x29\x5f\x5f\x5f\x5f\x5f\x5f\x5f\x5f\x5f\x5f\x5f\x5f\x5f\x20\x20\x5f\x5f\x5f\x5f\x5f\x28\x5f\x29\x20\x2f\x5f\x5f\x5f\x5f\x20\x20\x5f\x5f\x5f\x5f\x5f\x0a\x20\x20\x2f\x20\x5f\x5f\x5f\x2f\x20\x5f\x5f\x20\x5c\x2f\x20\x5f\x5f\x2f\x5f\x5f\x5f\x5f\x5f\x2f\x20\x5f\x5f\x20\x60\x5f\x5f\x20\x5c\x2f\x20\x2f\x20\x5f\x5f\x5f\x2f\x20\x5f\x5f\x5f\x2f\x20\x5f\x5f\x20\x5c\x2f\x20\x5f\x5f\x5f\x2f\x20\x2f\x20\x5f\x5f\x2f\x20\x5f\x20\x5c\x2f\x20\x5f\x5f\x5f\x2f\x0a\x20\x28\x5f\x5f\x20\x20\x29\x20\x2f\x5f\x2f\x20\x2f\x20\x2f\x5f\x2f\x5f\x5f\x5f\x5f\x5f\x2f\x20\x2f\x20\x2f\x20\x2f\x20\x2f\x20\x2f\x20\x2f\x20\x2f\x5f\x5f\x2f\x20\x2f\x20\x20\x2f\x20\x2f\x5f\x2f\x20\x28\x5f\x5f\x20\x20\x29\x20\x2f\x20\x2f\x5f\x2f\x20\x20\x5f\x5f\x28\x5f\x5f\x20\x20\x29\x0a\x2f\x5f\x5f\x5f\x5f\x2f\x5f\x2e\x5f\x5f\x5f\x2f\x5c\x5f\x5f\x2f\x20\x20\x20\x20\x20\x2f\x5f\x2f\x20\x2f\x5f\x2f\x20\x2f\x5f\x2f\x5f\x2f\x5c\x5f\x5f\x5f\x2f\x5f\x2f\x20\x20\x20\x5c\x5f\x5f\x5f\x5f\x2f\x5f\x5f\x5f\x5f\x2f\x5f\x2f\x5c\x5f\x5f\x2f\x5c\x5f\x5f\x5f\x2f\x5f\x5f\x5f\x5f\x2f\x0a\x0a\x68\x74\x74\x70\x73\x3a\x2f\x2f\x34\x37\x64\x65\x67\x2e\x67\x69\x74\x68\x75\x62\x2e\x69\x6f\x2f\x73\x62\x74\x2d\x6d\x69\x63\x72\x6f\x73\x69\x74\x65\x73')</script><script src="https://vigoo.github.io/prox/js/search.js"></script><script src="/prox/js/docs.js"></script></body></html>
