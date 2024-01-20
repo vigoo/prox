@@ -2,20 +2,19 @@ package io.github.vigoo.prox.tests.fs2
 
 import cats.effect.ExitCode
 import fs2.io.file.{Files, Flags}
-import io.github.vigoo.prox.UnknownProxError
-import zio.interop.catz._
-import zio.test.Assertion._
-import zio.test.TestAspect._
-import zio.test._
-import zio.{IO, RIO, Task, ZIO, durationInt}
+import zio.interop.catz.*
+import zio.test.*
+import zio.test.Assertion.*
+import zio.test.TestAspect.*
+import zio.{Scope, Task, ZIO, durationInt}
 
 object ProcessGroupSpecs extends ZIOSpecDefault with ProxSpecHelpers {
 
-  override val spec =
+  override val spec: Spec[TestEnvironment & Scope, Any] =
     suite("Piping processes together")(
       suite("Piping")(
         proxTest("is possible with two") { prox =>
-          import prox._
+          import prox.*
 
           implicit val processRunner: ProcessRunner[JVMProcessInfo] =
             new JVMProcessRunner
@@ -26,10 +25,10 @@ object ProcessGroupSpecs extends ZIOSpecDefault with ProxSpecHelpers {
           ) | Process("wc", List("-w"))) ># fs2.text.utf8.decode
           val program = processGroup.run().map(_.output.trim)
 
-          program.map(r => assert(r)(equalTo("5")))
+          program.map(r => assertTrue(r == "5"))
         },
         proxTest("is possible with multiple") { prox =>
-          import prox._
+          import prox.*
 
           implicit val processRunner: ProcessRunner[JVMProcessInfo] =
             new JVMProcessRunner
@@ -48,7 +47,7 @@ object ProcessGroupSpecs extends ZIOSpecDefault with ProxSpecHelpers {
           program.map(r => assert(r)(hasSameElements(List("1 apple"))))
         },
         proxTest("is customizable with pipes") { prox =>
-          import prox._
+          import prox.*
 
           implicit val processRunner: ProcessRunner[JVMProcessInfo] =
             new JVMProcessRunner
@@ -63,15 +62,15 @@ object ProcessGroupSpecs extends ZIOSpecDefault with ProxSpecHelpers {
                 .intersperse("\n")
                 .through(fs2.text.utf8.encode)
 
-          val processGroup = (Process("echo", List("This is a test string"))
+          val processGroup = Process("echo", List("This is a test string"))
             .via(customPipe)
-            .to(Process("wc", List("-w")))) ># fs2.text.utf8.decode
+            .to(Process("wc", List("-w"))) ># fs2.text.utf8.decode
           val program = processGroup.run().map(_.output.trim)
 
-          program.map(r => assert(r)(equalTo("11")))
+          program.map(r => assertTrue(r == "11"))
         },
         proxTest("can be mapped") { prox =>
-          import prox._
+          import prox.*
 
           implicit val processRunner: ProcessRunner[JVMProcessInfo] =
             new JVMProcessRunner
@@ -98,12 +97,12 @@ object ProcessGroupSpecs extends ZIOSpecDefault with ProxSpecHelpers {
 
           val program = processGroup2.run().map(_.output.trim)
 
-          program.map(r => assert(r)(equalTo("5")))
+          program.map(r => assertTrue(r == "5"))
         }
       ),
       suite("Termination")(
         proxTest("can be terminated with cancellation") { prox =>
-          import prox._
+          import prox.*
 
           implicit val processRunner: ProcessRunner[JVMProcessInfo] =
             new JVMProcessRunner
@@ -116,10 +115,10 @@ object ProcessGroupSpecs extends ZIOSpecDefault with ProxSpecHelpers {
               Process("sort")
           val program = processGroup.start().use { fiber => fiber.cancel }
 
-          program.map(r => assert(r)(equalTo(())))
+          program.map(r => assertTrue(r == ()))
         } @@ TestAspect.timeout(5.seconds),
         proxTest("can be terminated") { prox =>
-          import prox._
+          import prox.*
 
           implicit val processRunner: ProcessRunner[JVMProcessInfo] =
             new JVMProcessRunner
@@ -137,14 +136,10 @@ object ProcessGroupSpecs extends ZIOSpecDefault with ProxSpecHelpers {
             result <- runningProcesses.terminate()
           } yield result.exitCodes.toList
 
-          program.map(r =>
-            assert(r)(
-              contains[(Process[Unit, Unit], ProxExitCode)](p1 -> ExitCode(1))
-            )
-          )
+          program.map(r => assertTrue(r.contains(p1 -> ExitCode(1))))
         } @@ TestAspect.withLiveClock,
         proxTest("can be killed") { prox =>
-          import prox._
+          import prox.*
 
           implicit val processRunner: ProcessRunner[JVMProcessInfo] =
             new JVMProcessRunner
@@ -169,7 +164,7 @@ object ProcessGroupSpecs extends ZIOSpecDefault with ProxSpecHelpers {
       ),
       suite("Input redirection")(
         proxTest("can be fed with an input stream") { prox =>
-          import prox._
+          import prox.*
 
           implicit val processRunner: ProcessRunner[JVMProcessInfo] =
             new JVMProcessRunner
@@ -182,10 +177,10 @@ object ProcessGroupSpecs extends ZIOSpecDefault with ProxSpecHelpers {
           )) < stream ># fs2.text.utf8.decode
           val program = processGroup.run().map(_.output.trim)
 
-          program.map(r => assert(r)(equalTo("5")))
+          program.map(r => assertTrue(r == "5"))
         },
         proxTest("can be fed with an input file") { prox =>
-          import prox._
+          import prox.*
 
           implicit val processRunner: ProcessRunner[JVMProcessInfo] =
             new JVMProcessRunner
@@ -205,13 +200,13 @@ object ProcessGroupSpecs extends ZIOSpecDefault with ProxSpecHelpers {
               result <- processGroup.run()
             } yield result.output.trim
 
-            program.map(r => assert(r)(equalTo("5")))
+            program.map(r => assertTrue(r == "5"))
           }
         }
       ),
       suite("Output redirection")(
         proxTest("output can be redirected to file") { prox =>
-          import prox._
+          import prox.*
 
           implicit val processRunner: ProcessRunner[JVMProcessInfo] =
             new JVMProcessRunner
@@ -235,13 +230,13 @@ object ProcessGroupSpecs extends ZIOSpecDefault with ProxSpecHelpers {
                 .foldMonoid
             } yield contents.trim
 
-            program.map(r => assert(r)(equalTo("5")))
+            program.map(r => assertTrue(r == "5"))
           }
         }
       ),
       suite("Error redirection")(
         proxTest("can redirect each error output to a stream") { prox =>
-          import prox._
+          import prox.*
 
           implicit val processRunner: ProcessRunner[JVMProcessInfo] =
             new JVMProcessRunner
@@ -260,7 +255,7 @@ object ProcessGroupSpecs extends ZIOSpecDefault with ProxSpecHelpers {
           }
         },
         proxTest("can redirect each error output to a sink") { prox =>
-          import prox._
+          import prox.*
 
           implicit val processRunner: ProcessRunner[JVMProcessInfo] =
             new JVMProcessRunner
@@ -289,7 +284,7 @@ object ProcessGroupSpecs extends ZIOSpecDefault with ProxSpecHelpers {
           }
         },
         proxTest("can redirect each error output to a vector") { prox =>
-          import prox._
+          import prox.*
 
           implicit val processRunner: ProcessRunner[JVMProcessInfo] =
             new JVMProcessRunner
@@ -314,7 +309,7 @@ object ProcessGroupSpecs extends ZIOSpecDefault with ProxSpecHelpers {
           }
         },
         proxTest("can drain each error output") { prox =>
-          import prox._
+          import prox.*
 
           implicit val processRunner: ProcessRunner[JVMProcessInfo] =
             new JVMProcessRunner
@@ -333,7 +328,7 @@ object ProcessGroupSpecs extends ZIOSpecDefault with ProxSpecHelpers {
           }
         },
         proxTest("can fold each error output") { prox =>
-          import prox._
+          import prox.*
 
           implicit val processRunner: ProcessRunner[JVMProcessInfo] =
             new JVMProcessRunner
@@ -364,7 +359,7 @@ object ProcessGroupSpecs extends ZIOSpecDefault with ProxSpecHelpers {
         proxTest(
           "can redirect each error output to a stream customized per process"
         ) { prox =>
-          import prox._
+          import prox.*
 
           implicit val processRunner: ProcessRunner[JVMProcessInfo] =
             new JVMProcessRunner
@@ -390,7 +385,7 @@ object ProcessGroupSpecs extends ZIOSpecDefault with ProxSpecHelpers {
         proxTest(
           "can redirect each error output to a sink customized per process"
         ) { prox =>
-          import prox._
+          import prox.*
 
           implicit val processRunner: ProcessRunner[JVMProcessInfo] =
             new JVMProcessRunner
@@ -429,7 +424,7 @@ object ProcessGroupSpecs extends ZIOSpecDefault with ProxSpecHelpers {
         proxTest(
           "can redirect each error output to a vector customized per process"
         ) { prox =>
-          import prox._
+          import prox.*
 
           implicit val processRunner: ProcessRunner[JVMProcessInfo] =
             new JVMProcessRunner
@@ -461,7 +456,7 @@ object ProcessGroupSpecs extends ZIOSpecDefault with ProxSpecHelpers {
           }
         },
         proxTest("can drain each error output customized per process") { prox =>
-          import prox._
+          import prox.*
 
           implicit val processRunner: ProcessRunner[JVMProcessInfo] =
             new JVMProcessRunner
@@ -482,7 +477,7 @@ object ProcessGroupSpecs extends ZIOSpecDefault with ProxSpecHelpers {
           }
         },
         proxTest("can fold each error output customized per process") { prox =>
-          import prox._
+          import prox.*
 
           implicit val processRunner: ProcessRunner[JVMProcessInfo] =
             new JVMProcessRunner
@@ -519,7 +514,7 @@ object ProcessGroupSpecs extends ZIOSpecDefault with ProxSpecHelpers {
           }
         },
         proxTest("can redirect each error output to file") { prox =>
-          import prox._
+          import prox.*
 
           implicit val processRunner: ProcessRunner[JVMProcessInfo] =
             new JVMProcessRunner
@@ -556,7 +551,7 @@ object ProcessGroupSpecs extends ZIOSpecDefault with ProxSpecHelpers {
                   .foldMonoid
               } yield (contents1, contents2)
 
-              program.map(r => assert(r)(equalTo(("Hello", "world"))))
+              program.map(r => assertTrue(r == ("Hello", "world")))
             }
           }
         }
@@ -565,7 +560,7 @@ object ProcessGroupSpecs extends ZIOSpecDefault with ProxSpecHelpers {
         proxTest(
           "can redirect each error output to a stream if fed with an input stream and redirected to an output stream"
         ) { prox =>
-          import prox._
+          import prox.*
 
           implicit val processRunner: ProcessRunner[JVMProcessInfo] =
             new JVMProcessRunner
@@ -596,7 +591,7 @@ object ProcessGroupSpecs extends ZIOSpecDefault with ProxSpecHelpers {
         proxTest(
           "can redirect output if each error output and input are already redirected"
         ) { prox =>
-          import prox._
+          import prox.*
 
           implicit val processRunner: ProcessRunner[JVMProcessInfo] =
             new JVMProcessRunner
@@ -627,7 +622,7 @@ object ProcessGroupSpecs extends ZIOSpecDefault with ProxSpecHelpers {
         proxTest(
           "can attach output and then input stream if each error output and standard output are already redirected"
         ) { prox =>
-          import prox._
+          import prox.*
 
           implicit val processRunner: ProcessRunner[JVMProcessInfo] =
             new JVMProcessRunner
@@ -658,7 +653,7 @@ object ProcessGroupSpecs extends ZIOSpecDefault with ProxSpecHelpers {
         proxTest(
           "can attach input and then output stream if each error output and standard output are already redirected"
         ) { prox =>
-          import prox._
+          import prox.*
 
           implicit val processRunner: ProcessRunner[JVMProcessInfo] =
             new JVMProcessRunner
@@ -689,7 +684,7 @@ object ProcessGroupSpecs extends ZIOSpecDefault with ProxSpecHelpers {
         proxTest(
           "can attach input stream and errors if standard output is already redirected"
         ) { prox =>
-          import prox._
+          import prox.*
 
           implicit val processRunner: ProcessRunner[JVMProcessInfo] =
             new JVMProcessRunner
@@ -720,7 +715,7 @@ object ProcessGroupSpecs extends ZIOSpecDefault with ProxSpecHelpers {
         proxTest(
           "can attach errors and finally input stream if standard output is already redirected"
         ) { prox =>
-          import prox._
+          import prox.*
 
           implicit val processRunner: ProcessRunner[JVMProcessInfo] =
             new JVMProcessRunner

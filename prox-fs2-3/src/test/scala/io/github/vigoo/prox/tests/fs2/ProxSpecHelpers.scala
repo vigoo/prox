@@ -1,8 +1,8 @@
 package io.github.vigoo.prox.tests.fs2
 
-import io.github.vigoo.prox.{ProxError, ProxFS2, UnknownProxError}
-import zio.interop.catz._
-import zio.test._
+import io.github.vigoo.prox.ProxFS2
+import zio.interop.catz.*
+import zio.test.*
 import zio.{Task, ZIO}
 
 import java.io.File

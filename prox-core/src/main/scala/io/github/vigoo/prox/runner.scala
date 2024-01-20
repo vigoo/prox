@@ -1,9 +1,7 @@
 package io.github.vigoo.prox
 
-import java.lang.{Process => JvmProcess}
-
-import scala.concurrent.blocking
-import scala.jdk.CollectionConverters._
+import java.lang.{Process as JvmProcess}
+import scala.jdk.CollectionConverters.*
 
 trait ProcessRunnerModule {
   this: Prox =>

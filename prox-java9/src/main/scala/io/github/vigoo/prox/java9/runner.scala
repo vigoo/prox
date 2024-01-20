@@ -1,6 +1,6 @@
 package io.github.vigoo.prox.java9
 
-import java.lang.{Process => JvmProcess}
+import java.lang.Process as JvmProcess
 
 import io.github.vigoo.prox.{FailedToQueryState, Prox}
 

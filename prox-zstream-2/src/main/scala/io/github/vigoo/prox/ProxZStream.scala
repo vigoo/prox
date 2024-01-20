@@ -5,7 +5,7 @@ import java.io.IOException
 
 import zio.prelude.Identity
 import zio.stream.{ZSink, ZStream, ZPipeline}
-import zio._
+import zio.*
 
 import scala.language.implicitConversions
 
@@ -34,7 +34,7 @@ trait ProxZStream extends Prox {
   override type ProxResource[A] = ZIO[Scope, ProxError, A]
   override type ProxStream[A] = ZStream[Any, ProxError, A]
   override type ProxPipe[A, B] = ProxStream[A] => ProxStream[B]
-  override type ProxSink[A] = TransformAndSink[A, _]
+  override type ProxSink[A] = TransformAndSink[A, ?]
   override type ProxMonoid[A] = zio.prelude.Identity[A]
 
   protected override final def exitCodeFromInt(value: Int): ProxExitCode =

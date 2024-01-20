@@ -5,11 +5,9 @@ import java.io
 import cats.effect.{Concurrent, Outcome, Async, Sync}
 import cats.{Applicative, ApplicativeError, FlatMap, Traverse}
 
-import scala.concurrent.blocking
-
 trait ProxFS2[F[_]] extends Prox {
 
-  val instances: Sync[F] with Concurrent[F]
+  val instances: Sync[F] & Concurrent[F]
 
   override type ProxExitCode = cats.effect.ExitCode
   override type ProxFiber[A] = cats.effect.Fiber[F, Throwable, A]
@@ -35,7 +33,7 @@ trait ProxFS2[F[_]] extends Prox {
       f: => A,
       wrapError: Throwable => ProxError
   ): ProxIO[A] = {
-    implicit val i: Sync[F] with Concurrent[F] = instances
+    implicit val i: Sync[F] & Concurrent[F] = instances
     Sync[F].adaptError(Sync[F].delay(f)) { case failure: Throwable =>
       wrapError(failure).toThrowable
     }
@@ -45,7 +43,7 @@ trait ProxFS2[F[_]] extends Prox {
       f: => A,
       wrapError: Throwable => ProxError
   ): ProxIO[A] = {
-    implicit val i: Sync[F] with Concurrent[F] = instances
+    implicit val i: Sync[F] & Concurrent[F] = instances
     Sync[F].adaptError(Sync[F].interruptibleMany(f)) {
       case failure: Throwable => wrapError(failure).toThrowable
     }
@@ -100,21 +98,21 @@ trait ProxFS2[F[_]] extends Prox {
   protected override final def startFiber[A](
       f: ProxIO[A]
   ): ProxIO[ProxFiber[A]] = {
-    implicit val i: Sync[F] with Concurrent[F] = instances
+    implicit val i: Sync[F] & Concurrent[F] = instances
     Concurrent[F].start(f)
   }
 
   protected override final def drainStream[A](
       s: ProxStream[A]
   ): ProxIO[Unit] = {
-    implicit val i: Sync[F] with Concurrent[F] = instances
+    implicit val i: Sync[F] & Concurrent[F] = instances
     s.compile.drain
   }
 
   protected override final def streamToVector[A](
       s: ProxStream[A]
   ): ProxIO[Vector[A]] = {
-    implicit val i: Sync[F] with Concurrent[F] = instances
+    implicit val i: Sync[F] & Concurrent[F] = instances
     s.compile.toVector
   }
 
@@ -123,14 +121,14 @@ trait ProxFS2[F[_]] extends Prox {
       init: B,
       f: (B, A) => B
   ): ProxIO[B] = {
-    implicit val i: Sync[F] with Concurrent[F] = instances
+    implicit val i: Sync[F] & Concurrent[F] = instances
     s.compile.fold(init)(f)
   }
 
   protected override final def foldMonoidStream[A: ProxMonoid](
       s: ProxStream[A]
   ): ProxIO[A] = {
-    implicit val i: Sync[F] with Concurrent[F] = instances
+    implicit val i: Sync[F] & Concurrent[F] = instances
     s.compile.foldMonoid
   }
 
@@ -143,7 +141,7 @@ trait ProxFS2[F[_]] extends Prox {
       s: ProxStream[A],
       sink: ProxSink[A]
   ): ProxIO[Unit] = {
-    implicit val i: Sync[F] with Concurrent[F] = instances
+    implicit val i: Sync[F] & Concurrent[F] = instances
     s.through(sink).compile.drain
   }
 
@@ -160,7 +158,7 @@ trait ProxFS2[F[_]] extends Prox {
       output: io.OutputStream,
       flushChunks: Boolean
   ): ProxIO[Unit] = {
-    implicit val i: Sync[F] with Concurrent[F] = instances
+    implicit val i: Sync[F] & Concurrent[F] = instances
     stream
       .through(
         if (flushChunks) writeAndFlushOutputStream(output)(_).drain
@@ -177,7 +175,7 @@ trait ProxFS2[F[_]] extends Prox {
   private def writeAndFlushOutputStream(
       stream: java.io.OutputStream
   ): ProxPipe[Byte, Unit] = {
-    implicit val i: Sync[F] with Concurrent[F] = instances
+    implicit val i: Sync[F] & Concurrent[F] = instances
     s => {
       fs2.Stream
         .bracket(Applicative[F].pure(stream))(os => Sync[F].delay(os.close()))
@@ -195,6 +193,6 @@ trait ProxFS2[F[_]] extends Prox {
 
 object ProxFS2 {
   def apply[F[_]](implicit a: Async[F]): ProxFS2[F] = new ProxFS2[F] {
-    override val instances: Sync[F] with Concurrent[F] = a
+    override val instances: Sync[F] & Concurrent[F] = a
   }
 }
