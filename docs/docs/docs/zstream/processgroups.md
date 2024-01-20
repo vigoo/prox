@@ -6,7 +6,6 @@ title: Process groups
 # Connecting processes together via pipes
 ```scala mdoc:invisible
 import zio._
-import zio.blocking.Blocking
 import zio.stream._
 import zio.prelude._
 import io.github.vigoo.prox._
@@ -36,14 +35,14 @@ val group1 = Process("grep", List("ERROR")) | Process("sort")
 val group2 = group1 | Process("uniq", List("-c"))
 ```
 
-A custom pipe (when using `via`) can be anything of the type `ZStream[Blocking, ProxError, Byte] => ZStream[Blocking, ProxError, Byte])`. 
+A custom pipe (when using `via`) can be anything of the type `ZStream[any, ProxError, Byte] => ZStream[any, ProxError, Byte])`. 
 The following not very useful example capitalizes each word coming through:
 
 ```scala mdoc:silent
 val customPipe: ProxPipe[Byte, Byte] =
-    (s: ZStream[Blocking, ProxError, Byte]) => s
-      .transduce(ZTransducer.utf8Decode)            // decode UTF-8
-      .transduce(ZTransducer.splitLines)            // split to lines
+    (s: ZStream[Any, ProxError, Byte]) => s
+      .via(ZPipeline.utf8Decode.mapError(UnknownProxError.apply))            // decode UTF-8
+      .via(ZPipeline.splitLines)            // split to lines
       .map(_.split(' ').toVector)                   // split lines to words
       .map(v => v.map(_.capitalize).mkString(" "))
       .intersperse("\n")                            // remerge lines 

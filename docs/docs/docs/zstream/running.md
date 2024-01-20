@@ -5,6 +5,7 @@ title: Running processes
 
 # Running processes and process groups
 ```scala mdoc:invisible
+import zio._
 import io.github.vigoo.prox._
 import io.github.vigoo.prox.zstream._
 ```
@@ -25,8 +26,10 @@ implicit val runner: ProcessRunner[JVMProcessInfo] = new JVMProcessRunner
 val process = Process("echo", List("hello"))
 
 val result1 = process.run()
-val result2 = process.start().use { fiber =>
-  fiber.join
+val result2 = ZIO.scoped {
+  process.start().flatMap { fiber =>
+    fiber.join
+  }
 }
 
 val result3 = 

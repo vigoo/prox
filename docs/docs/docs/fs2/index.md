@@ -24,13 +24,10 @@ the `Prox` module:
 import cats.effect._
 import scala.concurrent.ExecutionContext
 import io.github.vigoo.prox._
-
-implicit val contextShift = IO.contextShift(ExecutionContext.global)
-val (blocker, _) = Blocker[IO].allocated.unsafeRunSync()
 ```
 
 ```scala mdoc
-val prox = ProxFS2[IO](blocker)
+val prox = ProxFS2[IO]
 import prox._
 ``` 
 

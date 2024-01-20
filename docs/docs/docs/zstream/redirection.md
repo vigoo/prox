@@ -25,18 +25,17 @@ Let's see an example of this (redirection methods are described below on this pa
 
 ```scala mdoc
 import zio._
-import zio.blocking.Blocking
 import zio.stream._
 import zio.prelude._
 
 val proc1 = Process("echo", List("Hello world"))
-val proc2 = proc1 ># ZTransducer.utf8Decode
+val proc2 = proc1 ># ZPipeline.utf8Decode
 ```
 
 It is no longer possible to redirect the output of `proc2`:
 
 ```scala mdoc:fail
-val proc3 = proc2 >? (ZTransducer.utf8Decode >>> ZTransducer.splitLines) 
+val proc3 = proc2 >? (ZPipeline.utf8Decode >>> ZPipeline.splitLines) 
 ```
 
 Many redirection methods have an _operator_ version but all of them have alphanumberic
@@ -46,49 +45,49 @@ variants as well.
 Input redirection is enabled by the `RedirectableInput` trait. The following operations
 are supported:
 
-| operator | alternative  | parameter type                          | what it does  |
-|----------|--------------|-----------------------------------------|---------------|
-| `<`      | `fromFile`   | `java.nio.file.Path`                    | Natively attach a source file to STDIN  |
-| `<`      | `fromStream` | `ZStream[Blocking, ProxError, Byte]`    | Attach a _ZIO byte stream_ to STDIN |
-| `!<`     | `fromStream` | `ZStream[Blocking, ProxError, Byte]`    | Attach a _ZIO byte stream_ to STDIN and **flush** after each chunk |
+| operator | alternative  | parameter type                  | what it does  |
+|----------|--------------|---------------------------------|---------------|
+| `<`      | `fromFile`   | `java.nio.file.Path`            | Natively attach a source file to STDIN  |
+| `<`      | `fromStream` | `ZStream[Any, ProxError, Byte]` | Attach a _ZIO byte stream_ to STDIN |
+| `!<`     | `fromStream` | `ZStream[Any, ProxError, Byte]` | Attach a _ZIO byte stream_ to STDIN and **flush** after each chunk |
 
 ### Output redirection
 Output redirection is enabled by the `RedirectableOutput` trait. 
 The following operations are supported:
 
-| operator | alternative    | parameter type                                                                           | result type | what it does  |
-|----------|----------------|------------------------------------------------------------------------------------------|-------------| --------------|
-| `>`      | `toFile`       | `java.nio.file.Path`                                                                     | `Unit`      | Natively attach STDOUT to a file |
-| `>>`     | `appendToFile` | `java.nio.file.Path`                                                                     | `Unit`      | Natively attach STDOUT to a file in append mode |
-| `>`      | `toSink`       | `TransformAndSink[Byte, _]`                                                              | `Unit`      | Drains the STDOUT through the given sink |
-| `>#`     | `toFoldMonoid` | `[O: Identity](ZStream[Blocking, ProxError, Byte] => ZStream[Blocking, ProxError, O])`   | `O`         | Sends STDOUT through the stream and folds the result using its _monoid_ instance
-| `>?`     | `toVector`     | `ZStream[Blocking, ProxError, Byte] => ZStream[Blocking, ProxError, O])`                 | `Vector[O]` | Sends STDOUT through the stream and collects the results |
-|          | `drainOutput`  | `ZStream[Blocking, ProxError, Byte] => ZStream[Blocking, ProxError, O])`                 | `Unit`      | Drains the STDOUT through the given stream |
-|          | `foldOutput`   | `ZStream[Blocking, ProxError, Byte] => ZStream[Blocking, ProxError, O]), R, (R, O) => R` | `R`         | Sends STDOUT through the stream and folds the result using a custom fold function |
+| operator | alternative    | parameter type                                                                 | result type | what it does  |
+|----------|----------------|--------------------------------------------------------------------------------|-------------| --------------|
+| `>`      | `toFile`       | `java.nio.file.Path`                                                           | `Unit`      | Natively attach STDOUT to a file |
+| `>>`     | `appendToFile` | `java.nio.file.Path`                                                           | `Unit`      | Natively attach STDOUT to a file in append mode |
+| `>`      | `toSink`       | `TransformAndSink[Byte, _]`                                                    | `Unit`      | Drains the STDOUT through the given sink |
+| `>#`     | `toFoldMonoid` | `[O: Identity](ZStream[Any, ProxError, Byte] => ZStream[Any, ProxError, O])`   | `O`         | Sends STDOUT through the stream and folds the result using its _monoid_ instance
+| `>?`     | `toVector`     | `ZStream[Any, ProxError, Byte] => ZStream[Any, ProxError, O])`                 | `Vector[O]` | Sends STDOUT through the stream and collects the results |
+|          | `drainOutput`  | `ZStream[Any, ProxError, Byte] => ZStream[Any, ProxError, O])`                 | `Unit`      | Drains the STDOUT through the given stream |
+|          | `foldOutput`   | `ZStream[Any, ProxError, Byte] => ZStream[Any, ProxError, O]), R, (R, O) => R` | `R`         | Sends STDOUT through the stream and folds the result using a custom fold function |
 
-All the variants that accept a _stream transformation_ (`ZStream[Blocking, ProxError, Byte] => ZStream[Blocking, ProxError, O])`) are also usable by directly passing
-a `ZTransducer`.
+All the variants that accept a _stream transformation_ (`ZStream[Any, ProxError, Byte] => ZStream[Any, ProxError, O])`) are also usable by directly passing
+a `ZPipeline`.
 
 `TransformAndSink` encapsulates a _stream transformation_ and a _unit sink_. It is possible to use a sink directly if transformation is not needed.
 
 ```scala
-case class TransformAndSink[A, B](transform: ZStream[Blocking, ProxError, A] => ZStream[Blocking, ProxError, B],
-                                  sink: ZSink[Blocking, ProxError, B, Any, Unit])
+case class TransformAndSink[A, B](transform: ZStream[Any, ProxError, A] => ZStream[Any, ProxError, B],
+                                  sink: ZSink[Any, ProxError, B, Any, Unit])
 ```
 
 ### Error redirection
 Error redirection is enabled by the `RedirectableError` trait. 
 The following operations are supported:
 
-| operator  | alternative         | parameter type                                                                           | result type | what it does  |
-|-----------|---------------------|------------------------------------------------------------------------------------------|-------------| --------------|
-| `!>`      | `errorToFile`       | `java.nio.file.Path`                                                                     | `Unit`      | Natively attach STDERR to a file |
-| `!>>`     | `appendErrorToFile` | `java.nio.file.Path`                                                                     | `Unit`      | Natively attach STDERR to a file in append mode |
-| `!>`      | `errorToSink`       | `TransformAndSink[Byte, _]`                                                              | `Unit`      | Drains the STDERR through the given sink |
-| `!>#`     | `errorToFoldMonoid` | `[O: Monoid](ZStream[Blocking, ProxError, Byte] => ZStream[Blocking, ProxError, O])`     | `O`         | Sends STDERR through the pipe and folds the result using its _monoid_ instance
-| `!>?`     | `errorToVector`     | `ZStream[Blocking, ProxError, Byte] => ZStream[Blocking, ProxError, O])`                 | `Vector[O]` | Sends STDERR through the pipe and collects the results |
-|           | `drainError`        | `ZStream[Blocking, ProxError, Byte] => ZStream[Blocking, ProxError, O])`                 | `Unit`      | Drains the STDERR through the given pipe |
-|           | `foldError`         | `ZStream[Blocking, ProxError, Byte] => ZStream[Blocking, ProxError, O]), R, (R, O) => R` | `R`         | Sends STDERR through the pipe and folds the result using a custom fold function |
+| operator  | alternative         | parameter type                                                                 | result type | what it does  |
+|-----------|---------------------|--------------------------------------------------------------------------------|-------------| --------------|
+| `!>`      | `errorToFile`       | `java.nio.file.Path`                                                           | `Unit`      | Natively attach STDERR to a file |
+| `!>>`     | `appendErrorToFile` | `java.nio.file.Path`                                                           | `Unit`      | Natively attach STDERR to a file in append mode |
+| `!>`      | `errorToSink`       | `TransformAndSink[Byte, _]`                                                    | `Unit`      | Drains the STDERR through the given sink |
+| `!>#`     | `errorToFoldMonoid` | `[O: Monoid](ZStream[Any, ProxError, Byte] => ZStream[Any, ProxError, O])`     | `O`         | Sends STDERR through the pipe and folds the result using its _monoid_ instance
+| `!>?`     | `errorToVector`     | `ZStream[Any, ProxError, Byte] => ZStream[Any, ProxError, O])`                 | `Vector[O]` | Sends STDERR through the pipe and collects the results |
+|           | `drainError`        | `ZStream[Any, ProxError, Byte] => ZStream[Any, ProxError, O])`                 | `Unit`      | Drains the STDERR through the given pipe |
+|           | `foldError`         | `ZStream[Any, ProxError, Byte] => ZStream[Any, ProxError, O]), R, (R, O) => R` | `R`         | Sends STDERR through the pipe and folds the result using a custom fold function |
 
 ### Redirection for process groups 
 [Process groups](processgroups) are two or more processes attached together through pipes.
@@ -106,13 +105,13 @@ version described by the `RedirectableErrors` trait.
 
 The methods in this trait define error redirection for **all process in the group at once**:
 
-| operator  | alternative          | parameter type                                                                           | result type | what it does  |
-|-----------|----------------------|------------------------------------------------------------------------------------------|-------------| --------------|
-| `!>`      | `errorsToSink`       | `TransformAndSink[Byte, _]`                                                              | `Unit`      | Drains the STDERR through the given sink |
-| `!>#`     | `errorsToFoldMonoid` | `[O: Monoid](ZStream[Blocking, ProxError, Byte] => ZStream[Blocking, ProxError, O])`     | `O`         | Sends STDERR through the stream and folds the result using its _monoid_ instance
-| `!>?`     | `errorsToVector`     | `ZStream[Blocking, ProxError, Byte] => ZStream[Blocking, ProxError, O])`                 | `Vector[O]` | Sends STDERR through the stream and collects the results |
-|           | `drainErrors`        | `ZStream[Blocking, ProxError, Byte] => ZStream[Blocking, ProxError, O])`                 | `Unit`      | Drains the STDERR through the given stream |
-|           | `foldErrors`         | `ZStream[Blocking, ProxError, Byte] => ZStream[Blocking, ProxError, O]), R, (R, O) => R` | `R`         | Sends STDERR through the stream and folds the result using a custom fold function |
+| operator  | alternative          | parameter type                                                                 | result type | what it does  |
+|-----------|----------------------|--------------------------------------------------------------------------------|-------------| --------------|
+| `!>`      | `errorsToSink`       | `TransformAndSink[Byte, _]`                                                    | `Unit`      | Drains the STDERR through the given sink |
+| `!>#`     | `errorsToFoldMonoid` | `[O: Monoid](ZStream[Any, ProxError, Byte] => ZStream[Any, ProxError, O])`     | `O`         | Sends STDERR through the stream and folds the result using its _monoid_ instance
+| `!>?`     | `errorsToVector`     | `ZStream[Any, ProxError, Byte] => ZStream[Any, ProxError, O])`                 | `Vector[O]` | Sends STDERR through the stream and collects the results |
+|           | `drainErrors`        | `ZStream[Any, ProxError, Byte] => ZStream[Any, ProxError, O])`                 | `Unit`      | Drains the STDERR through the given stream |
+|           | `foldErrors`         | `ZStream[Any, ProxError, Byte] => ZStream[Any, ProxError, O]), R, (R, O) => R` | `R`         | Sends STDERR through the stream and folds the result using a custom fold function |
 
 Redirection to file is not possible through this interface as only a single path could be
 provided.
@@ -123,15 +122,15 @@ By using the `RedirectableErrors.customizedPerProcess` interface (having the typ
 `RedirectableErrors.CustomizedPerProcess`) it is possible to customize the redirection 
 targets per process while keeping their types uniform:
 
-| operator  | alternative          | parameter type                                                                                      | result type | what it does  |
-|-----------|----------------------|-----------------------------------------------------------------------------------------------------|-------------| --------------|
-|           | `errorsToFile`       | `Process => java.nio.file.Path`                                                                     | `Unit`      | Natively attach STDERR to a file |
-|           | `appendErrorsToFile` | `Process => java.nio.file.Path`                                                                     | `Unit`      | Natively attach STDERR to a file in append mode |
-|           | `errorsToSink`       | `Process => TransformAndSink[Byte, _]`                                                              | `Unit`      | Drains the STDERR through the given sink |
-|           | `errorsToFoldMonoid` | `Process => [O: Monoid](ZStream[Blocking, ProxError, Byte] => ZStream[Blocking, ProxError, O])`     | `O`         | Sends STDERR through the stream and folds the result using its _monoid_ instance
-|           | `errorsToVector`     | `Process => ZStream[Blocking, ProxError, Byte] => ZStream[Blocking, ProxError, O])`                 | `Vector[O]` | Sends STDERR through the stream and collects the results |
-|           | `drainErrors`        | `Process => ZStream[Blocking, ProxError, Byte] => ZStream[Blocking, ProxError, O])`                 | `Unit`      | Drains the STDERR through the given stream |
-|           | `foldErrors`         | `Process => ZStream[Blocking, ProxError, Byte] => ZStream[Blocking, ProxError, O]), R, (R, O) => R` | `R`         | Sends STDERR through the stream and folds the result using a custom fold function |
+| operator  | alternative          | parameter type                                                                            | result type | what it does  |
+|-----------|----------------------|-------------------------------------------------------------------------------------------|-------------| --------------|
+|           | `errorsToFile`       | `Process => java.nio.file.Path`                                                           | `Unit`      | Natively attach STDERR to a file |
+|           | `appendErrorsToFile` | `Process => java.nio.file.Path`                                                           | `Unit`      | Natively attach STDERR to a file in append mode |
+|           | `errorsToSink`       | `Process => TransformAndSink[Byte, _]`                                                    | `Unit`      | Drains the STDERR through the given sink |
+|           | `errorsToFoldMonoid` | `Process => [O: Monoid](ZStream[Any, ProxError, Byte] => ZStream[Any, ProxError, O])`     | `O`         | Sends STDERR through the stream and folds the result using its _monoid_ instance
+|           | `errorsToVector`     | `Process => ZStream[Any, ProxError, Byte] => ZStream[Any, ProxError, O])`                 | `Vector[O]` | Sends STDERR through the stream and collects the results |
+|           | `drainErrors`        | `Process => ZStream[Any, ProxError, Byte] => ZStream[Any, ProxError, O])`                 | `Unit`      | Drains the STDERR through the given stream |
+|           | `foldErrors`         | `Process => ZStream[Any, ProxError, Byte] => ZStream[Any, ProxError, O]), R, (R, O) => R` | `R`         | Sends STDERR through the stream and folds the result using a custom fold function |
 
 Let's see an example of how this works!
 
@@ -144,8 +143,8 @@ process they came from:
 ```scala mdoc:silent
 
 for {
-  errors <- ZQueue.unbounded[String]
-  parseLines = (s: ZStream[Blocking, ProxError, Byte]) => s.transduce(ZTransducer.utf8Decode >>> ZTransducer.splitLines)
+  errors <- Queue.unbounded[String]
+  parseLines = (s: ZStream[Any, ProxError, Byte]) => s.via(ZPipeline.utf8Decode.mapError(UnknownProxError.apply) >>> ZPipeline.splitLines)
  
   p1 = Process("proc1")
   p2 = Process("proc2")
@@ -177,8 +176,8 @@ These type aliases can be used to define functions performing redirection on arb
 ```scala mdoc
 def logErrors[P <: Process.UnboundEProcess[_]](proc: P) = {
    val target = TransformAndSink(
-     ZTransducer.utf8Decode >>> ZTransducer.splitLines,
-     ZSink.foreach((line: String) => ZIO.effect(println(line)).mapError(UnknownProxError))) 
+     ZPipeline.utf8Decode.mapError(UnknownProxError.apply) >>> ZPipeline.splitLines,
+     ZSink.foreach((line: String) => ZIO.debug(line))) 
    proc !> target 
 }
 
