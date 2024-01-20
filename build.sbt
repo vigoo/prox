@@ -110,7 +110,7 @@ lazy val proxJava9 = Project("prox-java9", file("prox-java9")).settings(commonSe
 
 lazy val docs = project
   .enablePlugins(GhpagesPlugin, SiteScaladocPlugin, ScalaUnidocPlugin, MicrositesPlugin)
-  .settings(commonSettings(8))
+  .settings(commonSettings(9))
   .settings(
     addCompilerPlugin("org.typelevel" %% s"kind-projector" % "0.13.2" cross CrossVersion.full),
     publishArtifact := false,
