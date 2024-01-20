@@ -2,10 +2,10 @@ package io.github.vigoo.prox.tests.fs2
 
 import zio.ZIO
 import zio.test.Assertion.{equalTo, isEmpty}
-import zio.test.{DefaultRunnableSpec, ZSpec, assert, suite}
+import zio.test._
 
-object InterpolatorSpecs extends DefaultRunnableSpec with ProxSpecHelpers {
-  override val spec: ZSpec[_root_.zio.test.environment.TestEnvironment, Any] =
+object InterpolatorSpecs extends ZIOSpecDefault with ProxSpecHelpers {
+  override val spec =
     suite("Process interpolators")(
       suite("cats-effect process interpolator")(
         proxTest("works with single-word process names") { prox =>
@@ -14,7 +14,11 @@ object InterpolatorSpecs extends DefaultRunnableSpec with ProxSpecHelpers {
           val process = proc"ls"
 
           ZIO.succeed(
-            assert(process.command)(equalTo("ls")) && assert(process.arguments)(isEmpty))
+            assertTrue(
+              process.command == "ls",
+              process.arguments.isEmpty
+            )
+          )
         },
 
         proxTest("works with interpolated process name") { prox =>
@@ -24,7 +28,11 @@ object InterpolatorSpecs extends DefaultRunnableSpec with ProxSpecHelpers {
           val process = proc"$cmd"
 
           ZIO.succeed(
-            assert(process.command)(equalTo("ls")) && assert(process.arguments)(isEmpty))
+            assertTrue(
+              process.command == "ls",
+              process.arguments.isEmpty
+            )
+          )
         },
 
         proxTest("works with static parameters") { prox =>

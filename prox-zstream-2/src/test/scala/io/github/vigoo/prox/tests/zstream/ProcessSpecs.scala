@@ -268,20 +268,20 @@ object ProcessSpecs extends ZIOSpecDefault with ProxSpecHelpers {
         test("can be terminated with cancellation") {
           val process = Process("perl", List("-e", """$SIG{TERM} = sub { exit 1 }; sleep 30; exit 0"""))
           val program = ZIO.scoped {
-            process.start().flatMap { fiber => ZIO.attempt(Thread.sleep(250)) *> fiber.interrupt.unit }
+            process.start().flatMap { fiber => ZIO.sleep(250.millis) *> fiber.interrupt.unit }
           }
 
           assertZIO(program)(equalTo(()))
-        } @@ TestAspect.timeout(5.seconds) @@ TestAspect.diagnose(2.seconds),
+        } @@ TestAspect.withLiveClock @@ TestAspect.timeout(5.seconds) @@ TestAspect.diagnose(2.seconds),
 
         test("can be terminated by releasing the resource") {
           val process = Process("perl", List("-e", """$SIG{TERM} = sub { exit 1 }; sleep 30; exit 0"""))
           val program = ZIO.scoped {
-            process.start().flatMap { _ => ZIO.attempt(Thread.sleep(250)) }
+            process.start().flatMap { _ => ZIO.sleep(250.millis) }
           }
 
           assertZIO(program)(equalTo(()))
-        } @@ TestAspect.timeout(5.seconds),
+        } @@ TestAspect.withLiveClock @@ TestAspect.timeout(5.seconds),
 
         test("can be terminated") {
           val process = Process("perl", List("-e", """$SIG{TERM} = sub { exit 1 }; sleep 30; exit 0"""))

@@ -1,18 +1,14 @@
 package io.github.vigoo.prox.tests.fs2
 
-import fs2.io.file.{Files, Flags}
 import cats.effect.ExitCode
-import zio.clock.Clock
-import zio.duration._
+import fs2.io.file.{Files, Flags}
+import zio.interop.catz._
 import zio.test.Assertion.{anything, equalTo, hasSameElements, isLeft}
 import zio.test.TestAspect._
 import zio.test._
-import zio.{IO, RIO, Task, ZEnv, ZIO}
-import zio.interop.catz._
+import zio.{Task, ZIO, durationInt}
 
-import java.nio.file.Paths
-
-object ProcessSpecs extends DefaultRunnableSpec with ProxSpecHelpers {
+object ProcessSpecs extends ZIOSpecDefault with ProxSpecHelpers {
   override val spec =
     suite("Executing a process")(
       proxTest("returns the exit code") { prox =>
@@ -25,7 +21,7 @@ object ProcessSpecs extends DefaultRunnableSpec with ProxSpecHelpers {
           falseResult <- Process("false").run()
         } yield (trueResult.exitCode, falseResult.exitCode)
 
-        assertM(program)(equalTo((ExitCode(0), ExitCode(1))))
+        program.map(r => assert(r)(equalTo((ExitCode(0), ExitCode(1)))))
       },
 
       suite("Output redirection")(
@@ -38,10 +34,10 @@ object ProcessSpecs extends DefaultRunnableSpec with ProxSpecHelpers {
             val process = Process("echo", List("Hello world!")) > tempFile.toPath
             val program = for {
               _ <- process.run()
-              contents <- Files[RIO[ZEnv, *]].readAll(fs2.io.file.Path.fromNioPath(tempFile.toPath), 1024, Flags.Read).through(fs2.text.utf8.decode).compile.foldMonoid
+              contents <- Files.forAsync[Task].readAll(fs2.io.file.Path.fromNioPath(tempFile.toPath), 1024, Flags.Read).through(fs2.text.utf8.decode).compile.foldMonoid
             } yield contents
 
-            assertM(program)(equalTo("Hello world!\n"))
+            program.map(r => assert(r)(equalTo("Hello world!\n")))
           }
         },
 
@@ -56,10 +52,10 @@ object ProcessSpecs extends DefaultRunnableSpec with ProxSpecHelpers {
             val program = for {
               _ <- process1.run()
               _ <- process2.run()
-              contents <- Files[RIO[ZEnv, *]].readAll(fs2.io.file.Path.fromNioPath(tempFile.toPath), 1024, Flags.Read).through(fs2.text.utf8.decode).compile.foldMonoid
+              contents <- Files.forAsync[Task].readAll(fs2.io.file.Path.fromNioPath(tempFile.toPath), 1024, Flags.Read).through(fs2.text.utf8.decode).compile.foldMonoid
             } yield contents
 
-            assertM(program)(equalTo("Hello\nworld\n"))
+            program.map(r => assert(r)(equalTo("Hello\nworld\n")))
           }
         },
 
@@ -71,7 +67,7 @@ object ProcessSpecs extends DefaultRunnableSpec with ProxSpecHelpers {
           val process = Process("echo", List("Hello world!")) ># fs2.text.utf8.decode
           val program = process.run().map(_.output)
 
-          assertM(program)(equalTo("Hello world!\n"))
+          program.map(r => assert(r)(equalTo("Hello world!\n")))
         },
 
         proxTest("can redirect output to stream folding monoid") { prox =>
@@ -82,7 +78,7 @@ object ProcessSpecs extends DefaultRunnableSpec with ProxSpecHelpers {
           val process = Process("echo", List("Hello\nworld!")) ># fs2.text.utf8.decode.andThen(fs2.text.lines)
           val program = process.run().map(_.output)
 
-          assertM(program)(equalTo("Helloworld!"))
+          program.map(r => assert(r)(equalTo("Helloworld!")))
         },
 
         proxTest("can redirect output to stream collected to vector") { prox =>
@@ -98,7 +94,7 @@ object ProcessSpecs extends DefaultRunnableSpec with ProxSpecHelpers {
           val process = Process("echo", List("Hello\nworld!")) >? stream
           val program = process.run().map(_.output)
 
-          assertM(program)(hasSameElements(List(StringLength(5), StringLength(6), StringLength(0))))
+          program.map(r => assert(r)(hasSameElements(List(StringLength(5), StringLength(6), StringLength(0)))))
         },
 
         proxTest("can redirect output to stream and ignore it's result") { prox =>
@@ -109,7 +105,7 @@ object ProcessSpecs extends DefaultRunnableSpec with ProxSpecHelpers {
           val process = Process("echo", List("Hello\nworld!")).drainOutput(fs2.text.utf8.decode.andThen(fs2.text.lines))
           val program = process.run().map(_.output)
 
-          assertM(program)(equalTo(()))
+          program.map(r => assert(r)(equalTo(())))
         },
 
         proxTest("can redirect output to stream and fold it") { prox =>
@@ -124,7 +120,7 @@ object ProcessSpecs extends DefaultRunnableSpec with ProxSpecHelpers {
           )
           val program = process.run().map(_.output)
 
-          assertM(program)(equalTo(Vector(Some('H'), Some('w'), None)))
+          program.map(r => assert(r)(equalTo(Vector(Some('H'), Some('w'), None))))
         },
 
         proxTest("can redirect output to a sink") { prox =>
@@ -133,14 +129,14 @@ object ProcessSpecs extends DefaultRunnableSpec with ProxSpecHelpers {
           implicit val processRunner: ProcessRunner[JVMProcessInfo] = new JVMProcessRunner
 
           val builder = new StringBuilder
-          val target: fs2.Pipe[Task, Byte, Unit] = _.evalMap(byte => IO {
+          val target: fs2.Pipe[Task, Byte, Unit] = _.evalMap(byte => ZIO.attempt {
             builder.append(byte.toChar)
           }.unit)
 
           val process = Process("echo", List("Hello world!")) > target
           val program = process.run().map(_ => builder.toString)
 
-          assertM(program)(equalTo("Hello world!\n"))
+          program.map(r => assert(r)(equalTo("Hello world!\n")))
         },
       ),
       suite("Error redirection")(
@@ -153,10 +149,10 @@ object ProcessSpecs extends DefaultRunnableSpec with ProxSpecHelpers {
             val process = Process("perl", List("-e", "print STDERR 'Hello world!'")) !> tempFile.toPath
             val program = for {
               _ <- process.run()
-              contents <- Files[RIO[ZEnv, *]].readAll(fs2.io.file.Path.fromNioPath(tempFile.toPath), 1024, Flags.Read).through(fs2.text.utf8.decode).compile.foldMonoid
+              contents <- Files.forAsync[Task].readAll(fs2.io.file.Path.fromNioPath(tempFile.toPath), 1024, Flags.Read).through(fs2.text.utf8.decode).compile.foldMonoid
             } yield contents
 
-            assertM(program)(equalTo("Hello world!"))
+            program.map(r => assert(r)(equalTo("Hello world!")))
           }
         },
 
@@ -171,10 +167,10 @@ object ProcessSpecs extends DefaultRunnableSpec with ProxSpecHelpers {
             val program = for {
               _ <- process1.run()
               _ <- process2.run()
-              contents <- Files[RIO[ZEnv, *]].readAll(fs2.io.file.Path.fromNioPath(tempFile.toPath), 1024, Flags.Read).through(fs2.text.utf8.decode).compile.foldMonoid
+              contents <- Files.forAsync[Task].readAll(fs2.io.file.Path.fromNioPath(tempFile.toPath), 1024, Flags.Read).through(fs2.text.utf8.decode).compile.foldMonoid
             } yield contents
 
-            assertM(program)(equalTo("Helloworld"))
+            program.map(r => assert(r)(equalTo("Helloworld")))
           }
         },
 
@@ -186,7 +182,7 @@ object ProcessSpecs extends DefaultRunnableSpec with ProxSpecHelpers {
           val process = Process("perl", List("-e", """print STDERR "Hello"""")) !># fs2.text.utf8.decode
           val program = process.run().map(_.error)
 
-          assertM(program)(equalTo("Hello"))
+          program.map(r => assert(r)(equalTo("Hello")))
         },
 
         proxTest("can redirect error to stream folding monoid") { prox =>
@@ -197,7 +193,7 @@ object ProcessSpecs extends DefaultRunnableSpec with ProxSpecHelpers {
           val process = Process("perl", List("-e", "print STDERR 'Hello\nworld!'")) !># fs2.text.utf8.decode.andThen(fs2.text.lines)
           val program = process.run().map(_.error)
 
-          assertM(program)(equalTo("Helloworld!"))
+          program.map(r => assert(r)(equalTo("Helloworld!")))
         },
 
         proxTest("can redirect error to stream collected to vector") { prox =>
@@ -213,7 +209,7 @@ object ProcessSpecs extends DefaultRunnableSpec with ProxSpecHelpers {
           val process = Process("perl", List("-e", "print STDERR 'Hello\nworld!'")) !>? stream
           val program = process.run().map(_.error)
 
-          assertM(program)(hasSameElements(List(StringLength(5), StringLength(6))))
+          program.map(r => assert(r)(hasSameElements(List(StringLength(5), StringLength(6)))))
         },
 
         proxTest("can redirect error to stream and ignore it's result") { prox =>
@@ -224,7 +220,7 @@ object ProcessSpecs extends DefaultRunnableSpec with ProxSpecHelpers {
           val process = Process("perl", List("-e", "print STDERR 'Hello\nworld!'")).drainError(fs2.text.utf8.decode.andThen(fs2.text.lines))
           val program = process.run().map(_.error)
 
-          assertM(program)(equalTo(()))
+          program.map(r => assert(r)(equalTo(())))
         },
 
         proxTest("can redirect error to stream and fold it") { prox =>
@@ -239,7 +235,7 @@ object ProcessSpecs extends DefaultRunnableSpec with ProxSpecHelpers {
           )
           val program = process.run().map(_.error)
 
-          assertM(program)(equalTo(Vector(Some('H'), Some('w'))))
+          program.map(r => assert(r)(equalTo(Vector(Some('H'), Some('w')))))
         },
 
         proxTest("can redirect error to a sink") { prox =>
@@ -248,14 +244,14 @@ object ProcessSpecs extends DefaultRunnableSpec with ProxSpecHelpers {
           implicit val processRunner: ProcessRunner[JVMProcessInfo] = new JVMProcessRunner
 
           val builder = new StringBuilder
-          val target: fs2.Pipe[Task, Byte, Unit] = _.evalMap(byte => IO {
+          val target: fs2.Pipe[Task, Byte, Unit] = _.evalMap(byte => ZIO.attempt {
             builder.append(byte.toChar)
           }.unit)
 
           val process = Process("perl", List("-e", """print STDERR "Hello"""")) !> target
           val program = process.run().map(_ => builder.toString)
 
-          assertM(program)(equalTo("Hello"))
+          program.map(r => assert(r)(equalTo("Hello")))
         },
       ),
 
@@ -269,7 +265,7 @@ object ProcessSpecs extends DefaultRunnableSpec with ProxSpecHelpers {
           val process = Process("perl", List("-e", """my $str = <>; print STDERR "$str"""".stripMargin)) < source !># fs2.text.utf8.decode
           val program = process.run().map(_.error)
 
-          assertM(program)(equalTo("This is a test string"))
+          program.map(r => assert(r)(equalTo("This is a test string")))
         },
 
         proxTest("can redirect error first then output to stream") { prox =>
@@ -280,7 +276,7 @@ object ProcessSpecs extends DefaultRunnableSpec with ProxSpecHelpers {
           val process = (Process("perl", List("-e", """print STDOUT Hello; print STDERR World""".stripMargin)) !># fs2.text.utf8.decode) ># fs2.text.utf8.decode
           val program = process.run().map(r => r.output + r.error)
 
-          assertM(program)(equalTo("HelloWorld"))
+          program.map(r => assert(r)(equalTo("HelloWorld")))
         },
 
         proxTest("can redirect output first then error to stream") { prox =>
@@ -291,7 +287,7 @@ object ProcessSpecs extends DefaultRunnableSpec with ProxSpecHelpers {
           val process = (Process("perl", List("-e", """print STDOUT Hello; print STDERR World""".stripMargin)) ># fs2.text.utf8.decode) !># fs2.text.utf8.decode
           val program = process.run().map(r => r.output + r.error)
 
-          assertM(program)(equalTo("HelloWorld"))
+          program.map(r => assert(r)(equalTo("HelloWorld")))
         },
 
         proxTest("can redirect output first then error finally input to stream") { prox =>
@@ -305,7 +301,7 @@ object ProcessSpecs extends DefaultRunnableSpec with ProxSpecHelpers {
             !># fs2.text.utf8.decode) < source
           val program = process.run().map(r => r.output + r.error)
 
-          assertM(program)(equalTo("HelloWorld"))
+          program.map(r => assert(r)(equalTo("HelloWorld")))
         },
 
         proxTest("can redirect output first then input finally error to stream") { prox =>
@@ -319,7 +315,7 @@ object ProcessSpecs extends DefaultRunnableSpec with ProxSpecHelpers {
             < source) !># fs2.text.utf8.decode
           val program = process.run().map(r => r.output + r.error)
 
-          assertM(program)(equalTo("HelloWorld"))
+          program.map(r => assert(r)(equalTo("HelloWorld")))
         },
 
         proxTest("can redirect input first then error finally output to stream") { prox =>
@@ -333,7 +329,7 @@ object ProcessSpecs extends DefaultRunnableSpec with ProxSpecHelpers {
             !># fs2.text.utf8.decode) ># fs2.text.utf8.decode
           val program = process.run().map(r => r.output + r.error)
 
-          assertM(program)(equalTo("HelloWorld"))
+          program.map(r => assert(r)(equalTo("HelloWorld")))
         },
       ),
 
@@ -347,7 +343,7 @@ object ProcessSpecs extends DefaultRunnableSpec with ProxSpecHelpers {
           val process = Process("wc", List("-w")) < source ># fs2.text.utf8.decode
           val program = process.run().map(_.output.trim)
 
-          assertM(program)(equalTo("5"))
+          program.map(r => assert(r)(equalTo("5")))
         },
 
         proxTest("can use stream as input flushing after each chunk") { prox =>
@@ -359,7 +355,7 @@ object ProcessSpecs extends DefaultRunnableSpec with ProxSpecHelpers {
           val process = (Process("wc", List("-w")) !< source) ># fs2.text.utf8.decode
           val program = process.run().map(_.output.trim)
 
-          assertM(program)(equalTo("5"))
+          program.map(r => assert(r)(equalTo("5")))
         },
       ),
 
@@ -370,10 +366,10 @@ object ProcessSpecs extends DefaultRunnableSpec with ProxSpecHelpers {
           implicit val processRunner: ProcessRunner[JVMProcessInfo] = new JVMProcessRunner
 
           val process = Process("perl", List("-e", """$SIG{TERM} = sub { exit 1 }; sleep 30; exit 0"""))
-          val program = process.start().use { fiber => ZIO(Thread.sleep(250)).flatMap(_ => fiber.cancel) }
+          val program = process.start().use { fiber => ZIO.sleep(250.millis).flatMap(_ => fiber.cancel) }
 
-          assertM(program)(equalTo(()))
-        } @@ TestAspect.timeout(5.seconds),
+          program.map(r => assert(r)(equalTo(())))
+        } @@ TestAspect.withLiveClock @@ TestAspect.timeout(5.seconds),
 
         proxTest("can be terminated by releasing the resource") { prox =>
           import prox._
@@ -381,10 +377,10 @@ object ProcessSpecs extends DefaultRunnableSpec with ProxSpecHelpers {
           implicit val processRunner: ProcessRunner[JVMProcessInfo] = new JVMProcessRunner
 
           val process = Process("perl", List("-e", """$SIG{TERM} = sub { exit 1 }; sleep 30; exit 0"""))
-          val program = process.start().use { _ => ZIO(Thread.sleep(250)) }
+          val program = process.start().use { _ => ZIO.sleep(250.millis) }
 
-          assertM(program)(equalTo(()))
-        } @@ TestAspect.timeout(5.seconds),
+          program.map(r => assert(r)(equalTo(())))
+        } @@ TestAspect.withLiveClock @@ TestAspect.timeout(5.seconds),
 
         proxTest("can be terminated") { prox =>
           import prox._
@@ -394,12 +390,12 @@ object ProcessSpecs extends DefaultRunnableSpec with ProxSpecHelpers {
           val process = Process("perl", List("-e", """$SIG{TERM} = sub { exit 1 }; sleep 30; exit 0"""))
           val program = for {
             runningProcess <- process.startProcess()
-            _ <- ZIO(Thread.sleep(250))
+            _ <- ZIO.sleep(250.millis)
             result <- runningProcess.terminate()
           } yield result.exitCode
 
-          assertM(program)(equalTo(ExitCode(1)))
-        },
+          program.map(r => assert(r)(equalTo(ExitCode(1))))
+        } @@ TestAspect.withLiveClock,
 
         proxTest("can be killed") { prox =>
           import prox._
@@ -409,12 +405,12 @@ object ProcessSpecs extends DefaultRunnableSpec with ProxSpecHelpers {
           val process = Process("perl", List("-e", """$SIG{TERM} = 'IGNORE'; sleep 30; exit 2"""))
           val program = for {
             runningProcess <- process.startProcess()
-            _ <- ZIO(Thread.sleep(250))
+            _ <- ZIO.sleep(250.millis)
             result <- runningProcess.kill()
           } yield result.exitCode
 
-          assertM(program)(equalTo(ExitCode(137)))
-        },
+          program.map(r => assert(r)(equalTo(ExitCode(137))))
+        } @@ TestAspect.withLiveClock,
 
         proxTest("can be checked if is alive") { prox =>
           import prox._
@@ -429,7 +425,7 @@ object ProcessSpecs extends DefaultRunnableSpec with ProxSpecHelpers {
             isAliveAfter <- runningProcess.isAlive
           } yield (isAliveBefore, isAliveAfter)
 
-          assertM(program)(equalTo((true, false)))
+          program.map(r => assert(r)(equalTo((true, false))))
         },
       ),
 
@@ -443,7 +439,7 @@ object ProcessSpecs extends DefaultRunnableSpec with ProxSpecHelpers {
           val p2 = p1.withCommand("echo")
           val program = p2.run().map(_.output)
 
-          assertM(program)(equalTo("Hello world\n"))
+          program.map(r => assert(r)(equalTo("Hello world\n")))
         },
 
         proxTest("can change the arguments") { prox =>
@@ -455,7 +451,7 @@ object ProcessSpecs extends DefaultRunnableSpec with ProxSpecHelpers {
           val p2 = p1.withArguments(List("Hello", "world"))
           val program = p2.run().map(_.output)
 
-          assertM(program)(equalTo("Hello world\n"))
+          program.map(r => assert(r)(equalTo("Hello world\n")))
         },
 
         proxTest("respects the working directory") { prox =>
@@ -463,11 +459,11 @@ object ProcessSpecs extends DefaultRunnableSpec with ProxSpecHelpers {
 
           implicit val processRunner: ProcessRunner[JVMProcessInfo] = new JVMProcessRunner
 
-          ZIO(java.nio.file.Files.createTempDirectory("prox")).flatMap { tempDirectory =>
+          ZIO.attempt(java.nio.file.Files.createTempDirectory("prox")).flatMap { tempDirectory =>
             val process = (Process("pwd") in tempDirectory) ># fs2.text.utf8.decode
             val program = process.run().map(_.output.trim)
 
-            assertM(program)(equalTo(tempDirectory.toString) || equalTo(s"/private${tempDirectory}"))
+            program.map(r => assert(r)(equalTo(tempDirectory.toString) || equalTo(s"/private${tempDirectory}")))
           }
         },
 
@@ -481,7 +477,7 @@ object ProcessSpecs extends DefaultRunnableSpec with ProxSpecHelpers {
             `with` ("TEST2" -> "prox")) ># fs2.text.utf8.decode
           val program = process.run().map(_.output)
 
-          assertM(program)(equalTo("Hello world! I am prox!\n"))
+          program.map(r => assert(r)(equalTo("Hello world! I am prox!\n")))
         },
 
         proxTest("is customizable with excluded environment variables") { prox =>
@@ -495,7 +491,7 @@ object ProcessSpecs extends DefaultRunnableSpec with ProxSpecHelpers {
             `without` "TEST1") ># fs2.text.utf8.decode
           val program = process.run().map(_.output)
 
-          assertM(program)(equalTo("Hello ! I am prox!\n"))
+          program.map(r => assert(r)(equalTo("Hello ! I am prox!\n")))
         },
 
         proxTest("is customizable with environment variables output is bound") { prox =>
@@ -508,7 +504,7 @@ object ProcessSpecs extends DefaultRunnableSpec with ProxSpecHelpers {
             `with` ("TEST2" -> "prox"))
           val program = process.run().map(_.output)
 
-          assertM(program)(equalTo("Hello world! I am prox!\n"))
+          program.map(r => assert(r)(equalTo("Hello world! I am prox!\n")))
         },
 
         proxTest("is customizable with environment variables if input is bound") { prox =>
@@ -522,7 +518,7 @@ object ProcessSpecs extends DefaultRunnableSpec with ProxSpecHelpers {
             `with` ("TEST2" -> "prox")) ># fs2.text.utf8.decode
           val program = process.run().map(_.output)
 
-          assertM(program)(equalTo("Hello world! I am prox!\n"))
+          program.map(r => assert(r)(equalTo("Hello world! I am prox!\n")))
         },
 
         proxTest("is customizable with environment variables if error is bound") { prox =>
@@ -536,7 +532,7 @@ object ProcessSpecs extends DefaultRunnableSpec with ProxSpecHelpers {
             `with` ("TEST2" -> "prox")) ># fs2.text.utf8.decode
           val program = process.run().map(_.output)
 
-          assertM(program)(equalTo("Hello world! I am prox!\n"))
+          program.map(r => assert(r)(equalTo("Hello world! I am prox!\n")))
         },
 
         proxTest("is customizable with environment variables if input and output are bound") { prox =>
@@ -550,7 +546,7 @@ object ProcessSpecs extends DefaultRunnableSpec with ProxSpecHelpers {
             `with` ("TEST2" -> "prox"))
           val program = process.run().map(_.output)
 
-          assertM(program)(equalTo("Hello world! I am prox!\n"))
+          program.map(r => assert(r)(equalTo("Hello world! I am prox!\n")))
         },
 
 
@@ -565,7 +561,7 @@ object ProcessSpecs extends DefaultRunnableSpec with ProxSpecHelpers {
             `with` ("TEST2" -> "prox")) ># fs2.text.utf8.decode
           val program = process.run().map(_.output)
 
-          assertM(program)(equalTo("Hello world! I am prox!\n"))
+          program.map(r => assert(r)(equalTo("Hello world! I am prox!\n")))
         },
 
         proxTest("is customizable with environment variables if output and error are bound") { prox =>
@@ -578,7 +574,7 @@ object ProcessSpecs extends DefaultRunnableSpec with ProxSpecHelpers {
             `with` ("TEST2" -> "prox"))
           val program = process.run().map(_.output)
 
-          assertM(program)(equalTo("Hello world! I am prox!\n"))
+          program.map(r => assert(r)(equalTo("Hello world! I am prox!\n")))
         },
 
         proxTest("is customizable with environment variables if everything is bound") { prox =>
@@ -592,27 +588,30 @@ object ProcessSpecs extends DefaultRunnableSpec with ProxSpecHelpers {
             `with` ("TEST2" -> "prox"))
           val program = process.run().map(_.output)
 
-          assertM(program)(equalTo("Hello world! I am prox!\n"))
+          program.map(r => assert(r)(equalTo("Hello world! I am prox!\n")))
         },
       ),
 
-      testM("double output redirect is illegal") {
-        assertM(
-          typeCheck("""val bad = Process("echo", List("Hello world")) > new File("x").toPath > new File("y").toPath"""))(
+      test("double output redirect is illegal") {
+        typeCheck("""val bad = Process("echo", List("Hello world")) > new File("x").toPath > new File("y").toPath""").map(r =>
+        assert(
+          r)(
           isLeft(anything)
-        )
+        ))
       },
-      testM("double error redirect is illegal") {
-        assertM(
-          typeCheck("""val bad = Process("echo", List("Hello world")) !> new File("x").toPath !> new File("y").toPath"""))(
+      test("double error redirect is illegal") {
+        typeCheck("""val bad = Process("echo", List("Hello world")) !> new File("x").toPath !> new File("y").toPath""").map(r =>
+        assert(
+          r)(
           isLeft(anything)
-        )
+        ))
       },
-      testM("double input redirect is illegal") {
-        assertM(
-          typeCheck("""val bad = (Process("echo", List("Hello world")) < fs2.Stream("X").through(fs2.text.utf8.encode)) < fs2.Stream("Y").through(fs2.text.utf8.encode)"""))(
+      test("double input redirect is illegal") {
+        typeCheck("""val bad = (Process("echo", List("Hello world")) < fs2.Stream("X").through(fs2.text.utf8.encode)) < fs2.Stream("Y").through(fs2.text.utf8.encode)""").map(r =>
+        assert(
+          r)(
           isLeft(anything)
-        )
+        ))
       }
     ) @@ timeout(60.seconds) @@ sequential
 }

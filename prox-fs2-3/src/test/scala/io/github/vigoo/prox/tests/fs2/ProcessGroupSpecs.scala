@@ -2,14 +2,14 @@ package io.github.vigoo.prox.tests.fs2
 
 import cats.effect.ExitCode
 import fs2.io.file.{Files, Flags}
-import zio.duration._
+import io.github.vigoo.prox.UnknownProxError
 import zio.interop.catz._
 import zio.test.Assertion._
 import zio.test.TestAspect._
 import zio.test._
-import zio.{IO, RIO, Task, ZEnv, ZIO}
+import zio.{IO, RIO, Task, ZIO, durationInt}
 
-object ProcessGroupSpecs extends DefaultRunnableSpec with ProxSpecHelpers {
+object ProcessGroupSpecs extends ZIOSpecDefault with ProxSpecHelpers {
 
   override val spec =
     suite("Piping processes together")(
@@ -22,7 +22,7 @@ object ProcessGroupSpecs extends DefaultRunnableSpec with ProxSpecHelpers {
           val processGroup = (Process("echo", List("This is a test string")) | Process("wc", List("-w"))) ># fs2.text.utf8.decode
           val program = processGroup.run().map(_.output.trim)
 
-          assertM(program)(equalTo("5"))
+          program.map(r => assert(r)(equalTo("5")))
         },
 
         proxTest("is possible with multiple") { prox =>
@@ -41,7 +41,7 @@ object ProcessGroupSpecs extends DefaultRunnableSpec with ProxSpecHelpers {
             r => r.output.map(_.stripLineEnd.trim).filter(_.nonEmpty)
           )
 
-          assertM(program)(hasSameElements(List("1 apple")))
+          program.map(r => assert(r)(hasSameElements(List("1 apple"))))
         },
 
         proxTest("is customizable with pipes") { prox =>
@@ -62,7 +62,7 @@ object ProcessGroupSpecs extends DefaultRunnableSpec with ProxSpecHelpers {
           val processGroup = (Process("echo", List("This is a test string")).via(customPipe).to(Process("wc", List("-w")))) ># fs2.text.utf8.decode
           val program = processGroup.run().map(_.output.trim)
 
-          assertM(program)(equalTo("11"))
+          program.map(r => assert(r)(equalTo("11")))
         },
 
         proxTest("can be mapped") { prox =>
@@ -81,7 +81,7 @@ object ProcessGroupSpecs extends DefaultRunnableSpec with ProxSpecHelpers {
 
           val program = processGroup2.run().map(_.output.trim)
 
-          assertM(program)(equalTo("5"))
+          program.map(r => assert(r)(equalTo("5")))
         }
       ),
 
@@ -96,7 +96,7 @@ object ProcessGroupSpecs extends DefaultRunnableSpec with ProxSpecHelpers {
               Process("sort")
           val program = processGroup.start().use { fiber => fiber.cancel }
 
-          assertM(program)(equalTo(()))
+          program.map(r => assert(r)(equalTo(())))
         } @@ TestAspect.timeout(5.seconds),
 
         proxTest("can be terminated") { prox =>
@@ -110,12 +110,12 @@ object ProcessGroupSpecs extends DefaultRunnableSpec with ProxSpecHelpers {
 
           val program = for {
             runningProcesses <- processGroup.startProcessGroup()
-            _ <- ZIO(Thread.sleep(250))
+            _ <- ZIO.sleep(250.millis)
             result <- runningProcesses.terminate()
           } yield result.exitCodes.toList
 
-          assertM(program)(contains[(Process[Unit, Unit], ProxExitCode)](p1 -> ExitCode(1)))
-        },
+          program.map(r => assert(r)(contains[(Process[Unit, Unit], ProxExitCode)](p1 -> ExitCode(1))))
+        } @@ TestAspect.withLiveClock,
 
         proxTest("can be killed") { prox =>
           import prox._
@@ -128,14 +128,14 @@ object ProcessGroupSpecs extends DefaultRunnableSpec with ProxSpecHelpers {
 
           val program = for {
             runningProcesses <- processGroup.startProcessGroup()
-            _ <- ZIO(Thread.sleep(250))
+            _ <- ZIO.sleep(250.millis)
             result <- runningProcesses.kill()
           } yield result.exitCodes
 
           // Note: we can't assert on the second process' exit code because there is a race condition
           // between killing it directly and being stopped because of the upstream process got killed.
-          assertM(program)(contains(p1 -> ExitCode(137)))
-        }
+          program.map(r => assert(r)(contains(p1 -> ExitCode(137))))
+        } @@ TestAspect.withLiveClock
       ),
 
       suite("Input redirection")(
@@ -148,7 +148,7 @@ object ProcessGroupSpecs extends DefaultRunnableSpec with ProxSpecHelpers {
           val processGroup = (Process("cat") | Process("wc", List("-w"))) < stream ># fs2.text.utf8.decode
           val program = processGroup.run().map(_.output.trim)
 
-          assertM(program)(equalTo("5"))
+          program.map(r => assert(r)(equalTo("5")))
         },
 
         proxTest("can be fed with an input file") { prox =>
@@ -158,12 +158,12 @@ object ProcessGroupSpecs extends DefaultRunnableSpec with ProxSpecHelpers {
 
           withTempFile { tempFile =>
             val program = for {
-              _ <- ZIO(java.nio.file.Files.write(tempFile.toPath, "This is a test string".getBytes("UTF-8")))
+              _ <- ZIO.attempt(java.nio.file.Files.write(tempFile.toPath, "This is a test string".getBytes("UTF-8")))
               processGroup = (Process("cat") | Process("wc", List("-w"))) < tempFile.toPath ># fs2.text.utf8.decode
               result <- processGroup.run()
             } yield result.output.trim
 
-            assertM(program)(equalTo("5"))
+            program .map(r => assert(r)(equalTo("5")))
           }
         }
       ),
@@ -177,10 +177,10 @@ object ProcessGroupSpecs extends DefaultRunnableSpec with ProxSpecHelpers {
             val processGroup = (Process("echo", List("This is a test string")) | Process("wc", List("-w"))) > tempFile.toPath
             val program = for {
               _ <- processGroup.run()
-              contents <- Files[RIO[ZEnv, *]].readAll(fs2.io.file.Path.fromNioPath(tempFile.toPath), 1024, Flags.Read).through(fs2.text.utf8.decode).compile.foldMonoid
+              contents <- Files.forAsync[Task].readAll(fs2.io.file.Path.fromNioPath(tempFile.toPath), 1024, Flags.Read).through(fs2.text.utf8.decode).compile.foldMonoid
             } yield contents.trim
 
-            assertM(program)(equalTo("5"))
+            program.map(r => assert(r)(equalTo("5")))
           }
         },
       ),
@@ -212,7 +212,7 @@ object ProcessGroupSpecs extends DefaultRunnableSpec with ProxSpecHelpers {
 
 
           val builder = new StringBuilder
-          val target: fs2.Pipe[Task, Byte, Unit] = _.evalMap(byte => IO {
+          val target: fs2.Pipe[Task, Byte, Unit] = _.evalMap(byte => ZIO.attempt {
             builder.append(byte.toChar)
           }.unit)
 
@@ -332,11 +332,11 @@ object ProcessGroupSpecs extends DefaultRunnableSpec with ProxSpecHelpers {
           val p1 = Process("perl", List("-e", """print STDERR "Hello""""))
           val p2 = Process("perl", List("-e", """print STDERR "world""""))
           val processGroup = (p1 | p2).customizedPerProcess.errorsToSink {
-            case p if p == p1 => _.evalMap(byte => IO {
+            case p if p == p1 => _.evalMap(byte => ZIO.attempt {
               builder1.append(byte.toChar)
             }.unit)
             case p if p == p2 =>
-              _.evalMap(byte => IO {
+              _.evalMap(byte => ZIO.attempt {
                 builder2.append(byte.toChar)
               }.unit)
           }
@@ -443,11 +443,11 @@ object ProcessGroupSpecs extends DefaultRunnableSpec with ProxSpecHelpers {
               }
               val program = for {
                 _ <- processGroup.run()
-                contents1 <- Files[RIO[ZEnv, *]].readAll(fs2.io.file.Path.fromNioPath(tempFile1.toPath), 1024, Flags.Read).through(fs2.text.utf8.decode).compile.foldMonoid
-                contents2 <- Files[RIO[ZEnv, *]].readAll(fs2.io.file.Path.fromNioPath(tempFile2.toPath), 1024, Flags.Read).through(fs2.text.utf8.decode).compile.foldMonoid
+                contents1 <- Files.forAsync[Task].readAll(fs2.io.file.Path.fromNioPath(tempFile1.toPath), 1024, Flags.Read).through(fs2.text.utf8.decode).compile.foldMonoid
+                contents2 <- Files.forAsync[Task].readAll(fs2.io.file.Path.fromNioPath(tempFile2.toPath), 1024, Flags.Read).through(fs2.text.utf8.decode).compile.foldMonoid
               } yield (contents1, contents2)
 
-              assertM(program)(equalTo(("Hello", "world")))
+              program.map(r => assert(r)(equalTo(("Hello", "world"))))
             }
           }
         },
@@ -575,11 +575,11 @@ object ProcessGroupSpecs extends DefaultRunnableSpec with ProxSpecHelpers {
         },
       ),
 
-      testM("bound process is not pipeable") {
-        assertM(
-          typeCheck("""val bad = (Process("echo", List("Hello world")) ># fs2.text.utf8.decode) | Process("wc", List("-w"))"""))(
+      test("bound process is not pipeable") {
+        typeCheck("""val bad = (Process("echo", List("Hello world")) ># fs2.text.utf8.decode) | Process("wc", List("-w"))""").map(r =>
+        assert(r)(
           isLeft(anything)
-        )
+        ))
       }
     ) @@ timeout(60.seconds) @@ sequential
 }
