@@ -107,7 +107,7 @@ object ProcessGroupSpecs extends ZIOSpecDefault with ProxSpecHelpers {
             processGroup.start().flatMap { fiber => fiber.interrupt.unit }
           }
 
-          program.map(r => assertTrue(r == ()))
+          program.as(assertCompletes)
         } @@ TestAspect.timeout(5.seconds),
         test("can be terminated") {
 

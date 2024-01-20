@@ -97,7 +97,7 @@ object ProcessSpecs extends ZIOSpecDefault with ProxSpecHelpers {
             .drainOutput(ZPipeline.utf8Decode >>> ZPipeline.splitLines)
           val program = process.run().map(_.output)
 
-          program.map(r => assertTrue(r == ()))
+          program.as(assertCompletes)
         },
         test("can redirect output to stream and fold it") {
           val process = Process("echo", List("Hello\nworld!")).foldOutput(
@@ -209,7 +209,7 @@ object ProcessSpecs extends ZIOSpecDefault with ProxSpecHelpers {
               .drainError(ZPipeline.utf8Decode >>> ZPipeline.splitLines)
           val program = process.run().map(_.error)
 
-          program.map(r => assertTrue(r == ()))
+          program.as(assertCompletes)
         },
         test("can redirect error to stream and fold it") {
           val process = Process(
@@ -356,7 +356,7 @@ object ProcessSpecs extends ZIOSpecDefault with ProxSpecHelpers {
             }
           }
 
-          program.map(r => assertTrue(r == ()))
+          program.as(assertCompletes)
         } @@ TestAspect.withLiveClock @@ TestAspect.timeout(
           5.seconds
         ) @@ TestAspect.diagnose(2.seconds),
@@ -369,7 +369,7 @@ object ProcessSpecs extends ZIOSpecDefault with ProxSpecHelpers {
             process.start() *> ZIO.sleep(250.millis)
           }
 
-          program.map(r => assertTrue(r == ()))
+          program.as(assertCompletes)
         } @@ TestAspect.withLiveClock @@ TestAspect.timeout(5.seconds),
         test("can be terminated") {
           val process = Process(
@@ -461,12 +461,12 @@ object ProcessSpecs extends ZIOSpecDefault with ProxSpecHelpers {
           program.map(r => assertTrue(r == "Hello ! I am prox!\n"))
         },
         test("is customizable with environment variables output is bound") {
-          val process = Process(
+          val process = (Process(
             "sh",
             List("-c", "echo \"Hello $TEST1! I am $TEST2!\"")
           ) ># ZPipeline.utf8Decode
             `with` ("TEST1" -> "world")
-            `with` ("TEST2" -> "prox")
+            `with` ("TEST2" -> "prox"))
           val program = process.run().map(_.output)
 
           program.map(r => assertTrue(r == "Hello world! I am prox!\n"))
@@ -502,12 +502,12 @@ object ProcessSpecs extends ZIOSpecDefault with ProxSpecHelpers {
           val source = ZStream("This is a test string").flatMap(s =>
             ZStream.fromIterable(s.getBytes(StandardCharsets.UTF_8))
           )
-          val process = ((Process(
+          val process = (((Process(
             "sh",
             List("-c", "cat > /dev/null; echo \"Hello $TEST1! I am $TEST2!\"")
           ) < source) ># ZPipeline.utf8Decode)
             `with` ("TEST1" -> "world")
-            `with` ("TEST2" -> "prox")
+            `with` ("TEST2" -> "prox"))
           val program = process.run().map(_.output)
 
           program.map(r => assertTrue(r == "Hello world! I am prox!\n"))
@@ -531,12 +531,12 @@ object ProcessSpecs extends ZIOSpecDefault with ProxSpecHelpers {
         test(
           "is customizable with environment variables if output and error are bound"
         ) {
-          val process = ((Process(
+          val process = (((Process(
             "sh",
             List("-c", "echo \"Hello $TEST1! I am $TEST2!\"")
           ) !># ZPipeline.utf8Decode) ># ZPipeline.utf8Decode)
             `with` ("TEST1" -> "world")
-            `with` ("TEST2" -> "prox")
+            `with` ("TEST2" -> "prox"))
           val program = process.run().map(_.output)
 
           program.map(r => assertTrue(r == "Hello world! I am prox!\n"))
@@ -547,12 +547,12 @@ object ProcessSpecs extends ZIOSpecDefault with ProxSpecHelpers {
           val source = ZStream("This is a test string").flatMap(s =>
             ZStream.fromIterable(s.getBytes(StandardCharsets.UTF_8))
           )
-          val process = (((Process(
+          val process = ((((Process(
             "sh",
             List("-c", "cat > /dev/null; echo \"Hello $TEST1! I am $TEST2!\"")
           ) < source) !># ZPipeline.utf8Decode) ># ZPipeline.utf8Decode)
             `with` ("TEST1" -> "world")
-            `with` ("TEST2" -> "prox")
+            `with` ("TEST2" -> "prox"))
           val program = process.run().map(_.output)
 
           program.map(r => assertTrue(r == "Hello world! I am prox!\n"))

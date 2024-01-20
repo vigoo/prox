@@ -115,7 +115,7 @@ object ProcessGroupSpecs extends ZIOSpecDefault with ProxSpecHelpers {
               Process("sort")
           val program = processGroup.start().use { fiber => fiber.cancel }
 
-          program.map(r => assertTrue(r == ()))
+          program.as(assertCompletes)
         } @@ TestAspect.timeout(5.seconds),
         proxTest("can be terminated") { prox =>
           import prox.*

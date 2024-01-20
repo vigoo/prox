@@ -139,7 +139,7 @@ object ProcessSpecs extends ZIOSpecDefault with ProxSpecHelpers {
             )
             val program = process.run().map(_.output)
 
-            program.map(r => assertTrue(r == ()))
+            program.as(assertCompletes)
         },
         proxTest("can redirect output to stream and fold it") { prox =>
           import prox.*
@@ -299,7 +299,7 @@ object ProcessSpecs extends ZIOSpecDefault with ProxSpecHelpers {
                 .drainError(fs2.text.utf8.decode.andThen(fs2.text.lines))
             val program = process.run().map(_.error)
 
-            program.map(r => assertTrue(r == ()))
+            program.as(assertCompletes)
         },
         proxTest("can redirect error to stream and fold it") { prox =>
           import prox.*
@@ -497,7 +497,7 @@ object ProcessSpecs extends ZIOSpecDefault with ProxSpecHelpers {
             fiber.cancel.delay(250.millis)
           }
 
-          program.map(r => assertTrue(r == ()))
+          program.as(assertCompletes)
         } @@ TestAspect.withLiveClock @@ TestAspect.timeout(5.seconds),
         proxTest("can be terminated by releasing the resource") { prox =>
           import prox.*
@@ -511,7 +511,7 @@ object ProcessSpecs extends ZIOSpecDefault with ProxSpecHelpers {
           )
           val program = process.start().use { _ => ZIO.sleep(250.millis) }
 
-          program.map(r => assertTrue(r == ()))
+          program.as(assertCompletes)
         } @@ TestAspect.withLiveClock @@ TestAspect.timeout(5.seconds),
         proxTest("can be terminated") { prox =>
           import prox.*
@@ -708,12 +708,12 @@ object ProcessSpecs extends ZIOSpecDefault with ProxSpecHelpers {
 
           val source =
             fs2.Stream("This is a test string").through(fs2.text.utf8.encode)
-          val process = ((Process(
+          val process = (((Process(
             "sh",
             List("-c", "cat > /dev/null; echo \"Hello $TEST1! I am $TEST2!\"")
           ) < source) ># fs2.text.utf8.decode)
             `with` ("TEST1" -> "world")
-            `with` ("TEST2" -> "prox")
+            `with` ("TEST2" -> "prox"))
           val program = process.run().map(_.output)
 
           program.map(r => assertTrue(r == "Hello world! I am prox!\n"))
@@ -746,12 +746,12 @@ object ProcessSpecs extends ZIOSpecDefault with ProxSpecHelpers {
           implicit val processRunner: ProcessRunner[JVMProcessInfo] =
             new JVMProcessRunner
 
-          val process = ((Process(
+          val process = (((Process(
             "sh",
             List("-c", "echo \"Hello $TEST1! I am $TEST2!\"")
           ) !># fs2.text.utf8.decode) ># fs2.text.utf8.decode)
             `with` ("TEST1" -> "world")
-            `with` ("TEST2" -> "prox")
+            `with` ("TEST2" -> "prox"))
           val program = process.run().map(_.output)
 
           program.map(r => assertTrue(r == "Hello world! I am prox!\n"))
