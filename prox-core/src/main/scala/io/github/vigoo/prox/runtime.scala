@@ -23,31 +23,61 @@ trait ProxRuntime {
   protected def unit: ProxIO[Unit]
   protected def pure[A](value: A): ProxIO[A]
   protected def effect[A](f: => A, wrapError: Throwable => ProxError): ProxIO[A]
-  protected def blockingEffect[A](f: => A, wrapError: Throwable => ProxError): ProxIO[A]
+  protected def blockingEffect[A](
+      f: => A,
+      wrapError: Throwable => ProxError
+  ): ProxIO[A]
   protected def raiseError(error: ProxError): ProxIO[Unit]
   protected def ioMap[A, B](io: ProxIO[A], f: A => B): ProxIO[B]
   protected def ioFlatMap[A, B](io: ProxIO[A], f: A => ProxIO[B]): ProxIO[B]
-  protected def traverse[A, B](list: List[A])(f: A => ProxIO[B]): ProxIO[List[B]]
+  protected def traverse[A, B](list: List[A])(
+      f: A => ProxIO[B]
+  ): ProxIO[List[B]]
 
   protected def identityPipe[A]: ProxPipe[A, A]
 
-  protected def bracket[A, B](acquire: ProxIO[A])(use: A => ProxIO[B])(fin: (A, IOResult) => ProxIO[Unit]): ProxIO[B]
+  protected def bracket[A, B](acquire: ProxIO[A])(use: A => ProxIO[B])(
+      fin: (A, IOResult) => ProxIO[Unit]
+  ): ProxIO[B]
 
-  protected def makeResource[A](acquire: ProxIO[A], release: A => ProxIO[Unit]): ProxResource[A]
-  protected def useResource[A, B](r: ProxResource[A], f: A => ProxIO[B]): ProxIO[B]
+  protected def makeResource[A](
+      acquire: ProxIO[A],
+      release: A => ProxIO[Unit]
+  ): ProxResource[A]
+  protected def useResource[A, B](
+      r: ProxResource[A],
+      f: A => ProxIO[B]
+  ): ProxIO[B]
 
   protected def joinFiber[A](f: ProxFiber[A]): ProxIO[A]
   protected def cancelFiber[A](f: ProxFiber[A]): ProxIO[Unit]
 
   protected def drainStream[A](s: ProxStream[A]): ProxIO[Unit]
   protected def streamToVector[A](s: ProxStream[A]): ProxIO[Vector[A]]
-  protected def foldStream[A, B](s: ProxStream[A], init: B, f: (B, A) => B): ProxIO[B]
-  protected def foldMonoidStream[A : ProxMonoid](s: ProxStream[A]): ProxIO[A]
-  protected def streamThrough[A, B](s: ProxStream[A], pipe: ProxPipe[A, B]): ProxStream[B]
-  protected def runStreamTo[A](s: ProxStream[A], sink: ProxSink[A]): ProxIO[Unit]
+  protected def foldStream[A, B](
+      s: ProxStream[A],
+      init: B,
+      f: (B, A) => B
+  ): ProxIO[B]
+  protected def foldMonoidStream[A: ProxMonoid](s: ProxStream[A]): ProxIO[A]
+  protected def streamThrough[A, B](
+      s: ProxStream[A],
+      pipe: ProxPipe[A, B]
+  ): ProxStream[B]
+  protected def runStreamTo[A](
+      s: ProxStream[A],
+      sink: ProxSink[A]
+  ): ProxIO[Unit]
 
-  protected def fromJavaInputStream(input: java.io.InputStream, chunkSize: Int): ProxStream[Byte]
-  protected def drainToJavaOutputStream(stream: ProxStream[Byte], output: java.io.OutputStream, flushChunks: Boolean): ProxIO[Unit]
+  protected def fromJavaInputStream(
+      input: java.io.InputStream,
+      chunkSize: Int
+  ): ProxStream[Byte]
+  protected def drainToJavaOutputStream(
+      stream: ProxStream[Byte],
+      output: java.io.OutputStream,
+      flushChunks: Boolean
+  ): ProxIO[Unit]
 
   protected def startFiber[A](f: ProxIO[A]): ProxIO[ProxFiber[A]]
 
@@ -73,16 +103,17 @@ trait ProxRuntime {
     def run(sink: ProxSink[A]): ProxIO[Unit] = runStreamTo(s, sink)
   }
 
-  protected implicit class MonoidStreamOps[A : ProxMonoid](s: ProxStream[A]) {
+  protected implicit class MonoidStreamOps[A: ProxMonoid](s: ProxStream[A]) {
     def foldMonoid: ProxIO[A] = foldMonoidStream(s)
   }
 
   protected implicit class ListProxErrorOps(list: List[ProxError]) {
     def toSingleError: ProxError =
       list match {
-        case Nil => UnknownProxError(new IllegalArgumentException("Error list is empty"))
+        case Nil =>
+          UnknownProxError(new IllegalArgumentException("Error list is empty"))
         case List(single) => single
-        case _ => MultipleProxErrors(list)
+        case _            => MultipleProxErrors(list)
       }
   }
 }

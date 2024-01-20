@@ -4,8 +4,8 @@ val scala3 = "3.3.1"
 
 val zio2Version = "2.0.21"
 
-def scalacOptions212(jdk: Int) = Seq("-Ypartial-unification", "-deprecation", "-release", jdk.toString)
-def scalacOptions213(jdk: Int) = Seq("-deprecation", "-release", jdk.toString)
+def scalacOptions212(jdk: Int) = Seq("-Ypartial-unification", "-deprecation", "-Xsource:3", "-release", jdk.toString)
+def scalacOptions213(jdk: Int) = Seq("-deprecation", "-Xsource:3", "-release", jdk.toString)
 def scalacOptions3(jdk: Int) = Seq("-deprecation", "-Ykind-projector", "-release", jdk.toString)
 
 import microsites.ConfigYml

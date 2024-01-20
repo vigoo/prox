@@ -11,13 +11,20 @@ import scala.language.implicitConversions
 
 trait ProxZStream extends Prox {
 
-  case class TransformAndSink[A, B](transform: ZStream[Any, ProxError, A] => ZStream[Any, ProxError, B],
-                                    sink: ZSink[Any, ProxError, B, Any, Unit]) {
-    private[ProxZStream] def run(s: ZStream[Any, ProxError, A]): ZIO[Any, ProxError, Unit] =
+  case class TransformAndSink[A, B](
+      transform: ZStream[Any, ProxError, A] => ZStream[Any, ProxError, B],
+      sink: ZSink[Any, ProxError, B, Any, Unit]
+  ) {
+    private[ProxZStream] def run(
+        s: ZStream[Any, ProxError, A]
+    ): ZIO[Any, ProxError, Unit] =
       transform(s).run(sink)
   }
   object TransformAndSink {
-    def apply[A, B](transducer: ZPipeline[Any, ProxError, A, B], sink: ZSink[Any, ProxError, B, Any, Unit]): TransformAndSink[A, B] =
+    def apply[A, B](
+        transducer: ZPipeline[Any, ProxError, A, B],
+        sink: ZSink[Any, ProxError, B, Any, Unit]
+    ): TransformAndSink[A, B] =
       TransformAndSink(_.via(transducer), sink)
   }
 
@@ -39,45 +46,74 @@ trait ProxZStream extends Prox {
   protected override final def pure[A](value: A): ProxIO[A] =
     ZIO.succeed(value)
 
-  protected override final def effect[A](f: => A, wrapError: Throwable => ProxError): ProxIO[A] =
+  protected override final def effect[A](
+      f: => A,
+      wrapError: Throwable => ProxError
+  ): ProxIO[A] =
     ZIO.attempt(f).mapError(wrapError)
 
-  protected override final def blockingEffect[A](f: => A, wrapError: Throwable => ProxError): ProxIO[A] =
+  protected override final def blockingEffect[A](
+      f: => A,
+      wrapError: Throwable => ProxError
+  ): ProxIO[A] =
     ZIO.attemptBlockingInterrupt(f).mapError(wrapError).interruptible
 
   protected override final def raiseError(error: ProxError): ProxIO[Unit] =
     ZIO.fail(error)
 
-  protected override final def ioMap[A, B](io: ProxIO[A], f: A => B): ProxIO[B] =
+  protected override final def ioMap[A, B](
+      io: ProxIO[A],
+      f: A => B
+  ): ProxIO[B] =
     io.map(f)
 
-  protected override final def ioFlatMap[A, B](io: ProxIO[A], f: A => ProxIO[B]): ProxIO[B] =
+  protected override final def ioFlatMap[A, B](
+      io: ProxIO[A],
+      f: A => ProxIO[B]
+  ): ProxIO[B] =
     io.flatMap(f)
 
-  protected override final def traverse[A, B](list: List[A])(f: A => ProxIO[B]): ProxIO[List[B]] =
+  protected override final def traverse[A, B](list: List[A])(
+      f: A => ProxIO[B]
+  ): ProxIO[List[B]] =
     ZIO.foreach(list)(f)
 
   protected override final def identityPipe[A]: ProxPipe[A, A] =
     identity
 
-  protected override final def bracket[A, B](acquire: ProxIO[A])(use: A => ProxIO[B])(fin: (A, IOResult) => ProxIO[Unit]): ProxIO[B] = {
-    ZIO.acquireReleaseExitWith(acquire) { (value: A, exit: Exit[ProxError, B]) =>
-      exit match {
-        case Exit.Success(_) => fin(value, Completed).mapError(_.toThrowable).orDie
-        case Exit.Failure(cause) =>
-          if (cause.isInterrupted) {
-            fin(value, Canceled).mapError(_.toThrowable).orDie
-          } else {
-            fin(value, Failed(cause.failures ++ cause.defects.map(UnknownProxError.apply))).mapError(_.toThrowable).orDie
-          }
-      }
+  protected override final def bracket[A, B](
+      acquire: ProxIO[A]
+  )(use: A => ProxIO[B])(fin: (A, IOResult) => ProxIO[Unit]): ProxIO[B] = {
+    ZIO.acquireReleaseExitWith(acquire) {
+      (value: A, exit: Exit[ProxError, B]) =>
+        exit match {
+          case Exit.Success(_) =>
+            fin(value, Completed).mapError(_.toThrowable).orDie
+          case Exit.Failure(cause) =>
+            if (cause.isInterrupted) {
+              fin(value, Canceled).mapError(_.toThrowable).orDie
+            } else {
+              fin(
+                value,
+                Failed(
+                  cause.failures ++ cause.defects.map(UnknownProxError.apply)
+                )
+              ).mapError(_.toThrowable).orDie
+            }
+        }
     }(a => ZIO.allowInterrupt *> use(a))
   }
 
-  protected override final def makeResource[A](acquire: ProxIO[A], release: A => ProxIO[Unit]): ProxResource[A] =
+  protected override final def makeResource[A](
+      acquire: ProxIO[A],
+      release: A => ProxIO[Unit]
+  ): ProxResource[A] =
     ZIO.acquireRelease(acquire)(x => release(x).mapError(_.toThrowable).orDie)
 
-  protected override final def useResource[A, B](r: ProxResource[A], f: A => ProxIO[B]): ProxIO[B] =
+  protected override final def useResource[A, B](
+      r: ProxResource[A],
+      f: A => ProxIO[B]
+  ): ProxIO[B] =
     ZIO.scoped(r.flatMap(f))
 
   protected override final def joinFiber[A](f: ProxFiber[A]): ProxIO[A] =
@@ -89,62 +125,111 @@ trait ProxZStream extends Prox {
   protected override final def drainStream[A](s: ProxStream[A]): ProxIO[Unit] =
     s.runDrain
 
-  protected override final def streamToVector[A](s: ProxStream[A]): ProxIO[Vector[A]] =
+  protected override final def streamToVector[A](
+      s: ProxStream[A]
+  ): ProxIO[Vector[A]] =
     s.runCollect.map(_.toVector)
 
-  protected override final def foldStream[A, B](s: ProxStream[A], init: B, f: (B, A) => B): ProxIO[B] =
+  protected override final def foldStream[A, B](
+      s: ProxStream[A],
+      init: B,
+      f: (B, A) => B
+  ): ProxIO[B] =
     s.runFold(init)(f)
 
-  protected override final def foldMonoidStream[A: Identity](s: ProxStream[A]): ProxIO[A] =
+  protected override final def foldMonoidStream[A: Identity](
+      s: ProxStream[A]
+  ): ProxIO[A] =
     s.runFold(Identity[A].identity)((a, b) => Identity[A].combine(a, b))
 
-  protected override final def streamThrough[A, B](s: ProxStream[A], pipe: ProxPipe[A, B]): ProxStream[B] =
+  protected override final def streamThrough[A, B](
+      s: ProxStream[A],
+      pipe: ProxPipe[A, B]
+  ): ProxStream[B] =
     pipe(s)
 
-  override protected final def runStreamTo[A](s: ProxStream[A], sink: ProxSink[A]): ProxIO[Unit] =
+  override protected final def runStreamTo[A](
+      s: ProxStream[A],
+      sink: ProxSink[A]
+  ): ProxIO[Unit] =
     sink.run(s)
 
-  protected override final def fromJavaInputStream(input: io.InputStream, chunkSize: Int): ProxStream[Byte] =
-    ZStream.fromInputStream(input, chunkSize).mapError(FailedToReadProcessOutput.apply)
+  protected override final def fromJavaInputStream(
+      input: io.InputStream,
+      chunkSize: Int
+  ): ProxStream[Byte] =
+    ZStream
+      .fromInputStream(input, chunkSize)
+      .mapError(FailedToReadProcessOutput.apply)
 
-  protected override final def drainToJavaOutputStream(stream: ProxStream[Byte], output: io.OutputStream, flushChunks: Boolean): ProxIO[Unit] = {
-    val managedOutput = ZIO.acquireRelease(ZIO.succeed(output))(s => ZIO.attempt(s.close()).orDie)
+  protected override final def drainToJavaOutputStream(
+      stream: ProxStream[Byte],
+      output: io.OutputStream,
+      flushChunks: Boolean
+  ): ProxIO[Unit] = {
+    val managedOutput =
+      ZIO.acquireRelease(ZIO.succeed(output))(s => ZIO.attempt(s.close()).orDie)
     if (flushChunks) {
-      stream.run(flushingOutputStreamSink(managedOutput).mapError(FailedToWriteProcessInput.apply)).unit
+      stream
+        .run(
+          flushingOutputStreamSink(managedOutput)
+            .mapError(FailedToWriteProcessInput.apply)
+        )
+        .unit
     } else {
       stream
-        .run(ZSink
-          .fromOutputStreamScoped(managedOutput)
-          .mapError(FailedToWriteProcessInput.apply)).unit
+        .run(
+          ZSink
+            .fromOutputStreamScoped(managedOutput)
+            .mapError(FailedToWriteProcessInput.apply)
+        )
+        .unit
     }
   }
 
-  private final def flushingOutputStreamSink(managedOutput: ZIO[Scope, Nothing, io.OutputStream]): ZSink[Any, IOException, Byte, Byte, Long] =
+  private final def flushingOutputStreamSink(
+      managedOutput: ZIO[Scope, Nothing, io.OutputStream]
+  ): ZSink[Any, IOException, Byte, Byte, Long] =
     ZSink.unwrapScoped {
       managedOutput.map { os =>
         ZSink.foldLeftChunksZIO(0L) { (bytesWritten, byteChunk: Chunk[Byte]) =>
-          ZIO.attemptBlockingInterrupt {
-            val bytes = byteChunk.toArray
-            os.write(bytes)
-            os.flush()
-            bytesWritten + bytes.length
-          }.refineOrDie {
-            case e: IOException => e
-          }
+          ZIO
+            .attemptBlockingInterrupt {
+              val bytes = byteChunk.toArray
+              os.write(bytes)
+              os.flush()
+              bytesWritten + bytes.length
+            }
+            .refineOrDie { case e: IOException =>
+              e
+            }
         }
       }
     }
 
-  protected override final def startFiber[A](f: ProxIO[A]): ProxIO[ProxFiber[A]] =
+  protected override final def startFiber[A](
+      f: ProxIO[A]
+  ): ProxIO[ProxFiber[A]] =
     f.fork
 
-  implicit def transducerAsPipe[A, B](transducer: ZPipeline[Any, ProxError, A, B]): ProxPipe[A, B] =
+  implicit def transducerAsPipe[A, B](
+      transducer: ZPipeline[Any, ProxError, A, B]
+  ): ProxPipe[A, B] =
     (s: ProxStream[A]) => s.via(transducer)
 
-  implicit def transducerAsPipeThrowable[A, B](transducer: ZPipeline[Any, Throwable, A, B]): ProxPipe[A, B] =
-    (s: ProxStream[A]) => s.via(ZPipeline.fromChannel(transducer.channel.mapError(UnknownProxError.apply)))
+  implicit def transducerAsPipeThrowable[A, B](
+      transducer: ZPipeline[Any, Throwable, A, B]
+  ): ProxPipe[A, B] =
+    (s: ProxStream[A]) =>
+      s.via(
+        ZPipeline.fromChannel(
+          transducer.channel.mapError(UnknownProxError.apply)
+        )
+      )
 
-  implicit def sinkAsTransformAndSink[A](sink: ZSink[Any, ProxError, A, Any, Unit]): TransformAndSink[A, A] =
+  implicit def sinkAsTransformAndSink[A](
+      sink: ZSink[Any, ProxError, A, Any, Unit]
+  ): TransformAndSink[A, A] =
     TransformAndSink(identity[ZStream[Any, ProxError, A]] _, sink)
 }
 

@@ -20,7 +20,6 @@ object InterpolatorSpecs extends ZIOSpecDefault with ProxSpecHelpers {
             )
           )
         },
-
         proxTest("works with interpolated process name") { prox =>
           import prox._
 
@@ -34,37 +33,44 @@ object InterpolatorSpecs extends ZIOSpecDefault with ProxSpecHelpers {
             )
           )
         },
-
         proxTest("works with static parameters") { prox =>
           import prox._
 
           val process = proc"ls -hal tmp"
 
           ZIO.succeed(
-            assert(process.command)(equalTo("ls")) && assert(process.arguments)(equalTo(List("-hal", "tmp"))))
+            assert(process.command)(equalTo("ls")) && assert(process.arguments)(
+              equalTo(List("-hal", "tmp"))
+            )
+          )
         },
+        proxTest("works with static parameters and interpolated process name") {
+          prox =>
+            import prox._
 
-        proxTest("works with static parameters and interpolated process name") { prox =>
-          import prox._
+            val cmd = "ls"
+            val process = proc"$cmd -hal tmp"
 
-          val cmd = "ls"
-          val process = proc"$cmd -hal tmp"
-
-          ZIO.succeed(
-            assert(process.command)(equalTo("ls")) && assert(process.arguments)(equalTo(List("-hal", "tmp"))))
+            ZIO.succeed(
+              assert(process.command)(equalTo("ls")) && assert(
+                process.arguments
+              )(equalTo(List("-hal", "tmp")))
+            )
         },
+        proxTest("works with static process name and interpolated parameters") {
+          prox =>
+            import prox._
 
-        proxTest("works with static process name and interpolated parameters") { prox =>
-          import prox._
+            val p1 = "-hal"
+            val p2 = "tmp"
+            val process = proc"ls $p1 $p2"
 
-          val p1 = "-hal"
-          val p2 = "tmp"
-          val process = proc"ls $p1 $p2"
-
-          ZIO.succeed(
-            assert(process.command)(equalTo("ls")) && assert(process.arguments)(equalTo(List("-hal", "tmp"))))
+            ZIO.succeed(
+              assert(process.command)(equalTo("ls")) && assert(
+                process.arguments
+              )(equalTo(List("-hal", "tmp")))
+            )
         },
-
         proxTest("works with interpolated name and parameters") { prox =>
           import prox._
 
@@ -74,19 +80,25 @@ object InterpolatorSpecs extends ZIOSpecDefault with ProxSpecHelpers {
           val process = proc"$cmd $p1 $p2"
 
           ZIO.succeed(
-            assert(process.command)(equalTo("ls")) && assert(process.arguments)(equalTo(List("-hal", "tmp"))))
+            assert(process.command)(equalTo("ls")) && assert(process.arguments)(
+              equalTo(List("-hal", "tmp"))
+            )
+          )
         },
+        proxTest("works with mixed static and interpolated parameters") {
+          prox =>
+            import prox._
 
-        proxTest("works with mixed static and interpolated parameters") { prox =>
-          import prox._
+            val p1 = "hello"
+            val p2 = "dear visitor"
+            val process = proc"echo $p1, $p2!!!"
 
-          val p1 = "hello"
-          val p2 = "dear visitor"
-          val process = proc"echo $p1, $p2!!!"
-
-          ZIO.succeed(
-            assert(process.command)(equalTo("echo")) &&
-              assert(process.arguments)(equalTo(List("hello", ",", "dear visitor", "!!!"))))
+            ZIO.succeed(
+              assert(process.command)(equalTo("echo")) &&
+                assert(process.arguments)(
+                  equalTo(List("hello", ",", "dear visitor", "!!!"))
+                )
+            )
         }
       )
     )

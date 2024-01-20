@@ -7,9 +7,12 @@ import zio.ZIO
 
 trait ProxSpecHelpers {
 
-  def withTempFile[A](inner: File => ZIO[Any, ProxError, A]): ZIO[Any, ProxError, A] =
+  def withTempFile[A](
+      inner: File => ZIO[Any, ProxError, A]
+  ): ZIO[Any, ProxError, A] =
     ZIO.acquireReleaseWith(
-      ZIO.attempt(File.createTempFile("test", "txt"))
-      .mapError(UnknownProxError.apply)
+      ZIO
+        .attempt(File.createTempFile("test", "txt"))
+        .mapError(UnknownProxError.apply)
     )(file => ZIO.attempt(file.delete()).orDie)(inner)
 }
