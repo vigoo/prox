@@ -8,7 +8,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        scala: ['2.12.15', '2.13.8', '3.1.0']
+        scala: ['2.12.18', '2.13.12', '3.3.1']
     steps:
       - name: Checkout
         uses: actions/checkout@v2
