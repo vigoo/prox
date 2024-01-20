@@ -152,7 +152,7 @@ lazy val docs = project
     ),
     micrositeAnalyticsToken := "UA-56320875-3",
     micrositePushSiteWith := GitHub4s,
-    micrositeGithubToken := sys.env.get("ADMIN_GITHUB_TOKEN"),
+    micrositeGithubToken := sys.env.get("GITHUB_TOKEN"),
     makeSite / includeFilter := "*.html" | "*.css" | "*.png" | "*.jpg" | "*.gif" | "*.js" | "*.swf" | "*.txt" | "*.xml" | "*.svg",
     // Temporary fix to avoid including mdoc in the published POM
 
