@@ -2,21 +2,19 @@ val scala212 = "2.12.18"
 val scala213 = "2.13.12"
 val scala3 = "3.3.1"
 
-val zioVersion = "1.0.16"
-val zio2Version = "2.0.2"
+val zio2Version = "2.0.21"
 
-val scalacOptions212 = Seq("-Ypartial-unification", "-deprecation", "-target:jvm-1.8")
-val scalacOptions213 = Seq("-deprecation", "-target:jvm-1.8")
+def scalacOptions212(jdk: Int) = Seq("-Ypartial-unification", "-deprecation", "-Xsource:3", "-release", jdk.toString)
+def scalacOptions213(jdk: Int) = Seq("-deprecation", "-Xsource:3", "-release", jdk.toString)
 def scalacOptions3(jdk: Int) = Seq("-deprecation", "-Ykind-projector", "-release", jdk.toString)
 
 import microsites.ConfigYml
-import sbt.enablePlugins
 import xerial.sbt.Sonatype._
 
 import scala.xml.{Node => XmlNode, NodeSeq => XmlNodeSeq, _}
 import scala.xml.transform.{RewriteRule, RuleTransformer}
 
-dynverSonatypeSnapshots in ThisBuild := true
+ThisBuild / dynverSonatypeSnapshots := true
 
 def commonSettings(jdk: Int) = Seq(
   organization := "io.github.vigoo",
@@ -30,15 +28,15 @@ def commonSettings(jdk: Int) = Seq(
       )
   }),
   libraryDependencies ++= Seq(
-    "org.scala-lang.modules" %% "scala-collection-compat" % "2.8.1"
+    "org.scala-lang.modules" %% "scala-collection-compat" % "2.11.0"
   ),
 
-  coverageEnabled in(Test, compile) := true,
-  coverageEnabled in(Compile, compile) := false,
+  Test / compile / coverageEnabled := true,
+  Compile / compile / coverageEnabled := false,
 
   scalacOptions ++= (CrossVersion.partialVersion(scalaVersion.value) match {
-    case Some((2, 12)) => scalacOptions212
-    case Some((2, 13)) => scalacOptions213
+    case Some((2, 12)) => scalacOptions212(jdk)
+    case Some((2, 13)) => scalacOptions213(jdk)
     case Some((3, _)) => scalacOptions3(jdk)
     case _ => Nil
   }),
@@ -74,47 +72,21 @@ lazy val prox = project.in(file("."))
   .settings(
     name := "prox",
     organization := "io.github.vigoo",
-    skip in publish := true
+    publish / skip := true
   )
-  .aggregate(proxCore, proxFS2, proxFS23, proxZStream, proxZStream2, proxJava9)
+  .aggregate(proxCore, proxFS23, proxZStream2, proxJava9)
 
 lazy val proxCore = Project("prox-core", file("prox-core")).settings(commonSettings(8))
 
-lazy val proxFS2 = Project("prox-fs2", file("prox-fs2")).settings(commonSettings(8)).settings(
-  libraryDependencies ++= Seq(
-    "org.typelevel" %% "cats-effect" % "2.5.5",
-    "co.fs2" %% "fs2-core" % "2.5.11",
-    "co.fs2" %% "fs2-io" % "2.5.11",
-
-    "dev.zio" %% "zio" % zioVersion % "test",
-    "dev.zio" %% "zio-test" % zioVersion % "test",
-    "dev.zio" %% "zio-test-sbt" % zioVersion % "test",
-    "dev.zio" %% "zio-interop-cats" % "2.5.1.0" % "test",
-  ),
-  testFrameworks += new TestFramework("zio.test.sbt.ZTestFramework"),
-).dependsOn(proxCore)
-
 lazy val proxFS23 = Project("prox-fs2-3", file("prox-fs2-3")).settings(commonSettings(8)).settings(
   libraryDependencies ++= Seq(
-    "co.fs2" %% "fs2-core" % "3.3.0",
-    "co.fs2" %% "fs2-io" % "3.3.0",
+    "co.fs2" %% "fs2-core" % "3.9.3",
+    "co.fs2" %% "fs2-io" % "3.9.3",
 
-    "dev.zio" %% "zio" % zioVersion % "test",
-    "dev.zio" %% "zio-test" % zioVersion % "test",
-    "dev.zio" %% "zio-test-sbt" % zioVersion % "test",
-    "dev.zio" %% "zio-interop-cats" % "3.2.9.1" % "test",
-  ),
-  testFrameworks += new TestFramework("zio.test.sbt.ZTestFramework"),
-).dependsOn(proxCore)
-
-lazy val proxZStream = Project("prox-zstream", file("prox-zstream")).settings(commonSettings(8)).settings(
-  libraryDependencies ++= Seq(
-    "dev.zio" %% "zio" % zioVersion,
-    "dev.zio" %% "zio-streams" % zioVersion,
-    "dev.zio" %% "zio-prelude" % "1.0.0-RC8",
-
-    "dev.zio" %% "zio-test" % zioVersion % "test",
-    "dev.zio" %% "zio-test-sbt" % zioVersion % "test",
+    "dev.zio" %% "zio" % zio2Version % "test",
+    "dev.zio" %% "zio-test" % zio2Version % "test",
+    "dev.zio" %% "zio-test-sbt" % zio2Version % "test",
+    "dev.zio" %% "zio-interop-cats" % "23.1.0.0" % "test",
   ),
   testFrameworks += new TestFramework("zio.test.sbt.ZTestFramework"),
 ).dependsOn(proxCore)
@@ -125,7 +97,7 @@ lazy val proxZStream2 = Project("prox-zstream-2", file("prox-zstream-2")).settin
   libraryDependencies ++= Seq(
     "dev.zio" %% "zio" % zio2Version,
     "dev.zio" %% "zio-streams" % zio2Version,
-    "dev.zio" %% "zio-prelude" % "1.0.0-RC15",
+    "dev.zio" %% "zio-prelude" % "1.0.0-RC21",
 
     "dev.zio" %% "zio-test" % zio2Version % "test",
     "dev.zio" %% "zio-test-sbt" % zio2Version % "test",
@@ -142,17 +114,17 @@ lazy val docs = project
   .settings(
     addCompilerPlugin("org.typelevel" %% s"kind-projector" % "0.13.2" cross CrossVersion.full),
     publishArtifact := false,
-    skip in publish := true,
+    publish / skip := true,
     scalaVersion := scala213,
     name := "prox",
     description := "A Scala library for working with system processes",
     git.remoteRepo := "git@github.com:vigoo/prox.git",
-    siteSubdirName in ScalaUnidoc := "api",
-    addMappingsToSiteDir(mappings in (ScalaUnidoc, packageDoc), siteSubdirName in ScalaUnidoc),
+    ScalaUnidoc / siteSubdirName := "api",
+    addMappingsToSiteDir(ScalaUnidoc / packageDoc / mappings, ScalaUnidoc / siteSubdirName),
     ScalaUnidoc / unidoc / unidocProjectFilter := inProjects(
       proxCore,
-      proxFS2,
-      proxZStream,
+      proxFS23,
+      proxZStream2,
       proxJava9
     ),
     micrositeUrl := "https://vigoo.github.io",
@@ -181,7 +153,7 @@ lazy val docs = project
     micrositeAnalyticsToken := "UA-56320875-3",
     micrositePushSiteWith := GitHub4s,
     micrositeGithubToken := sys.env.get("GITHUB_TOKEN"),
-    includeFilter in makeSite := "*.html" | "*.css" | "*.png" | "*.jpg" | "*.gif" | "*.js" | "*.swf" | "*.txt" | "*.xml" | "*.svg",
+    makeSite / includeFilter := "*.html" | "*.css" | "*.png" | "*.jpg" | "*.gif" | "*.js" | "*.swf" | "*.txt" | "*.xml" | "*.svg",
     // Temporary fix to avoid including mdoc in the published POM
 
     // skip dependency elements with a scope
@@ -197,4 +169,4 @@ lazy val docs = project
         }
       }).transform(node).head
     }
-  ).dependsOn(proxCore, proxFS2/* todo , proxFS23 */, proxZStream, proxJava9)
+  ).dependsOn(proxCore, proxFS23, proxZStream2, proxJava9)

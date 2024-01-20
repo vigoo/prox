@@ -9,10 +9,7 @@ import cats.effect._
 import scala.concurrent.ExecutionContext
 import io.github.vigoo.prox._
 
-implicit val contextShift = IO.contextShift(ExecutionContext.global)
-val (blocker, _) = Blocker[IO].allocated.unsafeRunSync()
-
-val prox = ProxFS2[IO](blocker)
+val prox = ProxFS2[IO]
 import prox._
 ``` 
 
@@ -44,12 +41,12 @@ following not very useful example capitalizes each word coming through:
 ```scala mdoc:silent
 val customPipe: fs2.Pipe[IO, Byte, Byte] =
     (s: fs2.Stream[IO, Byte]) => s
-      .through(fs2.text.utf8Decode) // decode UTF-8
+      .through(fs2.text.utf8.decode) // decode UTF-8
       .through(fs2.text.lines)      // split to lines
       .map(_.split(' ').toVector)   // split lines to words
       .map(v => v.map(_.capitalize).mkString(" "))
       .intersperse("\n")            // remerge lines 
-      .through(fs2.text.utf8Encode) // encode as UTF-8
+      .through(fs2.text.utf8.encode) // encode as UTF-8
 
 val group3 = Process("echo", List("hello world")).via(customPipe).to(Process("wc", List("-w")))
 ```

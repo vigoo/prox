@@ -7,7 +7,6 @@ title: Custom runners
 
 ```scala mdoc:invisible
 import zio._
-import zio.blocking.Blocking
 import zio.stream._
 import io.github.vigoo.prox._
 import io.github.vigoo.prox.zstream._
@@ -39,7 +38,7 @@ class DockerizedProcessRunner[Info](processRunner: ProcessRunner[Info],
                                     image: DockerImage)
   extends ProcessRunner[DockerProcessInfo[Info]] {
 
-  override def startProcess[O, E](process: Process[O, E]): ZIO[Blocking, ProxError, RunningProcess[O, E, DockerProcessInfo[Info]]] = {
+  override def startProcess[O, E](process: Process[O, E]): ZIO[Any, ProxError, RunningProcess[O, E, DockerProcessInfo[Info]]] = {
     for { 
       container <- generateContainerName
       runningProcess <- processRunner
@@ -47,13 +46,13 @@ class DockerizedProcessRunner[Info](processRunner: ProcessRunner[Info],
     } yield runningProcess.mapInfo(info => DockerProcessInfo(container, info))
   }
 
-  override def startProcessGroup[O, E](processGroup: ProcessGroup[O, E]): ZIO[Blocking, ProxError, RunningProcessGroup[O, E, DockerProcessInfo[Info]]] = {
+  override def startProcessGroup[O, E](processGroup: ProcessGroup[O, E]): ZIO[Any, ProxError, RunningProcessGroup[O, E, DockerProcessInfo[Info]]] = {
     ZIO.foreach(processGroup.originalProcesses.toVector)(key => generateContainerName.map(c => key -> c)).flatMap { keyAndNames =>
       val nameMap = keyAndNames.toMap 
       val names = keyAndNames.map(_._2)
       val modifiedProcessGroup = processGroup.map(new ProcessGroup.Mapper[O, E] {
-        def mapFirst[P <: Process[ZStream[Blocking, ProxError, Byte], E]](process: P): P = wrapInDocker(process, names.head).asInstanceOf[P]
-        def mapInnerWithIdx[P <: Process.UnboundIProcess[ZStream[Blocking, ProxError, Byte], E]](process: P, idx: Int): P = 
+        def mapFirst[P <: Process[ZStream[Any, ProxError, Byte], E]](process: P): P = wrapInDocker(process, names.head).asInstanceOf[P]
+        def mapInnerWithIdx[P <: Process.UnboundIProcess[ZStream[Any, ProxError, Byte], E]](process: P, idx: Int): P = 
           wrapInDocker(process, names(idx)).asInstanceOf[P]
         def mapLast[P <: Process.UnboundIProcess[O, E]](process: P): P = wrapInDocker(process, names.last).asInstanceOf[P]
       })
@@ -62,8 +61,8 @@ class DockerizedProcessRunner[Info](processRunner: ProcessRunner[Info],
     }
   }
 
-  private def generateContainerName: ZIO[Blocking, ProxError, DockerContainer] =
-    ZIO.effect(DockerContainer(UUID.randomUUID().toString)).mapError(UnknownProxError)
+  private def generateContainerName: ZIO[Any, ProxError, DockerContainer] =
+    ZIO.attempt(DockerContainer(UUID.randomUUID().toString)).mapError(UnknownProxError)
 
   private def wrapInDocker[O, E](process: Process[O, E], container: DockerContainer): Process[O, E] = {
     val envVars = process.environmentVariables.flatMap { case (key, value) => List("-e", s"$key=$value") }.toList

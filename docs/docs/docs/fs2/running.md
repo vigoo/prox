@@ -24,7 +24,7 @@ implicit val runner: ProcessRunner[JVMProcessInfo] = new JVMProcessRunner
 val process = Process("echo", List("hello"))
 
 val result1 = process.run()
-val result2 = process.start().use { fiber =>
+val result2 = process.start().flatMap { fiber =>
   fiber.join
 }
 

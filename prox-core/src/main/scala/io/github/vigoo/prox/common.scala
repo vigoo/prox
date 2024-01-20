@@ -12,46 +12,68 @@ trait CommonModule {
 
     type Self <: ProcessLikeConfiguration
 
-    protected def applyConfiguration(workingDirectory: Option[Path],
-                                     environmentVariables: Map[String, String],
-                                     removedEnvironmentVariables: Set[String]): Self
+    protected def applyConfiguration(
+        workingDirectory: Option[Path],
+        environmentVariables: Map[String, String],
+        removedEnvironmentVariables: Set[String]
+    ): Self
 
-    /**
-      * Changes the working directory of the process
+    /** Changes the working directory of the process
       *
-      * @param workingDirectory the working directory
-      * @return a new process with the working directory set
+      * @param workingDirectory
+      *   the working directory
+      * @return
+      *   a new process with the working directory set
       */
     def in(workingDirectory: Path): Self =
-      applyConfiguration(workingDirectory = Some(workingDirectory), environmentVariables, removedEnvironmentVariables)
+      applyConfiguration(
+        workingDirectory = Some(workingDirectory),
+        environmentVariables,
+        removedEnvironmentVariables
+      )
 
-    /**
-      * Use the inherited working directory of the process instead of an explicit one
+    /** Use the inherited working directory of the process instead of an
+      * explicit one
       *
-      * @return a new process with the working directory cleared
+      * @return
+      *   a new process with the working directory cleared
       */
     def inInheritedWorkingDirectory(): Self =
-      applyConfiguration(workingDirectory = None, environmentVariables, removedEnvironmentVariables)
+      applyConfiguration(
+        workingDirectory = None,
+        environmentVariables,
+        removedEnvironmentVariables
+      )
 
-    /**
-      * Adds an environment variable to the process
+    /** Adds an environment variable to the process
       *
-      * @param nameValuePair A pair of name and value
-      * @return a new process with the working directory set
+      * @param nameValuePair
+      *   A pair of name and value
+      * @return
+      *   a new process with the working directory set
       */
     def `with`(nameValuePair: (String, String)): Self =
-      applyConfiguration(workingDirectory, environmentVariables = environmentVariables + nameValuePair, removedEnvironmentVariables)
+      applyConfiguration(
+        workingDirectory,
+        environmentVariables = environmentVariables + nameValuePair,
+        removedEnvironmentVariables
+      )
 
-    /**
-      * Removes an environment variable from the process
+    /** Removes an environment variable from the process
       *
       * Usable to remove variables inherited from the parent process.
       *
-      * @param name Name of the environment variable
-      * @return a new process with the working directory set
+      * @param name
+      *   Name of the environment variable
+      * @return
+      *   a new process with the working directory set
       */
     def without(name: String): Self =
-      applyConfiguration(workingDirectory, environmentVariables, removedEnvironmentVariables = removedEnvironmentVariables + name)
+      applyConfiguration(
+        workingDirectory,
+        environmentVariables,
+        removedEnvironmentVariables = removedEnvironmentVariables + name
+      )
 
   }
 }

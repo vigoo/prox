@@ -1,26 +1,29 @@
 package io.github.vigoo.prox.tests.fs2
 
-import java.io.File
-
 import io.github.vigoo.prox.ProxFS2
-import zio.interop.catz._
-import zio.test.{TestResult, ZSpec, testM}
-import zio.{ZIO, Task, URIO, ZEnv}
-import zio.RIO
+import zio.interop.catz.*
+import zio.test.*
+import zio.{Task, ZIO}
+
+import java.io.File
 
 trait ProxSpecHelpers {
 
-  def proxTest(label: String)(assertion: ProxFS2[Task] => RIO[ZEnv, TestResult]): ZSpec[ZEnv, scala.Throwable] = {
-    testM(label){
-      ZIO.runtime[ZEnv].flatMap { implicit env =>
+  def proxTest(label: String)(
+      assertion: ProxFS2[Task] => ZIO[Any, Throwable, TestResult]
+  ): Spec[Any, scala.Throwable] = {
+    test(label) {
+      ZIO.runtime[Any].flatMap { implicit env =>
         assertion(ProxFS2[Task])
       }
     }
   }
 
-  def withTempFile[R, A](inner: File => RIO[R, A]): RIO[R, A] =
-    Task(File.createTempFile("test", "txt")).bracket(
-      file => URIO(file.delete()),
-      inner)
+  def withTempFile[A](
+      inner: File => ZIO[Any, Throwable, A]
+  ): ZIO[Any, Throwable, A] =
+    ZIO.acquireReleaseWith(
+      ZIO.attempt(File.createTempFile("test", "txt"))
+    )(file => ZIO.attempt(file.delete()).orDie)(inner)
 
 }

@@ -10,10 +10,7 @@ import cats.effect._
 import scala.concurrent.ExecutionContext
 import io.github.vigoo.prox._
 
-implicit val contextShift = IO.contextShift(ExecutionContext.global)
-val (blocker, _) = Blocker[IO].allocated.unsafeRunSync()
-
-val prox = ProxFS2[IO](blocker)
+val prox = ProxFS2[IO]
 import prox._
 ``` 
 
@@ -34,13 +31,13 @@ Let's see an example of this (redirection methods are described below on this pa
 import cats.implicits._
 
 val proc1 = Process("echo", List("Hello world"))
-val proc2 = proc1 ># fs2.text.utf8Decode
+val proc2 = proc1 ># fs2.text.utf8.decode
 ```
 
 It is no longer possible to redirect the output of `proc2`:
 
 ```scala mdoc:fail
-val proc3 = proc2 >? fs2.text.utf8Decode[IO].andThen(fs2.text.lines) 
+val proc3 = proc2 >? fs2.text.utf8.decode[IO].andThen(fs2.text.lines) 
 ```
 
 Many redirection methods have an _operator_ version but all of them have alphanumberic
@@ -136,17 +133,17 @@ process they came from:
 
 
 ```scala mdoc:silent
-import fs2.concurrent.Queue
+import cats.effect.std.Queue
 
 for {
   errors <- Queue.unbounded[IO, String]
-  parseLines = fs2.text.utf8Decode[IO].andThen(fs2.text.lines)
+  parseLines = fs2.text.utf8.decode[IO].andThen(fs2.text.lines)
  
   p1 = Process("proc1")
   p2 = Process("proc2")
   group = (p1 | p2).customizedPerProcess.errorsToSink {
-    case p if p == p1 => parseLines.andThen(_.map(s => "P1: " + s)).andThen(_.through(errors.enqueue))
-    case p if p == p2 => parseLines.andThen(_.map(s => "P2: " + s)).andThen(_.through(errors.enqueue))
+    case p if p == p1 => parseLines.andThen(_.map(s => "P1: " + s)).andThen(_.evalMap(errors.offer))
+    case p if p == p2 => parseLines.andThen(_.map(s => "P2: " + s)).andThen(_.evalMap(errors.offer))
   }
 } yield ()
 ```
@@ -171,7 +168,7 @@ These type aliases can be used to define functions performing redirection on arb
 
 ```scala mdoc
 def logErrors[P <: Process.UnboundEProcess[_]](proc: P) = {
-   val target = fs2.text.utf8Decode[IO].andThen(fs2.text.lines).andThen(_.evalMap(line => IO(println(line)))) 
+   val target = fs2.text.utf8.decode[IO].andThen(fs2.text.lines).andThen(_.evalMap(line => IO(println(line)))) 
    proc !> target 
 }
 
