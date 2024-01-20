@@ -30,6 +30,7 @@ jobs:
           gem install sass
           gem install activesupport -v 6.1.4.4
           gem install jekyll -v 4.0.0
+          gem install nokogiri -v 1.13.10
           gem install jemoji -v 0.11.1
           gem install jekyll-sitemap -v 1.4.0          
       - run: sbt docs/publishMicrosite
