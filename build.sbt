@@ -34,7 +34,7 @@ def commonSettings(jdk: Int) = Seq(
       case _ =>
         Seq(
           compilerPlugin(
-            "org.typelevel" % "kind-projector" % "0.13.2" cross CrossVersion.full
+            "org.typelevel" % "kind-projector" % "0.13.3" cross CrossVersion.full
           )
         )
     }),
