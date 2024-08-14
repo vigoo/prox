@@ -2,7 +2,7 @@ val scala212 = "2.12.18"
 val scala213 = "2.13.12"
 val scala3 = "3.3.3"
 
-val zio2Version = "2.0.22"
+val zio2Version = "2.1.7"
 
 def scalacOptions212(jdk: Int) = Seq(
   "-Ypartial-unification",
@@ -103,7 +103,7 @@ lazy val proxFS23 = Project("prox-fs2-3", file("prox-fs2-3"))
       "dev.zio" %% "zio" % zio2Version % "test",
       "dev.zio" %% "zio-test" % zio2Version % "test",
       "dev.zio" %% "zio-test-sbt" % zio2Version % "test",
-      "dev.zio" %% "zio-interop-cats" % "23.1.0.2" % "test"
+      "dev.zio" %% "zio-interop-cats" % "23.1.0.3" % "test"
     ),
     testFrameworks += new TestFramework("zio.test.sbt.ZTestFramework")
   )
@@ -117,7 +117,7 @@ lazy val proxZStream2 = Project("prox-zstream-2", file("prox-zstream-2"))
     libraryDependencies ++= Seq(
       "dev.zio" %% "zio" % zio2Version,
       "dev.zio" %% "zio-streams" % zio2Version,
-      "dev.zio" %% "zio-prelude" % "1.0.0-RC23",
+      "dev.zio" %% "zio-prelude" % "1.0.0-RC28",
       "dev.zio" %% "zio-test" % zio2Version % "test",
       "dev.zio" %% "zio-test-sbt" % zio2Version % "test"
     ),
