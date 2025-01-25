@@ -240,8 +240,10 @@ trait ProcessRunnerModule {
         firstProcess: Process[ProxStream[Byte], E]
           with RedirectableInput[Process[ProxStream[Byte], E]],
         previousOutput: ProxStream[Byte],
-        remainingProcesses: List[Process[ProxStream[Byte], E]
-          with RedirectableInput[Process[ProxStream[Byte], E]]],
+        remainingProcesses: List[
+          Process[ProxStream[Byte], E]
+            with RedirectableInput[Process[ProxStream[Byte], E]]
+        ],
         startedProcesses: List[RunningProcess[_, E, Info]]
     ): ProxIO[(List[RunningProcess[_, E, Info]], ProxStream[Byte])] = {
       startProcess(
