@@ -305,8 +305,8 @@ trait ProcessRunnerModule {
         nativeProcess: JvmProcess
     ): ProxIO[Unit] = {
       process.inputRedirection match {
-        case StdIn()      => unit
-        case InputFile(_) => unit
+        case StdIn()                          => unit
+        case InputFile(_)                     => unit
         case InputStream(stream, flushChunks) =>
           drainToJavaOutputStream(
             stream,
@@ -346,7 +346,7 @@ trait ProcessRunnerModule {
       outputRedirection match {
         case StdOut()                => ProcessBuilder.Redirect.INHERIT
         case OutputFile(path, false) => ProcessBuilder.Redirect.to(path.toFile)
-        case OutputFile(path, true) =>
+        case OutputFile(path, true)  =>
           ProcessBuilder.Redirect.appendTo(path.toFile)
         case OutputStreamThroughPipe(_, _, _) => ProcessBuilder.Redirect.PIPE
         case OutputStreamToSink(_, _)         => ProcessBuilder.Redirect.PIPE
