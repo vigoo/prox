@@ -73,7 +73,7 @@ trait ProxFS2[F[_]] extends Prox {
       acquire: ProxIO[A]
   )(use: A => ProxIO[B])(fin: (A, IOResult) => ProxIO[Unit]): ProxIO[B] =
     Sync[F](instances).bracketCase(acquire)(use) {
-      case (value, Outcome.Succeeded(_)) => fin(value, Completed)
+      case (value, Outcome.Succeeded(_))   => fin(value, Completed)
       case (value, Outcome.Errored(error)) =>
         fin(value, Failed(List(UnknownProxError(error))))
       case (value, Outcome.Canceled()) => fin(value, Canceled)
